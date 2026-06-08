@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { ActionButton } from "@/components/ActionButton";
 import { AnimatedBrandLogo } from "@/components/AnimatedBrandLogo";
+import { GroupPicker } from "@/components/GroupPicker";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { CalendarIcon, MessageIcon, MoneyIcon, PinIcon, UsersIcon } from "@/components/Icons";
+import { CalendarIcon, MessageIcon, MoneyIcon, PinIcon } from "@/components/Icons";
 import { classes, highlights, links, plans } from "@/lib/data";
 
 export default function Home() {
@@ -42,9 +43,7 @@ export default function Home() {
             <ActionButton href="/planos" icon={<MoneyIcon className="size-6" />} variant="yellow">
               Planos
             </ActionButton>
-            <ActionButton href={links.group} icon={<UsersIcon className="size-6" />} variant="purple" external>
-              Entrar no Grupo
-            </ActionButton>
+            <GroupPicker />
             <ActionButton href={links.whatsapp} icon={<MessageIcon className="size-6" />} variant="blue" external>
               Falar no WhatsApp
             </ActionButton>
