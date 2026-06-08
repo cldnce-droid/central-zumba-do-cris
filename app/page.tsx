@@ -1,11 +1,14 @@
 import Image from "next/image";
 import { ActionButton } from "@/components/ActionButton";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { CalendarIcon, MessageIcon, MoneyIcon, PinIcon, UsersIcon } from "@/components/Icons";
 import { classes, highlights, links, plans } from "@/lib/data";
 
 export default function Home() {
   return (
     <div className="flex flex-col gap-5 md:gap-8">
+      <InstallPrompt />
+
       <section className="grid gap-5 md:grid-cols-[0.92fr_1.08fr] md:items-stretch md:gap-7">
         <div className="ink-frame min-h-[25rem] overflow-hidden p-3">
           <div className="relative flex h-full min-h-[24rem] items-center justify-center overflow-hidden rounded-lg bg-white">
