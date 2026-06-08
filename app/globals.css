@@ -146,6 +146,111 @@ a {
   text-wrap: balance;
 }
 
+.brand-animation-stage {
+  position: relative;
+  display: flex;
+  min-height: 24rem;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  contain: layout paint;
+  isolation: isolate;
+}
+
+.brand-logo-float {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  will-change: transform;
+}
+
+.brand-logo-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: scale(2);
+  user-select: none;
+}
+
+.brand-particles,
+.brand-svg-effects,
+.brand-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.brand-particles {
+  z-index: 3;
+}
+
+.brand-particle {
+  position: absolute;
+  border-radius: 999px;
+  opacity: 0.52;
+  box-shadow: 0 0 8px currentColor;
+  animation: brand-particle-float 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.brand-svg-effects {
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.brand-shine {
+  z-index: 4;
+  width: 12%;
+  left: -26%;
+  right: auto;
+  background: rgba(255, 255, 255, 0.32);
+  filter: blur(10px);
+  mix-blend-mode: screen;
+  transform: skewX(-16deg);
+  animation: brand-letter-shine 9s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes brand-particle-float {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
+  50% {
+    opacity: 0.68;
+    transform: translate3d(var(--particle-drift), -9px, 0) scale(1.08);
+  }
+}
+
+@keyframes brand-letter-shine {
+  0%,
+  68% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) skewX(-16deg);
+  }
+  73% {
+    opacity: 0.55;
+  }
+  84%,
+  100% {
+    opacity: 0;
+    transform: translate3d(1050%, 0, 0) skewX(-16deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-particle,
+  .brand-shine {
+    animation: none;
+  }
+}
+
 @media (min-width: 768px) {
   .app-bg::before {
     top: 22vh;
