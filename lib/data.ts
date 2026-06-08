@@ -1,9 +1,29 @@
 export const links = {
   officialLogo: "/references/logo-principal-1.png",
   whatsapp: "#",
-  group: "#",
   pix: "#"
 };
+
+export const whatsappGroups = [
+  {
+    city: "Calheiros",
+    schedule: "Quinta-feira • 20h15",
+    url: "https://chat.whatsapp.com/J8wN1cv3qdn9pZEoFpkVWj",
+    accent: "pink"
+  },
+  {
+    city: "Palmas",
+    schedule: "Quarta-feira • 19h",
+    url: "https://chat.whatsapp.com/B6c5JM9R5nx8IxpZNTK0jp",
+    accent: "blue"
+  },
+  {
+    city: "Ganchos de Fora",
+    schedule: "Terça e quinta • 18h30",
+    url: "https://chat.whatsapp.com/FPIReSms4UG6dFwk7RY10D",
+    accent: "yellow"
+  }
+] as const;
 
 export const classes = [
   {
