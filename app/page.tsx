@@ -44,8 +44,13 @@ export default function Home() {
               Planos
             </ActionButton>
             <GroupPicker />
-            <ActionButton href={links.whatsapp} icon={<MessageIcon className="size-6" />} variant="blue" external>
-              Falar no WhatsApp
+            <ActionButton
+              href="https://wa.me/5541984723756?text=Ol%C3%A1%21%20Gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20as%20turmas%20do%20Zumba%20do%20Cris.%20%F0%9F%92%96"
+              icon={<MessageIcon className="size-6" />}
+              variant="blue"
+              external
+            >
+              💬 Dúvidas e Informações
             </ActionButton>
           </div>
         </div>
