@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Central Zumba do Cris">
+  <rect width="512" height="512" rx="96" fill="#fffaf2"/>
+  <path d="M-20 84 398 18 532 68 68 166Z" fill="#f20772"/>
+  <path d="M118 420 548 300 560 414 52 492Z" fill="#129ee8"/>
+  <path d="M38 324 472 250 500 318 74 382Z" fill="#ffc400"/>
+  <path d="M76 252 440 178 456 236 66 308Z" fill="#071046"/>
+  <text x="256" y="249" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="168" font-weight="900" fill="#ffffff">ZC</text>
+  <text x="256" y="318" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="900" fill="#071046">CENTRAL</text>
+</svg>
