@@ -8,14 +8,14 @@ export default function Home() {
     <div className="flex flex-col gap-5 md:gap-8">
       <section className="grid gap-5 md:grid-cols-[0.92fr_1.08fr] md:items-stretch md:gap-7">
         <div className="ink-frame min-h-[25rem] overflow-hidden p-3">
-          <div className="relative flex h-full min-h-[24rem] items-center justify-center overflow-hidden rounded-lg bg-white p-4">
+          <div className="relative flex h-full min-h-[24rem] items-center justify-center overflow-hidden rounded-lg bg-white">
             <Image
               src={links.officialLogo}
               alt="Logo oficial Zumba do Cris"
               width={1536}
               height={1024}
               priority
-              className="h-auto max-h-[35rem] w-full object-contain"
+              className="h-auto w-full scale-[2] object-contain"
             />
           </div>
         </div>
@@ -60,7 +60,11 @@ export default function Home() {
       <section className="grid gap-4 md:grid-cols-3">
         {classes.map((item) => (
           <article key={item.city} className="premium-panel grid min-h-28 place-items-center p-5 text-center">
-            <h2 className="text-2xl font-black uppercase text-cris-navy sm:text-3xl">{item.city}</h2>
+            <div>
+              <h2 className="text-2xl font-black uppercase text-cris-navy sm:text-3xl">{item.city}</h2>
+              <p className="mt-2 text-sm font-black uppercase text-cris-pink">{item.days}</p>
+              <p className="mt-1 text-2xl font-black text-cris-blue">{item.time}</p>
+            </div>
           </article>
         ))}
       </section>
