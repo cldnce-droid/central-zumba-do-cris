@@ -61,15 +61,18 @@ export const classes = [
 export const plans = [
   {
     name: "1x na semana",
-    price: "R$50"
+    price: "R$50",
+    tagline: "Melhor dançando do que reclamando."
   },
   {
     name: "2x na semana",
-    price: "R$85"
+    price: "R$85",
+    tagline: "A evolução começou a aparecer."
   },
   {
     name: "3x na semana",
-    price: "R$100"
+    price: "R$100",
+    tagline: "O sofá não gostou deste plano."
   }
 ] as const;
 
