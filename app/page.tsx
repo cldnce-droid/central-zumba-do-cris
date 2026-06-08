@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { ActionButton } from "@/components/ActionButton";
+import { AnimatedBrandLogo } from "@/components/AnimatedBrandLogo";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { CalendarIcon, MessageIcon, MoneyIcon, PinIcon, UsersIcon } from "@/components/Icons";
 import { classes, highlights, links, plans } from "@/lib/data";
@@ -11,16 +12,7 @@ export default function Home() {
 
       <section className="grid gap-5 md:grid-cols-[0.92fr_1.08fr] md:items-stretch md:gap-7">
         <div className="ink-frame min-h-[25rem] overflow-hidden p-3">
-          <div className="relative flex h-full min-h-[24rem] items-center justify-center overflow-hidden rounded-lg bg-white">
-            <Image
-              src={links.officialLogo}
-              alt="Logo oficial Zumba do Cris"
-              width={1536}
-              height={1024}
-              priority
-              className="h-auto w-full scale-[2] object-contain"
-            />
-          </div>
+          <AnimatedBrandLogo />
         </div>
 
         <div className="flex flex-col justify-between gap-5">
