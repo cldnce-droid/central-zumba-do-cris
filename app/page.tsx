@@ -1,26 +1,22 @@
 import Image from "next/image";
 import { ActionButton } from "@/components/ActionButton";
-import { CalendarIcon, MessageIcon, MoneyIcon, UsersIcon } from "@/components/Icons";
-import { classes, highlights, links, plans, referenceImages } from "@/lib/data";
+import { CalendarIcon, MessageIcon, MoneyIcon, PinIcon, UsersIcon } from "@/components/Icons";
+import { classes, highlights, links, plans } from "@/lib/data";
 
 export default function Home() {
   return (
     <div className="flex flex-col gap-5 md:gap-8">
       <section className="grid gap-5 md:grid-cols-[0.92fr_1.08fr] md:items-stretch md:gap-7">
         <div className="ink-frame min-h-[25rem] overflow-hidden p-3">
-          <div className="relative h-full min-h-[24rem] overflow-hidden rounded-lg bg-white">
+          <div className="relative flex h-full min-h-[24rem] items-center justify-center overflow-hidden rounded-lg bg-white p-4">
             <Image
               src={links.officialLogo}
               alt="Logo oficial Zumba do Cris"
-              width={720}
-              height={1280}
+              width={1536}
+              height={1024}
               priority
-              className="logo-crop h-full min-h-[24rem] w-full object-cover"
+              className="h-auto max-h-[35rem] w-full object-contain"
             />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cris-navy via-cris-navy/60 to-transparent p-5 pt-20 text-white">
-              <p className="text-sm font-black uppercase text-cris-yellow">App dos alunos</p>
-              <p className="mt-1 text-2xl font-black uppercase leading-none">Errou... continua!</p>
-            </div>
           </div>
         </div>
 
@@ -63,11 +59,8 @@ export default function Home() {
 
       <section className="grid gap-4 md:grid-cols-3">
         {classes.map((item) => (
-          <article key={item.city} className="premium-panel p-5">
-            <p className="text-xs font-black uppercase text-cris-pink">{item.days}</p>
-            <h2 className="mt-1 text-2xl font-black uppercase text-cris-navy">{item.city}</h2>
-            <p className="mt-3 text-4xl font-black text-cris-blue">{item.time}</p>
-            <p className="mt-2 text-sm font-bold leading-snug text-cris-navy/70">{item.place}</p>
+          <article key={item.city} className="premium-panel grid min-h-28 place-items-center p-5 text-center">
+            <h2 className="text-2xl font-black uppercase text-cris-navy sm:text-3xl">{item.city}</h2>
           </article>
         ))}
       </section>
@@ -79,14 +72,34 @@ export default function Home() {
           <p className="mt-3 text-base font-bold text-white/80">Aulas em qualquer local disponível.</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          {referenceImages.map((image) => (
-            <div key={image.src} className="relative min-h-40 overflow-hidden rounded-lg bg-cris-navy shadow-pop">
-              <Image src={image.src} alt={`Referência visual ${image.title}`} fill sizes="(min-width: 768px) 20vw, 32vw" className="object-cover" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-cris-navy to-transparent p-3 pt-12">
-                <p className="text-xs font-black uppercase text-white">{image.title}</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {classes.map((item) => (
+            <a
+              key={item.city}
+              href={item.mapUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Abrir ${item.city} no Google Maps`}
+              className="group relative min-h-52 overflow-hidden rounded-lg bg-cris-navy shadow-pop transition duration-200 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-cris-yellow/60"
+            >
+              <Image
+                src={item.image}
+                alt={`Foto do local da turma em ${item.city}`}
+                fill
+                sizes="(min-width: 768px) 20vw, 100vw"
+                className="object-cover transition duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-cris-navy via-cris-navy/10 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 text-white">
+                <div>
+                  <p className="text-xl font-black uppercase">{item.city}</p>
+                  <p className="mt-1 text-xs font-bold text-white/80">{item.place}</p>
+                </div>
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
+                  <PinIcon className="size-5" />
+                </span>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </section>
