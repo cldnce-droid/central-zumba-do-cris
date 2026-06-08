@@ -1,5 +1,5 @@
 export const links = {
-  officialLogo: "/references/story-1.png",
+  officialLogo: "/references/logo-principal-1.png",
   whatsapp: "#",
   group: "#",
   pix: "#"
@@ -10,9 +10,10 @@ export const classes = [
     city: "Ganchos de Fora",
     days: "Terça e quinta",
     time: "18h30",
-    place: "Local a confirmar",
+    place: "Salão da Capela",
     accent: "pink",
-    image: "/references/logo-oficial.png",
+    image: "/references/local-ganchos-de-fora.png",
+    mapUrl: "https://maps.app.goo.gl/zJRE6LH2uVFRMNd98",
     note: "Duas chances na semana para entrar no ritmo."
   },
   {
@@ -21,8 +22,9 @@ export const classes = [
     time: "19h",
     place: "2.0 Lounge",
     accent: "blue",
-    image: "/references/flyer-palmas.png",
-    note: "Noite de energia alta em um espaco com clima de encontro."
+    image: "/references/local-palmas.png",
+    mapUrl: "https://maps.app.goo.gl/Tep8YnCCuLQ44Y6y9",
+    note: "Noite de energia alta em um espaço com clima de encontro."
   },
   {
     city: "Calheiros",
@@ -30,7 +32,8 @@ export const classes = [
     time: "20h15",
     place: "Ao lado do Berlanda",
     accent: "purple",
-    image: "/references/flyer-calheiros.png",
+    image: "/references/local-calheiros.png",
+    mapUrl: "https://maps.app.goo.gl/SAQjdw9UR8AZb2oXA",
     note: "Turma para fechar a quinta no modo alegria total."
   }
 ] as const;
@@ -80,20 +83,5 @@ export const highlights = [
   {
     label: "Energia",
     value: "100%"
-  }
-] as const;
-
-export const referenceImages = [
-  {
-    title: "Palmas",
-    src: "/references/flyer-palmas.png"
-  },
-  {
-    title: "Calheiros",
-    src: "/references/flyer-calheiros.png"
-  },
-  {
-    title: "Story",
-    src: "/references/story-2.png"
   }
 ] as const;
