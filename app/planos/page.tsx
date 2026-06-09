@@ -1,7 +1,6 @@
-import { ActionButton } from "@/components/ActionButton";
-import { MoneyIcon } from "@/components/Icons";
 import { PageTitle } from "@/components/PageTitle";
-import { links, plans } from "@/lib/data";
+import { PixPayment } from "@/components/PixPayment";
+import { plans } from "@/lib/data";
 
 export default function PlanosPage() {
   return (
@@ -27,16 +26,7 @@ export default function PlanosPage() {
         ))}
       </section>
 
-      <section className="ink-frame p-5 text-white">
-        <p className="text-sm font-bold uppercase text-white/70">Pagamento</p>
-        <h2 className="mt-2 text-4xl font-black uppercase text-cris-yellow">PIX</h2>
-        <p className="mt-2 max-w-xl text-base font-bold text-white/80">Placeholder para inserir a chave depois. Quando tiver a chave pronta, troque em lib/data.ts.</p>
-        <div className="mt-4">
-          <ActionButton href={links.pix} icon={<MoneyIcon className="size-6" />} variant="yellow" external>
-            Pagar com PIX
-          </ActionButton>
-        </div>
-      </section>
+      <PixPayment />
     </div>
   );
 }
