@@ -94,14 +94,14 @@ export const notices = [
   },
   {
     category: "Comunidade",
-    title: "Bem-vinda ao Zumba do Cris",
+    title: "Bem-vinda a Zumba do Cris",
     description: "Aqui ninguém precisa ser perfeito. Basta continuar.",
     accent: "purple"
   },
   {
     category: "Lembrete",
     title: "Dia de pagamento",
-    description: "As mensalidades vencem todo dia 05.",
+    description: "As mensalidades vencem todo dia 08.",
     accent: "yellow"
   }
 ] as const;
