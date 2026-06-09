@@ -43,6 +43,19 @@ A logo é usada como imagem, sem redesenhar, recolorir ou recriar. Para trocar p
 
 O visual premium do app usa as cores, energia, pinceladas e flyers da marca como referência, mantendo os arquivos originais preservados em `public/references`.
 
+## Ícone do aplicativo
+
+A arte usada somente como ícone da PWA fica em:
+
+```text
+public/icons/app-icon-source.png
+```
+
+Os arquivos derivados para Android, iPhone e navegadores ficam no mesmo
+diretório: `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` e
+`favicon.ico`. Isso não altera nem substitui a logo oficial usada dentro do
+aplicativo, que continua em `public/references`.
+
 ## Publicar na Vercel
 
 1. Suba este projeto para um repositório no GitHub.
