@@ -1,4 +1,4 @@
-const CACHE_NAME = "central-zumba-do-cris-v1";
+const CACHE_NAME = "central-zumba-do-cris-v2";
 const APP_SHELL = ["/", "/turmas", "/planos", "/avisos", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -28,5 +28,54 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/")))
+  );
+});
+
+// Future push providers can send JSON with title, body, icon and url.
+self.addEventListener("push", (event) => {
+  const fallback = {
+    title: "Zumba do Cris",
+    body: "Tem novidade no Mural da Comunidade 💖",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    url: "/avisos"
+  };
+
+  let data = fallback;
+
+  if (event.data) {
+    try {
+      data = { ...fallback, ...event.data.json() };
+    } catch {
+      data = { ...fallback, body: event.data.text() };
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: data.badge,
+      data: { url: data.url },
+      vibrate: [120, 60, 120]
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/avisos";
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        const existingClient = clients.find((client) =>
+          client.url.includes(targetUrl)
+        );
+
+        if (existingClient) return existingClient.focus();
+        return self.clients.openWindow(targetUrl);
+      })
   );
 });
