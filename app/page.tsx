@@ -4,7 +4,7 @@ import { AnimatedBrandLogo } from "@/components/AnimatedBrandLogo";
 import { GroupPicker } from "@/components/GroupPicker";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { CalendarIcon, MessageIcon, MoneyIcon, PinIcon } from "@/components/Icons";
-import { classes, highlights, links, plans } from "@/lib/data";
+import { classes, plans } from "@/lib/data";
 
 export default function Home() {
   return (
@@ -19,20 +19,32 @@ export default function Home() {
         <div className="flex flex-col justify-between gap-5">
           <div className="premium-panel p-5 sm:p-7">
             <div className="paint-stroke absolute -right-8 top-7 h-9 w-44 bg-cris-pink" aria-hidden="true" />
-            <p className="text-sm font-black uppercase text-cris-blue">Central premium</p>
-            <h1 className="text-balance mt-2 text-5xl font-black uppercase leading-none text-cris-navy sm:text-7xl">
+            <h1 className="text-balance text-5xl font-black uppercase leading-none text-cris-navy sm:text-7xl">
               Zumba do Cris
             </h1>
-            <p className="mt-4 max-w-xl text-lg font-black uppercase leading-tight text-cris-navy/80">
-              Turmas, planos, avisos e contato em uma central feita para abrir no celular como app.
+
+            <div className="mt-5 space-y-1 text-2xl font-black leading-tight sm:text-3xl">
+              <p className="text-cris-blue">Mais saúde.</p>
+              <p className="text-cris-pink">Mais alegria.</p>
+              <p className="text-cris-purple">Mais energia.</p>
+              <p className="text-cris-navy">Mais você.</p>
+            </div>
+
+            <p className="mt-5 inline-block text-xl font-black text-cris-navy sm:text-2xl">
+              💖 Errou... continua!
             </p>
-            <div className="mt-6 grid grid-cols-3 gap-2">
-              {highlights.map((item) => (
-                <div key={item.label} className="rounded-lg bg-cris-navy px-3 py-4 text-center text-white">
-                  <p className="text-2xl font-black text-cris-yellow">{item.value}</p>
-                  <p className="mt-1 text-[0.68rem] font-black uppercase tracking-wide text-white/70">{item.label}</p>
-                </div>
-              ))}
+
+            <div className="mt-6 rounded-lg bg-cris-navy/[0.05] p-4 ring-1 ring-cris-navy/10">
+              <p className="text-sm font-black uppercase text-cris-pink">
+                Aqui você encontra:
+              </p>
+              <ul className="mt-3 grid gap-2 text-sm font-bold text-cris-navy/80 sm:grid-cols-2">
+                <li>📍 Turmas e horários</li>
+                <li>💰 Planos e valores</li>
+                <li>👥 Grupos das turmas</li>
+                <li>📢 Avisos importantes</li>
+                <li className="sm:col-span-2">💬 Dúvidas e informações</li>
+              </ul>
             </div>
           </div>
 
