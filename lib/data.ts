@@ -79,33 +79,29 @@ export const plans = [
 
 export const notices = [
   {
-    title: "Bem-vindo a Central",
-    body: "Os avisos das turmas aparecem aqui. Edite este texto em lib/data.ts.",
-    tag: "Geral"
+    category: "Vagas",
+    title: "Últimas vagas em Calheiros",
+    description: "Restam apenas 7 vagas para a turma de quinta-feira.",
+    accent: "pink",
+    date: "08 de junho"
   },
   {
-    title: "Aulas em qualquer local",
-    body: "Alunos com plano ativo podem participar em qualquer local disponível.",
-    tag: "Planos"
+    category: "Turmas",
+    title: "Palmas está crescendo",
+    description: "Nossa turma de Palmas continua recebendo novas alunas.",
+    accent: "blue",
+    date: "07 de junho"
   },
   {
-    title: "Links em breve",
-    body: "WhatsApp, grupo e PIX estão como placeholders para inserir depois.",
-    tag: "Links"
-  }
-] as const;
-
-export const highlights = [
-  {
-    label: "Locais",
-    value: "3"
+    category: "Comunidade",
+    title: "Bem-vinda ao Zumba do Cris",
+    description: "Aqui ninguém precisa ser perfeito. Basta continuar.",
+    accent: "purple"
   },
   {
-    label: "Planos",
-    value: "3"
-  },
-  {
-    label: "Energia",
-    value: "100%"
+    category: "Lembrete",
+    title: "Dia de pagamento",
+    description: "As mensalidades vencem todo dia 05.",
+    accent: "yellow"
   }
 ] as const;
