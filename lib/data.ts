@@ -1,8 +1,9 @@
 export const links = {
   officialLogo: "/references/logo-principal-1.png",
-  whatsapp: "#",
-  pix: "#"
+  whatsapp: "#"
 };
+
+export const pixKey = "4c1f81f8-95e8-4a9c-b7fa-58268fe36315";
 
 export const whatsappGroups = [
   {
