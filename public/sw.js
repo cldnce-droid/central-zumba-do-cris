@@ -1,5 +1,15 @@
-const CACHE_NAME = "central-zumba-do-cris-v2";
-const APP_SHELL = ["/", "/turmas", "/planos", "/avisos", "/manifest.webmanifest", "/icon.svg"];
+const CACHE_NAME = "central-zumba-do-cris-v3";
+const APP_SHELL = [
+  "/",
+  "/turmas",
+  "/planos",
+  "/avisos",
+  "/manifest.webmanifest",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/apple-touch-icon.png",
+  "/icons/favicon.ico"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
