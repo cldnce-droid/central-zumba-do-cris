@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 type NotificationStatus = "idle" | "success" | "denied" | "unsupported";
+type TestStatus = "idle" | "shown" | "permission-needed" | "failed";
 
 const messages: Record<Exclude<NotificationStatus, "idle">, string> = {
   success: "💖 Notificações ativadas com sucesso!",
@@ -12,6 +13,7 @@ const messages: Record<Exclude<NotificationStatus, "idle">, string> = {
 
 export function NotificationOptIn() {
   const [status, setStatus] = useState<NotificationStatus>("idle");
+  const [testStatus, setTestStatus] = useState<TestStatus>("idle");
 
   useEffect(() => {
     if (!("Notification" in window)) {
@@ -39,6 +41,41 @@ export function NotificationOptIn() {
       setStatus(permission === "granted" ? "success" : "denied");
     } catch {
       setStatus("unsupported");
+    }
+  };
+
+  const testNotification = async () => {
+    if (!("Notification" in window)) {
+      setStatus("unsupported");
+      return;
+    }
+
+    if (Notification.permission !== "granted") {
+      setTestStatus("permission-needed");
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+
+      // Local preview only: no backend or push subscription is involved.
+      await registration.showNotification("🔥 ALERTA DE MOVIMENTO", {
+        body:
+          "Foi detectado um risco elevado de preguiça hoje. 😅\n\n" +
+          "A recomendação oficial é:\n\n" +
+          "💃 Zumba do Cris\n" +
+          "⏰ Hoje tem aula!\n\n" +
+          "Seu sofá já foi avisado.\n\n" +
+          "💖 Errou... continua!",
+        icon: "/icons/icon-192.png?v=20260609",
+        badge: "/icons/icon-192.png?v=20260609",
+        data: { url: "/avisos" },
+        tag: "zumba-do-cris-teste"
+      });
+
+      setTestStatus("shown");
+    } catch {
+      setTestStatus("failed");
     }
   };
 
@@ -80,6 +117,34 @@ export function NotificationOptIn() {
               {messages[status]}
             </p>
           ) : null}
+        </div>
+
+        <div className="mt-5 border-t border-white/15 pt-5">
+          <button
+            className="min-h-12 rounded-lg border-2 border-cris-blue bg-white/5 px-5 py-3 text-sm font-black uppercase text-white transition hover:bg-cris-blue/20 focus:outline-none focus:ring-4 focus:ring-cris-yellow/45"
+            onClick={testNotification}
+            type="button"
+          >
+            🧪 Testar Notificação
+          </button>
+
+          <div aria-live="polite">
+            {testStatus === "shown" ? (
+              <p className="mt-3 text-sm font-bold text-cris-yellow">
+                Notificação de teste enviada para este dispositivo.
+              </p>
+            ) : null}
+            {testStatus === "permission-needed" ? (
+              <p className="mt-3 text-sm font-bold text-white/80">
+                Ative as notificações antes de realizar o teste.
+              </p>
+            ) : null}
+            {testStatus === "failed" ? (
+              <p className="mt-3 text-sm font-bold text-white/80">
+                Não foi possível exibir o teste neste navegador.
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>
