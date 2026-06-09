@@ -21,7 +21,7 @@ As informações principais ficam em `lib/data.ts`.
 
 - Horários e locais: edite `classes`
 - Planos e valores: edite `plans`
-- Avisos: edite `notices`
+- Mural da Comunidade: edite `notices`
 - WhatsApp, Grupo, PIX e logo: edite `links`
 - Imagens de apoio usadas nos cards e vitrines: edite `image` em `classes` e `referenceImages`
 
@@ -52,3 +52,19 @@ O visual premium do app usa as cores, energia, pinceladas e flyers da marca como
 5. Clique em `Deploy`.
 
 A Vercel vai rodar `npm install` e `npm run build` automaticamente.
+
+## Notificações push futuras
+
+O Mural da Comunidade já solicita permissão com a Notification API e registra
+`public/sw.js`. O service worker também já sabe receber eventos `push` e abrir
+`/avisos` quando a aluna toca na notificação.
+
+Para enviar notificações de verdade no futuro, ainda será necessário:
+
+1. Criar um backend ou função serverless para salvar as inscrições.
+2. Gerar uma chave VAPID.
+3. Usar `registration.pushManager.subscribe(...)` no navegador.
+4. Enviar os avisos pelo backend usando Web Push.
+
+O ponto para conectar a inscrição futura é
+`components/NotificationOptIn.tsx`. O recebimento fica em `public/sw.js`.
