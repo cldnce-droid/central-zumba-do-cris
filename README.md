@@ -22,6 +22,8 @@ As informações principais ficam em `lib/data.ts`.
 - Horários e locais: edite `classes`
 - Planos e valores: edite `plans`
 - Mural da Comunidade: edite `notices`
+- Área do Aluno: edite `alunos`, `turmaOptions`, `planoOptions`,
+  `frequencias` e `conquistasPorAluno`
 - WhatsApp, Grupo, PIX e logo: edite `links`
 - Imagens de apoio usadas nos cards e vitrines: edite `image` em `classes` e `referenceImages`
 
@@ -81,3 +83,12 @@ Para enviar notificações de verdade no futuro, ainda será necessário:
 
 O ponto para conectar a inscrição futura é
 `components/NotificationOptIn.tsx`. O recebimento fica em `public/sw.js`.
+
+## Área do Aluno
+
+A primeira versão fica em `/minha-area` e usa somente dados fictícios de
+`lib/data.ts`. O seletor de Maria, Ana e Joana existe para testar o layout antes
+de implementar login, telefone, planilha ou banco de dados.
+
+Os tipos TypeScript `Aluno`, `Turma`, `Plano`, `Status`, `Conquista` e
+`Frequencia` também ficam em `lib/data.ts`.
