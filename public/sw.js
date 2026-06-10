@@ -1,14 +1,15 @@
-const CACHE_NAME = "central-zumba-do-cris-v3";
+const CACHE_NAME = "central-zumba-do-cris-icons-20260609";
 const APP_SHELL = [
   "/",
   "/turmas",
   "/planos",
   "/avisos",
-  "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/apple-touch-icon.png",
-  "/icons/favicon.ico"
+  "/minha-area",
+  "/manifest.webmanifest?v=20260609",
+  "/icons/icon-192.png?v=20260609",
+  "/icons/icon-512.png?v=20260609",
+  "/icons/apple-touch-icon.png?v=20260609",
+  "/icons/favicon.ico?v=20260609"
 ];
 
 self.addEventListener("install", (event) => {
@@ -46,8 +47,8 @@ self.addEventListener("push", (event) => {
   const fallback = {
     title: "Zumba do Cris",
     body: "Tem novidade no Mural da Comunidade 💖",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/icons/icon-192.png?v=20260609",
+    badge: "/icons/icon-192.png?v=20260609",
     url: "/avisos"
   };
 
