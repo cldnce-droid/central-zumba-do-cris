@@ -48,6 +48,14 @@ export interface Conquista {
   accent: AccentColor;
 }
 
+export interface Desafio {
+  id: string;
+  titulo: string;
+  descricao: string;
+  status: "Em breve" | "Bloqueado";
+  accent: AccentColor;
+}
+
 export const links = {
   officialLogo: "/references/logo-principal-1.png",
   whatsapp: "#"
@@ -298,6 +306,37 @@ export const conquistasPorAluno: Record<string, Conquista[]> = {
     }
   ]
 };
+
+export const desafios: Desafio[] = [
+  {
+    id: "quatro-aulas",
+    titulo: "Desafio 4 aulas no mês",
+    descricao: "Quatro encontros para transformar movimento em rotina.",
+    status: "Em breve",
+    accent: "pink"
+  },
+  {
+    id: "errou-continua",
+    titulo: "Desafio Errou... continua!",
+    descricao: "Persistir, sorrir e voltar para a próxima música.",
+    status: "Bloqueado",
+    accent: "yellow"
+  },
+  {
+    id: "mes-no-ritmo",
+    titulo: "Desafio Mês no Ritmo",
+    descricao: "Um mês inteiro mantendo sua energia em movimento.",
+    status: "Em breve",
+    accent: "blue"
+  },
+  {
+    id: "convide-amiga",
+    titulo: "Desafio Convide uma amiga",
+    descricao: "Porque dançar junto deixa tudo ainda melhor.",
+    status: "Bloqueado",
+    accent: "purple"
+  }
+];
 
 export const plans = [
   {
