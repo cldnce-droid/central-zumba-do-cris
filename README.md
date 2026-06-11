@@ -92,3 +92,14 @@ de implementar login, telefone, planilha ou banco de dados.
 
 Os tipos TypeScript `Aluno`, `Turma`, `Plano`, `Status`, `Conquista` e
 `Frequencia` também ficam em `lib/data.ts`.
+
+### Fase 1: presença e desafios
+
+A confirmação da próxima aula é um estado local e representa somente a intenção
+da aluna de participar. Ela não altera aulas no mês, sequência ou total de
+presenças. A validação real ficará para uma integração futura com o Dashboard do
+Professor.
+
+Os desafios exibidos como `Em breve` ou `Bloqueado` podem ser editados no array
+`desafios` em `lib/data.ts`. O botão `Adicionar à agenda` também é apenas um
+placeholder visual nesta fase.
