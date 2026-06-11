@@ -9,11 +9,8 @@ import {
   turmas
 } from "./mockData";
 import type {
-  Aula,
   ConquistaVisual,
-  DiaSemana,
-  ResumoFrequencia,
-  Turma
+  ResumoFrequencia
 } from "./types";
 
 const planoPorCodigo = {
@@ -22,67 +19,11 @@ const planoPorCodigo = {
   "3x": "PLANO_3X"
 } as const;
 
-const diaDaSemana: Record<DiaSemana, number> = {
-  domingo: 0,
-  segunda: 1,
-  terça: 2,
-  quarta: 3,
-  quinta: 4,
-  sexta: 5,
-  sábado: 6
-};
-
 function criarDataDaAula(data: string, horario: string) {
   const [hora, minuto = "0"] = horario.split("h");
   return new Date(
     `${data}T${hora.padStart(2, "0")}:${minuto.padStart(2, "0")}:00`
   );
-}
-
-function criarProximaAulaRecorrente(
-  turmasDisponiveis: Turma[],
-  referencia: Date
-): Aula | null {
-  const candidatas = turmasDisponiveis.flatMap((turma) =>
-    turma.dias.map((dia) => {
-      const [hora, minuto = "0"] = turma.horario.split("h");
-      const data = new Date(referencia);
-      const diasAteAula =
-        (diaDaSemana[dia] - referencia.getDay() + 7) % 7;
-
-      data.setDate(referencia.getDate() + diasAteAula);
-      data.setHours(Number(hora), Number(minuto), 0, 0);
-
-      if (data.getTime() <= referencia.getTime()) {
-        data.setDate(data.getDate() + 7);
-      }
-
-      return { data, turma, dia };
-    })
-  );
-
-  const proxima = candidatas.sort(
-    (primeira, segunda) => primeira.data.getTime() - segunda.data.getTime()
-  )[0];
-
-  if (!proxima) return null;
-
-  const data = [
-    proxima.data.getFullYear(),
-    String(proxima.data.getMonth() + 1).padStart(2, "0"),
-    String(proxima.data.getDate()).padStart(2, "0")
-  ].join("-");
-
-  return {
-    id: `AULA_PREVISTA_${proxima.turma.id}_${data}`,
-    turmaId: proxima.turma.id,
-    data,
-    diaSemana: proxima.dia,
-    horario: proxima.turma.horario,
-    local: proxima.turma.local,
-    endereco: proxima.turma.endereco,
-    status: "agendada"
-  };
 }
 
 export function getAlunoById(id: string) {
@@ -134,10 +75,7 @@ export function getProximaAula(alunoId: string, referencia = new Date()) {
         criarDataDaAula(segunda.data, segunda.horario).getTime()
     )[0];
 
-  return (
-    proximaAgendada ??
-    criarProximaAulaRecorrente(turmasDisponiveis, referencia)
-  );
+  return proximaAgendada;
 }
 
 export function getStatusPagamento(alunoId: string) {
@@ -147,7 +85,7 @@ export function getStatusPagamento(alunoId: string) {
       segundo.vencimento.localeCompare(primeiro.vencimento)
     )[0];
 
-  return ultimoPagamento?.status ?? "pendente";
+  return ultimoPagamento?.status;
 }
 
 export function getResumoFrequencia(
