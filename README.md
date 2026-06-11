@@ -22,8 +22,7 @@ As informações principais ficam em `lib/data.ts`.
 - Horários e locais: edite `classes`
 - Planos e valores: edite `plans`
 - Mural da Comunidade: edite `notices`
-- Área do Aluno: edite `alunos`, `turmaOptions`, `planoOptions`,
-  `frequencias` e `conquistasPorAluno`
+- Área do Aluno e futura planilha mãe: edite `lib/student-data/mockData.ts`
 - WhatsApp, Grupo, PIX e logo: edite `links`
 - Imagens de apoio usadas nos cards e vitrines: edite `image` em `classes` e `referenceImages`
 
@@ -87,11 +86,13 @@ O ponto para conectar a inscrição futura é
 ## Área do Aluno
 
 A primeira versão fica em `/minha-area` e usa somente dados fictícios de
-`lib/data.ts`. O seletor de Maria, Ana e Joana existe para testar o layout antes
-de implementar login, telefone, planilha ou banco de dados.
+`lib/student-data/mockData.ts`. O seletor de Maria, Ana, Joana e Carla existe
+para testar planos e status diferentes antes de implementar login, telefone,
+planilha ou banco de dados.
 
-Os tipos TypeScript `Aluno`, `Turma`, `Plano`, `Status`, `Conquista` e
-`Frequencia` também ficam em `lib/data.ts`.
+Os tipos TypeScript das futuras abas ficam em
+`lib/student-data/types.ts`. As consultas usadas pela interface ficam em
+`lib/student-data/selectors.ts`.
 
 ### Fase 1: presença e desafios
 
@@ -101,5 +102,19 @@ presenças. A validação real ficará para uma integração futura com o Dashbo
 Professor.
 
 Os desafios exibidos como `Em breve` ou `Bloqueado` podem ser editados no array
-`desafios` em `lib/data.ts`. O botão `Adicionar à agenda` também é apenas um
-placeholder visual nesta fase.
+`desafios` em `lib/student-data/mockData.ts`. O botão `Adicionar à agenda`
+também é apenas um placeholder visual nesta fase.
+
+## Planilha mãe / Google Sheets
+
+A Fase 2 organiza os dados em coleções equivalentes às abas `Alunos`, `Planos`,
+`Turmas`, `Aulas`, `Confirmacoes`, `Presencas`, `Pagamentos` e `Desafios`.
+
+Ainda não existe conexão com o Google Sheets. A Área do Aluno consome dados
+simulados por meio das funções de `lib/student-data/selectors.ts`. A estrutura
+completa das colunas e o caminho recomendado para a futura integração estão em
+`docs/estrutura-planilha-mae.md`.
+
+Importante: registros de `Confirmacoes` representam intenção de comparecimento.
+Os números de frequência são calculados somente com registros validados de
+`Presencas`.
