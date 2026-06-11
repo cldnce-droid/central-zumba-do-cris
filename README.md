@@ -91,8 +91,9 @@ para testar planos e status diferentes antes de implementar login, telefone,
 planilha ou banco de dados.
 
 Os tipos TypeScript das futuras abas ficam em
-`lib/student-data/types.ts`. As consultas usadas pela interface ficam em
-`lib/student-data/selectors.ts`.
+`lib/student-data/types.ts`. As regras ficam em
+`lib/student-data/selectors.ts`, e a interface acessa os dados somente por
+`lib/services/alunoService.ts`.
 
 ### Fase 1: presença e desafios
 
@@ -111,10 +112,21 @@ A Fase 2 organiza os dados em coleções equivalentes às abas `Alunos`, `Planos
 `Turmas`, `Aulas`, `Confirmacoes`, `Presencas`, `Pagamentos` e `Desafios`.
 
 Ainda não existe conexão com o Google Sheets. A Área do Aluno consome dados
-simulados por meio das funções de `lib/student-data/selectors.ts`. A estrutura
-completa das colunas e o caminho recomendado para a futura integração estão em
+simulados por meio de `lib/services/alunoService.ts`. A estrutura completa das
+colunas e o caminho recomendado para a futura integração estão em
 `docs/estrutura-planilha-mae.md`.
 
 Importante: registros de `Confirmacoes` representam intenção de comparecimento.
 Os números de frequência são calculados somente com registros validados de
+`Presencas`.
+
+## Fase 3: Área do Aluno conectada
+
+O aluno padrão é `ALU001`, configurado em
+`lib/services/alunoService.ts`. O seletor continua disponível somente para
+testar os diferentes planos e status enquanto não existe login.
+
+Perfil, plano, vencimento, pagamento, turmas, próxima aula, frequência,
+conquistas e desafios agora vêm da camada de serviço. O botão de confirmação
+continua sendo apenas um estado visual local e não grava em `Confirmacoes` ou
 `Presencas`.
