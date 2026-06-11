@@ -11,20 +11,23 @@ import {
 } from "@/components/Icons";
 import {
   alunos,
-  conquistasPorAluno,
-  desafios,
-  frequencias,
-  planoOptions,
-  turmaOptions,
-  type StatusAluno,
-  type Turma
-} from "@/lib/data";
+  getAlunoById,
+  getConquistasAluno,
+  getDesafiosDisponiveis,
+  getPlanoByAluno,
+  getProximaAula,
+  getResumoFrequencia,
+  getTurmasDisponiveisPorPlano,
+  type AlunoStatus,
+  type Aula,
+  type Confirmacao
+} from "@/lib/student-data";
 
-const statusStyles: Record<StatusAluno, string> = {
-  Ativo: "bg-emerald-100 text-emerald-700",
-  Pendente: "bg-cris-yellow/25 text-cris-navy",
-  Pausado: "bg-cris-blue/15 text-cris-blue",
-  Inativo: "bg-cris-navy/10 text-cris-navy/60"
+const statusStyles: Record<AlunoStatus, string> = {
+  ativo: "bg-emerald-100 text-emerald-700",
+  pendente: "bg-cris-yellow/25 text-cris-navy",
+  atrasado: "bg-cris-pink/20 text-cris-pink",
+  inativo: "bg-cris-navy/10 text-cris-navy/60"
 };
 
 const achievementStyles = {
@@ -34,12 +37,12 @@ const achievementStyles = {
   yellow: "bg-cris-yellow text-cris-navy"
 };
 
-const challengeStyles = {
-  pink: "border-cris-pink/30 bg-cris-pink/10 text-cris-pink",
-  blue: "border-cris-blue/30 bg-cris-blue/10 text-cris-blue",
-  purple: "border-cris-purple/30 bg-cris-purple/10 text-cris-purple",
-  yellow: "border-cris-yellow bg-cris-yellow/15 text-cris-navy"
-};
+const challengeStyles = [
+  "border-cris-pink/30 bg-cris-pink/10 text-cris-pink",
+  "border-cris-yellow bg-cris-yellow/15 text-cris-navy",
+  "border-cris-blue/30 bg-cris-blue/10 text-cris-blue",
+  "border-cris-purple/30 bg-cris-purple/10 text-cris-purple"
+];
 
 function formatEntryDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -49,93 +52,103 @@ function formatEntryDate(value: string) {
   }).format(new Date(`${value}T12:00:00`));
 }
 
-function getNextClassInfo(turmas: Turma[], now = new Date()) {
-  const candidates = turmas.flatMap((turma) => {
-    const [hourText, minuteText = "0"] = turma.horario.split("h");
-    const hour = Number(hourText);
-    const minute = Number(minuteText);
-
-    return turma.diasSemana.map((weekday) => {
-      const date = new Date(now);
-      const daysAhead = (weekday - now.getDay() + 7) % 7;
-
-      date.setDate(now.getDate() + daysAhead);
-      date.setHours(hour, minute, 0, 0);
-
-      if (date.getTime() <= now.getTime()) {
-        date.setDate(date.getDate() + 7);
-      }
-
-      return { date, turma };
-    });
-  });
-
-  const nextClass = candidates.sort(
-    (first, second) => first.date.getTime() - second.date.getTime()
-  )[0];
-
+function formatNextClassDate(aula: Aula) {
   const date = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
     day: "2-digit",
     month: "long"
-  }).format(nextClass.date);
+  }).format(new Date(`${aula.data}T12:00:00`));
 
-  return {
-    key: `${nextClass.turma.nome}-${nextClass.date.toISOString()}`,
-    label: `${date} às ${nextClass.turma.horario}`,
-    turma: nextClass.turma
-  };
+  return `${date} às ${aula.horario}`;
+}
+
+function formatDays(days: string[]) {
+  const text =
+    days.length > 1
+      ? `${days.slice(0, -1).join(", ")} e ${days.at(-1)}`
+      : days[0] ?? "";
+
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
+function formatStatus(status: string) {
+  return `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+}
+
+function formatChallengeStatus(status: string) {
+  return status === "em_breve"
+    ? "Em breve"
+    : status === "disponivel"
+      ? "Disponível"
+      : "Bloqueado";
 }
 
 export function StudentArea() {
   const [selectedStudentId, setSelectedStudentId] = useState(alunos[0].id);
-  const [nextClass, setNextClass] = useState<ReturnType<
-    typeof getNextClassInfo
-  > | null>(null);
-  const [presenceIntentions, setPresenceIntentions] = useState<
-    Record<string, boolean>
-  >({});
+  const [nextClass, setNextClass] = useState<Aula | null>(null);
+  const [localConfirmations, setLocalConfirmations] = useState<Confirmacao[]>(
+    []
+  );
   const [agendaFeedbackKey, setAgendaFeedbackKey] = useState<string | null>(
     null
   );
 
   const student = useMemo(
-    () => alunos.find((item) => item.id === selectedStudentId) ?? alunos[0],
+    () => getAlunoById(selectedStudentId) ?? alunos[0],
     [selectedStudentId]
   );
 
-  const turmaPrincipal =
-    turmaOptions.find((item) => item.nome === student.turma) ?? turmaOptions[0];
-  const plano =
-    planoOptions.find((item) => item.nome === student.plano) ?? planoOptions[0];
-  const availableClasses = useMemo(() => {
-    if (plano.frequenciaSemanal === 1) return [turmaPrincipal];
-    if (plano.frequenciaSemanal === 3) return turmaOptions;
-
-    return [
-      turmaPrincipal,
-      ...turmaOptions.filter((item) => item.nome !== turmaPrincipal.nome)
-    ].slice(0, 2);
-  }, [plano.frequenciaSemanal, turmaPrincipal]);
-  const frequency =
-    frequencias.find((item) => item.alunoId === student.id) ?? frequencias[0];
-  const achievements = conquistasPorAluno[student.id] ?? [];
+  const plano = useMemo(() => getPlanoByAluno(student.id), [student.id]);
+  const availableClasses = useMemo(
+    () => getTurmasDisponiveisPorPlano(student.id),
+    [student.id]
+  );
+  const frequency = useMemo(
+    () => getResumoFrequencia(student.id),
+    [student.id]
+  );
+  const achievements = useMemo(
+    () => getConquistasAluno(student.id),
+    [student.id]
+  );
+  const availableChallenges = useMemo(
+    () => getDesafiosDisponiveis(student.id),
+    [student.id]
+  );
+  const mainClass = availableClasses[0];
   const presenceKey = nextClass
-    ? `${student.id}-${nextClass.key}`
+    ? `${student.id}-${nextClass.id}`
     : `${student.id}-loading`;
-  const presenceConfirmed = Boolean(presenceIntentions[presenceKey]);
+  const presenceConfirmed = localConfirmations.some(
+    (confirmation) =>
+      confirmation.alunoId === student.id &&
+      confirmation.aulaId === nextClass?.id &&
+      confirmation.status === "confirmado"
+  );
 
   useEffect(() => {
-    setNextClass(getNextClassInfo(availableClasses));
-  }, [availableClasses]);
+    setNextClass(getProximaAula(student.id));
+    setAgendaFeedbackKey(null);
+  }, [student.id]);
 
   const confirmPresence = () => {
-    setPresenceIntentions((current) => ({
+    if (!nextClass) return;
+
+    // Mesmo formato da futura aba Confirmacoes; não altera Presencas.
+    setLocalConfirmations((current) => [
       ...current,
-      [presenceKey]: true
-    }));
+      {
+        id: `LOCAL_${student.id}_${nextClass.id}`,
+        alunoId: student.id,
+        aulaId: nextClass.id,
+        dataConfirmacao: new Date().toISOString(),
+        status: "confirmado"
+      }
+    ]);
     setAgendaFeedbackKey(null);
   };
+
+  if (!plano || !mainClass) return null;
 
   return (
     <div className="flex flex-col gap-5 sm:gap-6">
@@ -193,7 +206,9 @@ export function StudentArea() {
           <dl className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
               <dt className="text-xs font-black uppercase text-white/55">Plano</dt>
-              <dd className="mt-1 font-bold text-white">{student.plano}</dd>
+              <dd className="mt-1 font-bold text-white">
+                {plano.nome} — R${plano.valor}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-black uppercase text-white/55">Status</dt>
@@ -201,7 +216,7 @@ export function StudentArea() {
                 <span
                   className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-black uppercase ${statusStyles[student.status]}`}
                 >
-                  {student.status}
+                  {formatStatus(student.status)}
                 </span>
               </dd>
             </div>
@@ -218,12 +233,12 @@ export function StudentArea() {
 
         <article
           className={`p-5 sm:p-6 ${
-            plano.frequenciaSemanal === 3
+            plano.aulasPorSemana === 3
               ? "relative overflow-hidden rounded-lg bg-cris-navy text-white shadow-pop ring-4 ring-cris-yellow"
               : "premium-panel"
           }`}
         >
-          {plano.frequenciaSemanal === 3 ? (
+          {plano.aulasPorSemana === 3 ? (
             <div
               aria-hidden="true"
               className="paint-stroke absolute -right-8 top-5 h-8 w-40 bg-cris-pink"
@@ -236,38 +251,38 @@ export function StudentArea() {
             <div>
               <p
                 className={`text-xs font-black uppercase ${
-                  plano.frequenciaSemanal === 3
+                  plano.aulasPorSemana === 3
                     ? "text-cris-yellow"
                     : "text-cris-pink"
                 }`}
               >
-                {plano.frequenciaSemanal === 1
+                {plano.aulasPorSemana === 1
                   ? "Minha turma"
-                  : plano.frequenciaSemanal === 2
+                  : plano.aulasPorSemana === 2
                     ? "Minhas aulas disponíveis"
                     : "Passe 3x na semana"}
               </p>
               <h2
                 className={`mt-1 text-2xl font-black uppercase ${
-                  plano.frequenciaSemanal === 3
+                  plano.aulasPorSemana === 3
                     ? "text-white"
                     : "text-cris-navy"
                 }`}
               >
-                {plano.frequenciaSemanal === 1
-                  ? turmaPrincipal.nome
+                {plano.aulasPorSemana === 1
+                  ? mainClass.nome
                   : `${availableClasses.length} opções para você`}
               </h2>
             </div>
           </div>
 
-          {plano.frequenciaSemanal === 2 ? (
+          {plano.aulasPorSemana === 2 ? (
             <p className="mt-4 rounded-lg bg-cris-blue/10 p-3 text-sm font-bold leading-relaxed text-cris-navy/70">
               Seu plano permite participar de até 2 aulas por semana.
             </p>
           ) : null}
 
-          {plano.frequenciaSemanal === 3 ? (
+          {plano.aulasPorSemana === 3 ? (
             <p className="mt-4 rounded-lg bg-cris-yellow px-4 py-3 text-sm font-black text-cris-navy">
               Você está no plano mais completo do Zumba do Cris.
             </p>
@@ -277,7 +292,7 @@ export function StudentArea() {
             {availableClasses.map((turma) => (
               <div
                 className={`rounded-lg p-4 ${
-                  plano.frequenciaSemanal === 3
+                  plano.aulasPorSemana === 3
                     ? "bg-white/10 ring-1 ring-white/15"
                     : "bg-cris-paper ring-1 ring-cris-navy/10"
                 }`}
@@ -285,7 +300,7 @@ export function StudentArea() {
               >
                 <h3
                   className={`text-lg font-black uppercase ${
-                    plano.frequenciaSemanal === 3
+                    plano.aulasPorSemana === 3
                       ? "text-cris-yellow"
                       : "text-cris-navy"
                   }`}
@@ -294,18 +309,18 @@ export function StudentArea() {
                 </h3>
                 <div
                   className={`mt-3 space-y-2 text-sm font-bold ${
-                    plano.frequenciaSemanal === 3
+                    plano.aulasPorSemana === 3
                       ? "text-white/80"
                       : "text-cris-navy/70"
                   }`}
                 >
                   <p className="flex items-start gap-2">
                     <CalendarIcon className="mt-0.5 size-4 shrink-0 text-cris-pink" />
-                    {turma.dias} às {turma.horario}
+                    {formatDays(turma.dias)} às {turma.horario}
                   </p>
                   <p className="flex items-start gap-2">
                     <PinIcon className="mt-0.5 size-4 shrink-0 text-cris-blue" />
-                    {turma.local}
+                    {turma.endereco}
                   </p>
                 </div>
               </div>
@@ -328,11 +343,13 @@ export function StudentArea() {
               Próxima aula
             </p>
             <h2 className="mt-1 text-2xl font-black capitalize sm:text-3xl">
-              {nextClass?.label ?? "Calculando próxima aula..."}
+              {nextClass
+                ? formatNextClassDate(nextClass)
+                : "Calculando próxima aula..."}
             </h2>
             <p className="mt-2 font-bold text-white/80">
               {nextClass
-                ? `${nextClass.turma.local} • ${nextClass.turma.nome}`
+                ? `${nextClass.endereco} • ${nextClass.local}`
                 : "Sua próxima oportunidade de dançar aparecerá aqui."}
             </p>
 
@@ -433,9 +450,9 @@ export function StudentArea() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {desafios.map((desafio) => (
+          {availableChallenges.map((desafio, index) => (
             <article
-              className={`relative overflow-hidden rounded-lg border-2 p-4 shadow-[0_12px_32px_rgba(7,16,70,0.08)] ${challengeStyles[desafio.accent]}`}
+              className={`relative overflow-hidden rounded-lg border-2 p-4 shadow-[0_12px_32px_rgba(7,16,70,0.08)] ${challengeStyles[index % challengeStyles.length]}`}
               key={desafio.id}
             >
               <div className="flex items-start justify-between gap-3">
@@ -443,7 +460,7 @@ export function StudentArea() {
                   <LockIcon className="size-5" />
                 </span>
                 <span className="rounded-lg bg-cris-navy px-3 py-1.5 text-[0.65rem] font-black uppercase text-white">
-                  {desafio.status}
+                  {formatChallengeStatus(desafio.statusVisual)}
                 </span>
               </div>
               <h3 className="mt-4 text-xl font-black uppercase leading-tight text-cris-navy">
