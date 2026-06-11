@@ -10,17 +10,21 @@ import {
   UsersIcon
 } from "@/components/Icons";
 import {
-  alunos,
+  alunoAtualId,
+  getAlunosParaTeste,
   getAlunoById,
-  getConquistasAluno,
+  getConquistasDoAluno,
   getDesafiosDisponiveis,
   getPlanoByAluno,
   getProximaAula,
   getResumoFrequencia,
-  getTurmasDisponiveisPorPlano,
-  type AlunoStatus,
-  type Aula,
-  type Confirmacao
+  getStatusPagamento,
+  getTurmasDisponiveisPorPlano
+} from "@/lib/services/alunoService";
+import type {
+  AlunoStatus,
+  Aula,
+  PagamentoStatus
 } from "@/lib/student-data";
 
 const statusStyles: Record<AlunoStatus, string> = {
@@ -28,6 +32,12 @@ const statusStyles: Record<AlunoStatus, string> = {
   pendente: "bg-cris-yellow/25 text-cris-navy",
   atrasado: "bg-cris-pink/20 text-cris-pink",
   inativo: "bg-cris-navy/10 text-cris-navy/60"
+};
+
+const paymentStyles: Record<PagamentoStatus, string> = {
+  pago: "bg-emerald-100 text-emerald-700",
+  pendente: "bg-cris-yellow/25 text-cris-navy",
+  atrasado: "bg-cris-pink/20 text-cris-pink"
 };
 
 const achievementStyles = {
@@ -84,71 +94,81 @@ function formatChallengeStatus(status: string) {
 }
 
 export function StudentArea() {
-  const [selectedStudentId, setSelectedStudentId] = useState(alunos[0].id);
+  const studentsForTesting = useMemo(() => getAlunosParaTeste(), []);
+  const [selectedStudentId, setSelectedStudentId] = useState(alunoAtualId);
   const [nextClass, setNextClass] = useState<Aula | null>(null);
-  const [localConfirmations, setLocalConfirmations] = useState<Confirmacao[]>(
-    []
-  );
+  const [nextClassLoaded, setNextClassLoaded] = useState(false);
+  const [localConfirmations, setLocalConfirmations] = useState<
+    Record<string, boolean>
+  >({});
   const [agendaFeedbackKey, setAgendaFeedbackKey] = useState<string | null>(
     null
   );
 
   const student = useMemo(
-    () => getAlunoById(selectedStudentId) ?? alunos[0],
+    () => getAlunoById(selectedStudentId),
     [selectedStudentId]
   );
 
-  const plano = useMemo(() => getPlanoByAluno(student.id), [student.id]);
+  const studentId = student?.id ?? selectedStudentId;
+  const plano = useMemo(() => getPlanoByAluno(studentId), [studentId]);
   const availableClasses = useMemo(
-    () => getTurmasDisponiveisPorPlano(student.id),
-    [student.id]
+    () => getTurmasDisponiveisPorPlano(studentId),
+    [studentId]
   );
   const frequency = useMemo(
-    () => getResumoFrequencia(student.id),
-    [student.id]
+    () => getResumoFrequencia(studentId),
+    [studentId]
   );
   const achievements = useMemo(
-    () => getConquistasAluno(student.id),
-    [student.id]
+    () => getConquistasDoAluno(studentId),
+    [studentId]
   );
   const availableChallenges = useMemo(
-    () => getDesafiosDisponiveis(student.id),
-    [student.id]
+    () => getDesafiosDisponiveis(studentId),
+    [studentId]
+  );
+  const paymentStatus = useMemo(
+    () => getStatusPagamento(studentId),
+    [studentId]
   );
   const mainClass = availableClasses[0];
   const presenceKey = nextClass
-    ? `${student.id}-${nextClass.id}`
-    : `${student.id}-loading`;
-  const presenceConfirmed = localConfirmations.some(
-    (confirmation) =>
-      confirmation.alunoId === student.id &&
-      confirmation.aulaId === nextClass?.id &&
-      confirmation.status === "confirmado"
-  );
+    ? `${studentId}-${nextClass.id}`
+    : `${studentId}-loading`;
+  const presenceConfirmed = Boolean(localConfirmations[presenceKey]);
 
   useEffect(() => {
-    setNextClass(getProximaAula(student.id));
+    setNextClassLoaded(false);
+    setNextClass(getProximaAula(studentId));
+    setNextClassLoaded(true);
     setAgendaFeedbackKey(null);
-  }, [student.id]);
+  }, [studentId]);
 
   const confirmPresence = () => {
     if (!nextClass) return;
 
-    // Mesmo formato da futura aba Confirmacoes; não altera Presencas.
-    setLocalConfirmations((current) => [
+    // Estado visual temporário: não grava confirmação nem altera frequência.
+    setLocalConfirmations((current) => ({
       ...current,
-      {
-        id: `LOCAL_${student.id}_${nextClass.id}`,
-        alunoId: student.id,
-        aulaId: nextClass.id,
-        dataConfirmacao: new Date().toISOString(),
-        status: "confirmado"
-      }
-    ]);
+      [presenceKey]: true
+    }));
     setAgendaFeedbackKey(null);
   };
 
-  if (!plano || !mainClass) return null;
+  if (!student) {
+    return (
+      <section className="premium-panel p-6 text-center sm:p-8">
+        <HeartIcon className="mx-auto size-12 text-cris-pink" />
+        <h1 className="mt-4 text-3xl font-black uppercase text-cris-navy">
+          Aluna não encontrada
+        </h1>
+        <p className="mt-3 font-bold text-cris-navy/65">
+          Não conseguimos carregar esta área agora. Errou... continua!
+        </p>
+      </section>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5 sm:gap-6">
@@ -176,7 +196,7 @@ export function StudentArea() {
             onChange={(event) => setSelectedStudentId(event.target.value)}
             value={selectedStudentId}
           >
-            {alunos.map((item) => (
+            {studentsForTesting.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.nome}
               </option>
@@ -207,7 +227,9 @@ export function StudentArea() {
             <div>
               <dt className="text-xs font-black uppercase text-white/55">Plano</dt>
               <dd className="mt-1 font-bold text-white">
-                {plano.nome} — R${plano.valor}
+                {plano
+                  ? `${plano.nome} — R$${plano.valor}`
+                  : "Plano não identificado"}
               </dd>
             </div>
             <div>
@@ -220,7 +242,7 @@ export function StudentArea() {
                 </span>
               </dd>
             </div>
-            <div className="sm:col-span-2">
+            <div>
               <dt className="text-xs font-black uppercase text-white/55">
                 Data de entrada
               </dt>
@@ -228,17 +250,45 @@ export function StudentArea() {
                 {formatEntryDate(student.dataEntrada)}
               </dd>
             </div>
+            <div>
+              <dt className="text-xs font-black uppercase text-white/55">
+                Vencimento
+              </dt>
+              <dd className="mt-1 font-bold text-white">
+                {student.diaVencimento
+                  ? `Todo dia ${student.diaVencimento}`
+                  : "Pagamento não informado."}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-black uppercase text-white/55">
+                Pagamento
+              </dt>
+              <dd className="mt-2">
+                {paymentStatus ? (
+                  <span
+                    className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-black uppercase ${paymentStyles[paymentStatus]}`}
+                  >
+                    {formatStatus(paymentStatus)}
+                  </span>
+                ) : (
+                  <span className="font-bold text-white/70">
+                    Pagamento não informado.
+                  </span>
+                )}
+              </dd>
+            </div>
           </dl>
         </article>
 
         <article
           className={`p-5 sm:p-6 ${
-            plano.aulasPorSemana === 3
+            plano?.aulasPorSemana === 3
               ? "relative overflow-hidden rounded-lg bg-cris-navy text-white shadow-pop ring-4 ring-cris-yellow"
               : "premium-panel"
           }`}
         >
-          {plano.aulasPorSemana === 3 ? (
+          {plano?.aulasPorSemana === 3 ? (
             <div
               aria-hidden="true"
               className="paint-stroke absolute -right-8 top-5 h-8 w-40 bg-cris-pink"
@@ -251,80 +301,90 @@ export function StudentArea() {
             <div>
               <p
                 className={`text-xs font-black uppercase ${
-                  plano.aulasPorSemana === 3
+                  plano?.aulasPorSemana === 3
                     ? "text-cris-yellow"
                     : "text-cris-pink"
                 }`}
               >
-                {plano.aulasPorSemana === 1
+                {plano?.aulasPorSemana === 1
                   ? "Minha turma"
-                  : plano.aulasPorSemana === 2
+                  : plano?.aulasPorSemana === 2
                     ? "Minhas aulas disponíveis"
-                    : "Passe 3x na semana"}
+                    : plano?.aulasPorSemana === 3
+                      ? "Passe 3x na semana"
+                      : "Minhas aulas"}
               </p>
               <h2
                 className={`mt-1 text-2xl font-black uppercase ${
-                  plano.aulasPorSemana === 3
+                  plano?.aulasPorSemana === 3
                     ? "text-white"
                     : "text-cris-navy"
                 }`}
               >
-                {plano.aulasPorSemana === 1
-                  ? mainClass.nome
-                  : `${availableClasses.length} opções para você`}
+                {!plano
+                  ? "Plano não identificado"
+                  : plano.aulasPorSemana === 1
+                    ? mainClass?.nome ?? student.turmaPrincipal
+                    : `${availableClasses.length} opções para você`}
               </h2>
             </div>
           </div>
 
-          {plano.aulasPorSemana === 2 ? (
+          {plano?.aulasPorSemana === 2 ? (
             <p className="mt-4 rounded-lg bg-cris-blue/10 p-3 text-sm font-bold leading-relaxed text-cris-navy/70">
               Seu plano permite participar de até 2 aulas por semana.
             </p>
           ) : null}
 
-          {plano.aulasPorSemana === 3 ? (
+          {plano?.aulasPorSemana === 3 ? (
             <p className="mt-4 rounded-lg bg-cris-yellow px-4 py-3 text-sm font-black text-cris-navy">
               Você está no plano mais completo do Zumba do Cris.
             </p>
           ) : null}
 
           <div className="mt-5 grid gap-3">
-            {availableClasses.map((turma) => (
-              <div
-                className={`rounded-lg p-4 ${
-                  plano.aulasPorSemana === 3
-                    ? "bg-white/10 ring-1 ring-white/15"
-                    : "bg-cris-paper ring-1 ring-cris-navy/10"
-                }`}
-                key={turma.nome}
-              >
-                <h3
-                  className={`text-lg font-black uppercase ${
-                    plano.aulasPorSemana === 3
-                      ? "text-cris-yellow"
-                      : "text-cris-navy"
-                  }`}
-                >
-                  {turma.nome}
-                </h3>
+            {availableClasses.length ? (
+              availableClasses.map((turma) => (
                 <div
-                  className={`mt-3 space-y-2 text-sm font-bold ${
-                    plano.aulasPorSemana === 3
-                      ? "text-white/80"
-                      : "text-cris-navy/70"
+                  className={`rounded-lg p-4 ${
+                    plano?.aulasPorSemana === 3
+                      ? "bg-white/10 ring-1 ring-white/15"
+                      : "bg-cris-paper ring-1 ring-cris-navy/10"
                   }`}
+                  key={turma.nome}
                 >
-                  <p className="flex items-start gap-2">
-                    <CalendarIcon className="mt-0.5 size-4 shrink-0 text-cris-pink" />
-                    {formatDays(turma.dias)} às {turma.horario}
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <PinIcon className="mt-0.5 size-4 shrink-0 text-cris-blue" />
-                    {turma.endereco}
-                  </p>
+                  <h3
+                    className={`text-lg font-black uppercase ${
+                      plano?.aulasPorSemana === 3
+                        ? "text-cris-yellow"
+                        : "text-cris-navy"
+                    }`}
+                  >
+                    {turma.nome}
+                  </h3>
+                  <div
+                    className={`mt-3 space-y-2 text-sm font-bold ${
+                      plano?.aulasPorSemana === 3
+                        ? "text-white/80"
+                        : "text-cris-navy/70"
+                    }`}
+                  >
+                    <p className="flex items-start gap-2">
+                      <CalendarIcon className="mt-0.5 size-4 shrink-0 text-cris-pink" />
+                      {formatDays(turma.dias)} às {turma.horario}
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <PinIcon className="mt-0.5 size-4 shrink-0 text-cris-blue" />
+                      {turma.endereco}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/65 ring-1 ring-cris-navy/10">
+                Nenhuma turma disponível no momento.
+              </p>
+            )}
           </div>
         </article>
       </section>
@@ -343,18 +403,22 @@ export function StudentArea() {
               Próxima aula
             </p>
             <h2 className="mt-1 text-2xl font-black capitalize sm:text-3xl">
-              {nextClass
+              {!nextClassLoaded
+                ? "Calculando próxima aula..."
+                : nextClass
                 ? formatNextClassDate(nextClass)
-                : "Calculando próxima aula..."}
+                : "Nenhuma aula agendada no momento."}
             </h2>
             <p className="mt-2 font-bold text-white/80">
               {nextClass
                 ? `${nextClass.endereco} • ${nextClass.local}`
-                : "Sua próxima oportunidade de dançar aparecerá aqui."}
+                : nextClassLoaded
+                  ? "Assim que uma nova aula for agendada, ela aparecerá aqui."
+                  : "Sua próxima oportunidade de dançar aparecerá aqui."}
             </p>
 
             <div className="mt-5">
-              {!presenceConfirmed ? (
+              {nextClass && !presenceConfirmed ? (
                 <button
                   className="min-h-12 w-full rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy shadow-[0_12px_28px_rgba(7,16,70,0.16)] transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-white/50 sm:w-auto"
                   disabled={!nextClass}
@@ -363,7 +427,7 @@ export function StudentArea() {
                 >
                   Confirmar presença
                 </button>
-              ) : (
+              ) : nextClass && presenceConfirmed ? (
                 <div className="rounded-lg bg-white/[0.12] p-4 ring-1 ring-white/20">
                   <p className="text-lg font-black text-cris-yellow">
                     Presença confirmada
@@ -388,7 +452,7 @@ export function StudentArea() {
                     </p>
                   ) : null}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
