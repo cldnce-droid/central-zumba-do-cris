@@ -62,14 +62,15 @@ Métodos aceitos: `pix`, `dinheiro`, `outro`.
 
 - `lib/student-data/types.ts`: contratos TypeScript das abas.
 - `lib/student-data/mockData.ts`: dados locais que simulam a planilha.
-- `lib/student-data/selectors.ts`: consultas e regras usadas pela interface.
+- `lib/student-data/selectors.ts`: consultas e regras sobre os dados.
 - `lib/student-data/index.ts`: ponto único de importação.
+- `lib/services/alunoService.ts`: camada consumida pela Área do Aluno.
 
 ## Integração futura
 
 Quando a API for implementada, a camada de leitura do Google Sheets deverá
 transformar cada linha nos tipos de `types.ts`. A interface deve continuar
-consumindo as funções de `selectors.ts`, evitando reescrever a Área do Aluno.
+consumindo `lib/services/alunoService.ts`, evitando reescrever a Área do Aluno.
 
 Uma evolução recomendada é criar um adaptador com a mesma estrutura exportada
 por `mockData.ts`, alternando entre dados locais e dados remotos por configuração
