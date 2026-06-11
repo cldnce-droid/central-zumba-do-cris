@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarIcon,
-  ClockIcon,
   HeartIcon,
   LockIcon,
   PinIcon,
@@ -13,9 +12,12 @@ import {
 import {
   alunos,
   conquistasPorAluno,
+  desafios,
   frequencias,
+  planoOptions,
   turmaOptions,
-  type StatusAluno
+  type StatusAluno,
+  type Turma
 } from "@/lib/data";
 
 const statusStyles: Record<StatusAluno, string> = {
@@ -32,6 +34,13 @@ const achievementStyles = {
   yellow: "bg-cris-yellow text-cris-navy"
 };
 
+const challengeStyles = {
+  pink: "border-cris-pink/30 bg-cris-pink/10 text-cris-pink",
+  blue: "border-cris-blue/30 bg-cris-blue/10 text-cris-blue",
+  purple: "border-cris-purple/30 bg-cris-purple/10 text-cris-purple",
+  yellow: "border-cris-yellow bg-cris-yellow/15 text-cris-navy"
+};
+
 function formatEntryDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -40,62 +49,93 @@ function formatEntryDate(value: string) {
   }).format(new Date(`${value}T12:00:00`));
 }
 
-function getNextClassLabel(
-  weekdays: number[],
-  schedule: string,
-  now = new Date()
-) {
-  const [hourText, minuteText = "0"] = schedule.split("h");
-  const hour = Number(hourText);
-  const minute = Number(minuteText);
+function getNextClassInfo(turmas: Turma[], now = new Date()) {
+  const candidates = turmas.flatMap((turma) => {
+    const [hourText, minuteText = "0"] = turma.horario.split("h");
+    const hour = Number(hourText);
+    const minute = Number(minuteText);
 
-  const candidates = weekdays.map((weekday) => {
-    const candidate = new Date(now);
-    const daysAhead = (weekday - now.getDay() + 7) % 7;
+    return turma.diasSemana.map((weekday) => {
+      const date = new Date(now);
+      const daysAhead = (weekday - now.getDay() + 7) % 7;
 
-    candidate.setDate(now.getDate() + daysAhead);
-    candidate.setHours(hour, minute, 0, 0);
+      date.setDate(now.getDate() + daysAhead);
+      date.setHours(hour, minute, 0, 0);
 
-    if (candidate.getTime() <= now.getTime()) {
-      candidate.setDate(candidate.getDate() + 7);
-    }
+      if (date.getTime() <= now.getTime()) {
+        date.setDate(date.getDate() + 7);
+      }
 
-    return candidate;
+      return { date, turma };
+    });
   });
 
   const nextClass = candidates.sort(
-    (first, second) => first.getTime() - second.getTime()
+    (first, second) => first.date.getTime() - second.date.getTime()
   )[0];
 
   const date = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
     day: "2-digit",
     month: "long"
-  }).format(nextClass);
+  }).format(nextClass.date);
 
-  return `${date} às ${schedule}`;
+  return {
+    key: `${nextClass.turma.nome}-${nextClass.date.toISOString()}`,
+    label: `${date} às ${nextClass.turma.horario}`,
+    turma: nextClass.turma
+  };
 }
 
 export function StudentArea() {
   const [selectedStudentId, setSelectedStudentId] = useState(alunos[0].id);
-  const [nextClassLabel, setNextClassLabel] = useState("Calculando próxima aula...");
+  const [nextClass, setNextClass] = useState<ReturnType<
+    typeof getNextClassInfo
+  > | null>(null);
+  const [presenceIntentions, setPresenceIntentions] = useState<
+    Record<string, boolean>
+  >({});
+  const [agendaFeedbackKey, setAgendaFeedbackKey] = useState<string | null>(
+    null
+  );
 
   const student = useMemo(
     () => alunos.find((item) => item.id === selectedStudentId) ?? alunos[0],
     [selectedStudentId]
   );
 
-  const turma =
+  const turmaPrincipal =
     turmaOptions.find((item) => item.nome === student.turma) ?? turmaOptions[0];
+  const plano =
+    planoOptions.find((item) => item.nome === student.plano) ?? planoOptions[0];
+  const availableClasses = useMemo(() => {
+    if (plano.frequenciaSemanal === 1) return [turmaPrincipal];
+    if (plano.frequenciaSemanal === 3) return turmaOptions;
+
+    return [
+      turmaPrincipal,
+      ...turmaOptions.filter((item) => item.nome !== turmaPrincipal.nome)
+    ].slice(0, 2);
+  }, [plano.frequenciaSemanal, turmaPrincipal]);
   const frequency =
     frequencias.find((item) => item.alunoId === student.id) ?? frequencias[0];
   const achievements = conquistasPorAluno[student.id] ?? [];
+  const presenceKey = nextClass
+    ? `${student.id}-${nextClass.key}`
+    : `${student.id}-loading`;
+  const presenceConfirmed = Boolean(presenceIntentions[presenceKey]);
 
   useEffect(() => {
-    setNextClassLabel(
-      getNextClassLabel(turma.diasSemana, turma.horario)
-    );
-  }, [turma.diasSemana, turma.horario]);
+    setNextClass(getNextClassInfo(availableClasses));
+  }, [availableClasses]);
+
+  const confirmPresence = () => {
+    setPresenceIntentions((current) => ({
+      ...current,
+      [presenceKey]: true
+    }));
+    setAgendaFeedbackKey(null);
+  };
 
   return (
     <div className="flex flex-col gap-5 sm:gap-6">
@@ -176,34 +216,100 @@ export function StudentArea() {
           </dl>
         </article>
 
-        <article className="premium-panel p-5 sm:p-6">
+        <article
+          className={`p-5 sm:p-6 ${
+            plano.frequenciaSemanal === 3
+              ? "relative overflow-hidden rounded-lg bg-cris-navy text-white shadow-pop ring-4 ring-cris-yellow"
+              : "premium-panel"
+          }`}
+        >
+          {plano.frequenciaSemanal === 3 ? (
+            <div
+              aria-hidden="true"
+              className="paint-stroke absolute -right-8 top-5 h-8 w-40 bg-cris-pink"
+            />
+          ) : null}
           <div className="flex items-center gap-3">
             <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-cris-blue text-white">
               <UsersIcon className="size-6" />
             </span>
             <div>
-              <p className="text-xs font-black uppercase text-cris-pink">
-                Minha turma
+              <p
+                className={`text-xs font-black uppercase ${
+                  plano.frequenciaSemanal === 3
+                    ? "text-cris-yellow"
+                    : "text-cris-pink"
+                }`}
+              >
+                {plano.frequenciaSemanal === 1
+                  ? "Minha turma"
+                  : plano.frequenciaSemanal === 2
+                    ? "Minhas aulas disponíveis"
+                    : "Passe 3x na semana"}
               </p>
-              <h2 className="mt-1 text-2xl font-black uppercase text-cris-navy">
-                {turma.nome}
+              <h2
+                className={`mt-1 text-2xl font-black uppercase ${
+                  plano.frequenciaSemanal === 3
+                    ? "text-white"
+                    : "text-cris-navy"
+                }`}
+              >
+                {plano.frequenciaSemanal === 1
+                  ? turmaPrincipal.nome
+                  : `${availableClasses.length} opções para você`}
               </h2>
             </div>
           </div>
 
-          <div className="mt-5 space-y-3 font-bold text-cris-navy/75">
-            <p className="flex items-center gap-3">
-              <CalendarIcon className="size-5 shrink-0 text-cris-pink" />
-              {turma.dias}
+          {plano.frequenciaSemanal === 2 ? (
+            <p className="mt-4 rounded-lg bg-cris-blue/10 p-3 text-sm font-bold leading-relaxed text-cris-navy/70">
+              Seu plano permite participar de até 2 aulas por semana.
             </p>
-            <p className="flex items-center gap-3">
-              <ClockIcon className="size-5 shrink-0 text-cris-blue" />
-              {turma.horario}
+          ) : null}
+
+          {plano.frequenciaSemanal === 3 ? (
+            <p className="mt-4 rounded-lg bg-cris-yellow px-4 py-3 text-sm font-black text-cris-navy">
+              Você está no plano mais completo do Zumba do Cris.
             </p>
-            <p className="flex items-center gap-3">
-              <PinIcon className="size-5 shrink-0 text-cris-purple" />
-              {turma.local}
-            </p>
+          ) : null}
+
+          <div className="mt-5 grid gap-3">
+            {availableClasses.map((turma) => (
+              <div
+                className={`rounded-lg p-4 ${
+                  plano.frequenciaSemanal === 3
+                    ? "bg-white/10 ring-1 ring-white/15"
+                    : "bg-cris-paper ring-1 ring-cris-navy/10"
+                }`}
+                key={turma.nome}
+              >
+                <h3
+                  className={`text-lg font-black uppercase ${
+                    plano.frequenciaSemanal === 3
+                      ? "text-cris-yellow"
+                      : "text-cris-navy"
+                  }`}
+                >
+                  {turma.nome}
+                </h3>
+                <div
+                  className={`mt-3 space-y-2 text-sm font-bold ${
+                    plano.frequenciaSemanal === 3
+                      ? "text-white/80"
+                      : "text-cris-navy/70"
+                  }`}
+                >
+                  <p className="flex items-start gap-2">
+                    <CalendarIcon className="mt-0.5 size-4 shrink-0 text-cris-pink" />
+                    {turma.dias} às {turma.horario}
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <PinIcon className="mt-0.5 size-4 shrink-0 text-cris-blue" />
+                    {turma.local}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </article>
       </section>
@@ -217,19 +323,63 @@ export function StudentArea() {
           <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-white text-cris-pink">
             <CalendarIcon className="size-7" />
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-black uppercase text-white/70">
               Próxima aula
             </p>
             <h2 className="mt-1 text-2xl font-black capitalize sm:text-3xl">
-              {nextClassLabel}
+              {nextClass?.label ?? "Calculando próxima aula..."}
             </h2>
             <p className="mt-2 font-bold text-white/80">
-              {turma.local} • {turma.nome}
+              {nextClass
+                ? `${nextClass.turma.local} • ${nextClass.turma.nome}`
+                : "Sua próxima oportunidade de dançar aparecerá aqui."}
             </p>
+
+            <div className="mt-5">
+              {!presenceConfirmed ? (
+                <button
+                  className="min-h-12 w-full rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy shadow-[0_12px_28px_rgba(7,16,70,0.16)] transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-white/50 sm:w-auto"
+                  disabled={!nextClass}
+                  onClick={confirmPresence}
+                  type="button"
+                >
+                  Confirmar presença
+                </button>
+              ) : (
+                <div className="rounded-lg bg-white/[0.12] p-4 ring-1 ring-white/20">
+                  <p className="text-lg font-black text-cris-yellow">
+                    Presença confirmada
+                  </p>
+                  <p className="mt-2 text-sm font-bold leading-relaxed text-white/85">
+                    Te esperamos na aula! Adicione na sua agenda para não
+                    esquecer.
+                  </p>
+                  <button
+                    className="mt-4 min-h-11 w-full rounded-lg border-2 border-white bg-transparent px-4 py-2.5 text-sm font-black uppercase text-white transition hover:bg-white hover:text-cris-pink focus:outline-none focus:ring-4 focus:ring-cris-yellow/50 sm:w-auto"
+                    onClick={() => setAgendaFeedbackKey(presenceKey)}
+                    type="button"
+                  >
+                    Adicionar à agenda
+                  </button>
+                  {agendaFeedbackKey === presenceKey ? (
+                    <p
+                      aria-live="polite"
+                      className="mt-3 text-xs font-bold text-white/70"
+                    >
+                      Integração com a agenda será liberada em uma próxima fase.
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
+      <p className="-mt-3 px-1 text-xs font-bold leading-relaxed text-cris-navy/50">
+        A confirmação registra apenas sua intenção de participar. A presença
+        real será validada pelo professor futuramente.
+      </p>
 
       <section>
         <div className="mb-4">
@@ -241,7 +391,7 @@ export function StudentArea() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid gap-3 min-[420px]:grid-cols-3">
           <article className="rounded-lg bg-white p-4 text-center shadow-pop ring-1 ring-cris-navy/10">
             <p className="text-3xl font-black text-cris-pink">
               {frequency.aulasNoMes}
@@ -264,6 +414,46 @@ export function StudentArea() {
               Total de presenças
             </p>
           </article>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-black uppercase text-cris-blue">
+              Novos motivos para continuar
+            </p>
+            <h2 className="mt-1 text-3xl font-black uppercase text-cris-navy">
+              Desafios
+            </h2>
+          </div>
+          <span aria-hidden="true" className="text-3xl">
+            🔥
+          </span>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {desafios.map((desafio) => (
+            <article
+              className={`relative overflow-hidden rounded-lg border-2 p-4 shadow-[0_12px_32px_rgba(7,16,70,0.08)] ${challengeStyles[desafio.accent]}`}
+              key={desafio.id}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-white/70">
+                  <LockIcon className="size-5" />
+                </span>
+                <span className="rounded-lg bg-cris-navy px-3 py-1.5 text-[0.65rem] font-black uppercase text-white">
+                  {desafio.status}
+                </span>
+              </div>
+              <h3 className="mt-4 text-xl font-black uppercase leading-tight text-cris-navy">
+                {desafio.titulo}
+              </h3>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-cris-navy/65">
+                {desafio.descricao}
+              </p>
+            </article>
+          ))}
         </div>
       </section>
 
