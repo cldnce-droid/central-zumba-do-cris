@@ -137,3 +137,14 @@ export default function Home() {
                   <p className="text-xl font-black uppercase">{item.city}</p>
                   <p className="mt-1 text-xs font-bold text-white/80">{item.place}</p>
                 </div>
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
+                  <PinIcon className="size-5" />
+                </span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
