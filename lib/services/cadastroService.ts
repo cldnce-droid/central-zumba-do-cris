@@ -8,7 +8,7 @@ export interface CadastroAlunoFormData {
   nome: string;
   whatsapp: string;
   email: string;
-  turmaId: string;
+  turmaIds: string[];
   plano: PlanoCodigo | "";
   formaPagamento: MetodoPagamento | "";
   observacoes: string;
@@ -23,6 +23,7 @@ export interface AlunoPendente {
   status: "pendente";
   dataEntrada: string;
   diaVencimento: null;
+  turmasEscolhidas: string[];
   turmaPrincipal: string;
   formaPagamento: MetodoPagamento;
   observacoes: string;
@@ -58,9 +59,19 @@ export function createAlunoPendente(
   formData: CadastroAlunoFormData,
   now = new Date()
 ): AlunoPendente {
-  const turma = getTurmaCadastro(formData.turmaId);
+  const turmasSelecionadas = formData.turmaIds
+    .map(getTurmaCadastro)
+    .filter((turma) => turma !== undefined);
+  const limiteDeTurmas = formData.plano
+    ? Number(formData.plano.replace("x", ""))
+    : 0;
 
-  if (!formData.plano || !formData.formaPagamento || !turma) {
+  if (
+    !formData.plano ||
+    !formData.formaPagamento ||
+    turmasSelecionadas.length === 0 ||
+    turmasSelecionadas.length > limiteDeTurmas
+  ) {
     throw new Error("Dados obrigatórios do cadastro não foram informados.");
   }
 
@@ -73,7 +84,8 @@ export function createAlunoPendente(
     status: "pendente",
     dataEntrada: formatLocalDate(now),
     diaVencimento: null,
-    turmaPrincipal: turma.nome,
+    turmasEscolhidas: turmasSelecionadas.map((turma) => turma.nome),
+    turmaPrincipal: turmasSelecionadas[0].nome,
     formaPagamento: formData.formaPagamento,
     observacoes: formData.observacoes.trim()
   };
