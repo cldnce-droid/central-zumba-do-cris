@@ -26,7 +26,7 @@ const initialForm: CadastroAlunoFormData = {
   nome: "",
   whatsapp: "",
   email: "",
-  turmaId: "",
+  turmaIds: [],
   plano: "",
   formaPagamento: "",
   observacoes: ""
@@ -68,8 +68,8 @@ function validateForm(form: CadastroAlunoFormData) {
     errors.email = "Confira se o e-mail foi digitado corretamente.";
   }
 
-  if (!form.turmaId) {
-    errors.turmaId = "Escolha a turma onde você quer começar.";
+  if (!form.turmaIds.length) {
+    errors.turmaIds = "Escolha pelo menos um local para começar.";
   }
 
   if (!form.plano) {
@@ -92,9 +92,13 @@ export function StudentRegistrationForm() {
     useState<AlunoPendente | null>(null);
   const [pixFeedback, setPixFeedback] = useState("");
 
-  const selectedClass = registeredStudent
-    ? classes.find((item) => item.nome === registeredStudent.turmaPrincipal)
-    : getTurmaCadastro(form.turmaId);
+  const selectedClasses = registeredStudent
+    ? classes.filter((item) =>
+        registeredStudent.turmasEscolhidas.includes(item.nome)
+      )
+    : form.turmaIds
+        .map(getTurmaCadastro)
+        .filter((item) => item !== undefined);
   const selectedPlan = registeredStudent
     ? getPlanoCadastro(registeredStudent.plano)
     : form.plano
@@ -107,6 +111,48 @@ export function StudentRegistrationForm() {
   ) => {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
+  const selectPlan = (plan: CadastroAlunoFormData["plano"]) => {
+    const limit = plan ? Number(plan.replace("x", "")) : 0;
+    setForm((current) => ({
+      ...current,
+      plano: plan,
+      turmaIds: current.turmaIds.slice(0, limit)
+    }));
+    setErrors((current) => ({
+      ...current,
+      plano: undefined,
+      turmaIds: undefined
+    }));
+  };
+
+  const toggleClass = (classId: string) => {
+    if (!form.plano) {
+      setErrors((current) => ({
+        ...current,
+        turmaIds: "Escolha primeiro o plano para definir quantos locais pode selecionar."
+      }));
+      return;
+    }
+
+    const limit = Number(form.plano.replace("x", ""));
+    const isSelected = form.turmaIds.includes(classId);
+
+    if (!isSelected && form.turmaIds.length >= limit) {
+      setErrors((current) => ({
+        ...current,
+        turmaIds: `Seu plano permite escolher até ${limit} ${limit === 1 ? "local" : "locais"}.`
+      }));
+      return;
+    }
+
+    updateField(
+      "turmaIds",
+      isSelected
+        ? form.turmaIds.filter((id) => id !== classId)
+        : [...form.turmaIds, classId]
+    );
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -137,7 +183,7 @@ export function StudentRegistrationForm() {
 
   if (registeredStudent) {
     const whatsappMessage = encodeURIComponent(
-      `Olá, Cris! Fiz meu cadastro na Central Zumba do Cris. Meu nome é ${registeredStudent.nome}, escolhi a turma ${registeredStudent.turmaPrincipal} e o plano ${selectedPlan?.nome ?? registeredStudent.plano}. Quero enviar meu comprovante. 💖`
+      `Olá, Cris! Fiz meu cadastro na Central Zumba do Cris. Meu nome é ${registeredStudent.nome}, escolhi os locais ${registeredStudent.turmasEscolhidas.join(", ")} e o plano ${selectedPlan?.nome ?? registeredStudent.plano}. Quero enviar meu comprovante. 💖`
     );
 
     return (
@@ -191,10 +237,10 @@ export function StudentRegistrationForm() {
             </div>
             <div>
               <dt className="text-xs font-black uppercase text-cris-navy/45">
-                Turma
+                Locais escolhidos
               </dt>
               <dd className="mt-1 font-black text-cris-navy">
-                {selectedClass?.nome ?? registeredStudent.turmaPrincipal}
+                {selectedClasses.map((item) => item.nome).join(", ")}
               </dd>
             </div>
             <div>
@@ -364,29 +410,35 @@ export function StudentRegistrationForm() {
             <PinIcon className="size-6" />
           </span>
           <h2 className="text-2xl font-black uppercase text-cris-navy">
-            Escolha sua turma
+            Escolha seus locais
           </h2>
         </div>
 
+        <p className="mt-4 font-bold text-cris-navy/65">
+          {form.plano
+            ? `Seu plano permite escolher até ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "local" : "locais"}.`
+            : "Escolha primeiro seu plano para liberar a seleção de locais."}
+        </p>
+
         <div
           className="mt-6 grid gap-3 md:grid-cols-3"
-          data-registration-error={Boolean(errors.turmaId)}
+          data-registration-error={Boolean(errors.turmaIds)}
         >
           {classes.map((item) => (
             <label
               className={`cursor-pointer rounded-lg border-2 p-4 transition ${
-                form.turmaId === item.id
+                form.turmaIds.includes(item.id)
                   ? "border-cris-blue bg-cris-blue/10 shadow-pop"
                   : "border-cris-navy/10 bg-white hover:border-cris-blue/45"
-              }`}
+              } ${!form.plano ? "opacity-60" : ""}`}
               key={item.id}
             >
               <input
-                checked={form.turmaId === item.id}
+                checked={form.turmaIds.includes(item.id)}
                 className="sr-only"
                 name="turma"
-                onChange={() => updateField("turmaId", item.id)}
-                type="radio"
+                onChange={() => toggleClass(item.id)}
+                type="checkbox"
               />
               <span className="text-lg font-black uppercase text-cris-navy">
                 {item.nome}
@@ -400,9 +452,9 @@ export function StudentRegistrationForm() {
             </label>
           ))}
         </div>
-        {errors.turmaId ? (
+        {errors.turmaIds ? (
           <p className="mt-3 text-sm font-bold text-cris-pink">
-            {errors.turmaId}
+            {errors.turmaIds}
           </p>
         ) : null}
       </section>
@@ -437,7 +489,7 @@ export function StudentRegistrationForm() {
                   checked={form.plano === code}
                   className="sr-only"
                   name="plano"
-                  onChange={() => updateField("plano", code)}
+                  onChange={() => selectPlan(code)}
                   type="radio"
                 />
                 {item.destaque ? (
