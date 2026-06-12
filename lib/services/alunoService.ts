@@ -46,4 +46,17 @@ export function getProximaAula(alunoId: string, referencia = new Date()) {
 }
 
 export function getStatusPagamento(alunoId: string) {
-  return bus
+  return buscarStatusPagamento(alunoId);
+}
+
+export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
+  return buscarResumoFrequencia(alunoId, referencia);
+}
+
+export function getDesafiosDisponiveis(alunoId: string) {
+  return buscarDesafiosDisponiveis(alunoId);
+}
+
+export function getConquistasDoAluno(alunoId: string) {
+  return getConquistasAluno(alunoId);
+}
