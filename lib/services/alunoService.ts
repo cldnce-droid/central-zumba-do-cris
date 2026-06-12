@@ -21,6 +21,13 @@ export function getAlunoById(id: string) {
   return buscarAlunoPorId(id);
 }
 
+export function getAlunoByWhatsapp(whatsapp: string) {
+  const normalizedWhatsapp = whatsapp.replace(/\D/g, "");
+  return alunos.find(
+    (aluno) => aluno.whatsapp.replace(/\D/g, "") === normalizedWhatsapp
+  );
+}
+
 export function getPlanoByAluno(alunoId: string) {
   return buscarPlanoPorAluno(alunoId);
 }
