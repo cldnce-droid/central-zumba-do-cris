@@ -9,6 +9,7 @@ import {
   getStatusPagamento as buscarStatusPagamento,
   getTurmasDisponiveisPorPlano as buscarTurmasDisponiveis
 } from "@/lib/student-data/selectors";
+import { getStatusAlunoLocal } from "@/lib/services/professorService";
 
 export const alunoAtualId = "ALU001";
 
@@ -18,14 +19,18 @@ export function getAlunosParaTeste() {
 }
 
 export function getAlunoById(id: string) {
-  return buscarAlunoPorId(id);
+  const aluno = buscarAlunoPorId(id);
+  const status = aluno ? getStatusAlunoLocal(aluno.id) : undefined;
+  return aluno ? { ...aluno, status: status ?? aluno.status } : undefined;
 }
 
 export function getAlunoByWhatsapp(whatsapp: string) {
   const normalizedWhatsapp = whatsapp.replace(/\D/g, "");
-  return alunos.find(
+  const aluno = alunos.find(
     (aluno) => aluno.whatsapp.replace(/\D/g, "") === normalizedWhatsapp
   );
+  const status = aluno ? getStatusAlunoLocal(aluno.id) : undefined;
+  return aluno ? { ...aluno, status: status ?? aluno.status } : undefined;
 }
 
 export function getPlanoByAluno(alunoId: string) {
@@ -41,17 +46,4 @@ export function getProximaAula(alunoId: string, referencia = new Date()) {
 }
 
 export function getStatusPagamento(alunoId: string) {
-  return buscarStatusPagamento(alunoId);
-}
-
-export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
-  return buscarResumoFrequencia(alunoId, referencia);
-}
-
-export function getDesafiosDisponiveis(alunoId: string) {
-  return buscarDesafiosDisponiveis(alunoId);
-}
-
-export function getConquistasDoAluno(alunoId: string) {
-  return getConquistasAluno(alunoId);
-}
+  return bus
