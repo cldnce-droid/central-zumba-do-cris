@@ -82,6 +82,15 @@ export default function Home() {
                 Fazer meu cadastro
               </ActionButton>
             </div>
+            <div className="sm:col-span-2">
+              <ActionButton
+                href="/professor"
+                icon={<UsersIcon className="size-6" />}
+                variant="navy"
+              >
+                Área do Professor
+              </ActionButton>
+            </div>
           </div>
         </div>
       </section>
@@ -128,14 +137,3 @@ export default function Home() {
                   <p className="text-xl font-black uppercase">{item.city}</p>
                   <p className="mt-1 text-xs font-bold text-white/80">{item.place}</p>
                 </div>
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
-                  <PinIcon className="size-5" />
-                </span>
-              </div>
-            </a>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
