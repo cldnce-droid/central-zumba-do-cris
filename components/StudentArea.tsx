@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarIcon,
@@ -10,8 +11,6 @@ import {
   UsersIcon
 } from "@/components/Icons";
 import {
-  alunoAtualId,
-  getAlunosParaTeste,
   getAlunoById,
   getConquistasDoAluno,
   getDesafiosDisponiveis,
@@ -94,8 +93,8 @@ function formatChallengeStatus(status: string) {
 }
 
 export function StudentArea() {
-  const studentsForTesting = useMemo(() => getAlunosParaTeste(), []);
-  const [selectedStudentId, setSelectedStudentId] = useState(alunoAtualId);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [accessChecked, setAccessChecked] = useState(false);
   const [nextClass, setNextClass] = useState<Aula | null>(null);
   const [nextClassLoaded, setNextClassLoaded] = useState(false);
   const [localConfirmations, setLocalConfirmations] = useState<
@@ -139,6 +138,12 @@ export function StudentArea() {
   const presenceConfirmed = Boolean(localConfirmations[presenceKey]);
 
   useEffect(() => {
+    setSelectedStudentId(localStorage.getItem("alunoAtualId") ?? "");
+    setAccessChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (!studentId) return;
     setNextClassLoaded(false);
     setNextClass(getProximaAula(studentId));
     setNextClassLoaded(true);
@@ -156,16 +161,26 @@ export function StudentArea() {
     setAgendaFeedbackKey(null);
   };
 
-  if (!student) {
+  if (!accessChecked) {
+    return null;
+  }
+
+  if (!student || student.status === "pendente" || student.status === "inativo") {
     return (
       <section className="premium-panel p-6 text-center sm:p-8">
         <HeartIcon className="mx-auto size-12 text-cris-pink" />
         <h1 className="mt-4 text-3xl font-black uppercase text-cris-navy">
-          Aluna não encontrada
+          Entre com seu WhatsApp para acessar sua área.
         </h1>
         <p className="mt-3 font-bold text-cris-navy/65">
-          Não conseguimos carregar esta área agora. Errou... continua!
+          Sua Área do Aluno é liberada após a confirmação do cadastro.
         </p>
+        <Link
+          className="mt-6 inline-flex min-h-12 items-center justify-center rounded-lg bg-cris-pink px-6 py-3 font-black uppercase text-white shadow-pop"
+          href="/entrar"
+        >
+          Entrar na minha área
+        </Link>
       </section>
     );
   }
@@ -186,24 +201,14 @@ export function StudentArea() {
         <p className="mt-3 max-w-2xl text-base font-bold leading-relaxed text-cris-navy/70">
           Acompanhe sua turma, sua evolução e cada conquista dessa caminhada.
         </p>
-
-        <label className="mt-6 block max-w-sm">
-          <span className="text-xs font-black uppercase text-cris-pink">
-            Visualizar como
-          </span>
-          <select
-            className="mt-2 min-h-12 w-full rounded-lg border-2 border-cris-navy/10 bg-cris-paper px-4 py-3 text-base font-black text-cris-navy outline-none focus:border-cris-blue"
-            onChange={(event) => setSelectedStudentId(event.target.value)}
-            value={selectedStudentId}
-          >
-            {studentsForTesting.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.nome}
-              </option>
-            ))}
-          </select>
-        </label>
       </header>
+
+      {student.status === "atrasado" ? (
+        <aside className="rounded-lg bg-cris-yellow p-4 font-black text-cris-navy shadow-pop">
+          Seu plano está com pagamento pendente. Regularize para manter seu
+          acesso.
+        </aside>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-[1.05fr_0.95fr]">
         <article className="relative overflow-hidden rounded-lg bg-cris-navy p-5 text-white shadow-pop sm:p-6">
