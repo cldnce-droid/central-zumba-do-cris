@@ -66,11 +66,11 @@ export default function Home() {
             </ActionButton>
             <div className="sm:col-span-2">
               <ActionButton
-                href="/minha-area"
+                href="/entrar"
                 icon={<HeartIcon className="size-6" />}
                 variant="navy"
               >
-                💖 Minha Área
+                Entrar na minha área
               </ActionButton>
             </div>
             <div className="sm:col-span-2">
