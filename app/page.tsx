@@ -3,7 +3,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { AnimatedBrandLogo } from "@/components/AnimatedBrandLogo";
 import { GroupPicker } from "@/components/GroupPicker";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { CalendarIcon, HeartIcon, MessageIcon, MoneyIcon, PinIcon } from "@/components/Icons";
+import { CalendarIcon, HeartIcon, MessageIcon, MoneyIcon, PinIcon, UsersIcon } from "@/components/Icons";
 import { classes, plans } from "@/lib/data";
 
 export default function Home() {
@@ -71,6 +71,15 @@ export default function Home() {
                 variant="navy"
               >
                 💖 Minha Área
+              </ActionButton>
+            </div>
+            <div className="sm:col-span-2">
+              <ActionButton
+                href="/cadastro"
+                icon={<UsersIcon className="size-6" />}
+                variant="purple"
+              >
+                Fazer meu cadastro
               </ActionButton>
             </div>
           </div>
