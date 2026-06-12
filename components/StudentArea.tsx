@@ -20,6 +20,10 @@ import {
   getStatusPagamento,
   getTurmasDisponiveisPorPlano
 } from "@/lib/services/alunoService";
+import {
+  confirmarPresenca,
+  getConfirmacaoPorAlunoEAula
+} from "@/lib/services/confirmacaoService";
 import type {
   AlunoStatus,
   Aula,
@@ -97,9 +101,7 @@ export function StudentArea() {
   const [accessChecked, setAccessChecked] = useState(false);
   const [nextClass, setNextClass] = useState<Aula | null>(null);
   const [nextClassLoaded, setNextClassLoaded] = useState(false);
-  const [localConfirmations, setLocalConfirmations] = useState<
-    Record<string, boolean>
-  >({});
+  const [presenceConfirmed, setPresenceConfirmed] = useState(false);
   const [agendaFeedbackKey, setAgendaFeedbackKey] = useState<string | null>(
     null
   );
@@ -135,8 +137,6 @@ export function StudentArea() {
   const presenceKey = nextClass
     ? `${studentId}-${nextClass.id}`
     : `${studentId}-loading`;
-  const presenceConfirmed = Boolean(localConfirmations[presenceKey]);
-
   useEffect(() => {
     setSelectedStudentId(localStorage.getItem("alunoAtualId") ?? "");
     setAccessChecked(true);
@@ -145,7 +145,15 @@ export function StudentArea() {
   useEffect(() => {
     if (!studentId) return;
     setNextClassLoaded(false);
-    setNextClass(getProximaAula(studentId));
+    const nextClassResult = getProximaAula(studentId);
+    setNextClass(nextClassResult);
+    setPresenceConfirmed(
+      nextClassResult
+        ? Boolean(
+            getConfirmacaoPorAlunoEAula(studentId, nextClassResult.id)
+          )
+        : false
+    );
     setNextClassLoaded(true);
     setAgendaFeedbackKey(null);
   }, [studentId]);
@@ -153,11 +161,8 @@ export function StudentArea() {
   const confirmPresence = () => {
     if (!nextClass) return;
 
-    // Estado visual temporário: não grava confirmação nem altera frequência.
-    setLocalConfirmations((current) => ({
-      ...current,
-      [presenceKey]: true
-    }));
+    confirmarPresenca(studentId, nextClass.id);
+    setPresenceConfirmed(true);
     setAgendaFeedbackKey(null);
   };
 
@@ -166,14 +171,21 @@ export function StudentArea() {
   }
 
   if (!student || student.status === "pendente" || student.status === "inativo") {
+    const accessMessage =
+      student?.status === "pendente"
+        ? "Sua Área do Aluno ainda está pendente de confirmação. Finalize o pagamento para liberar as confirmações."
+        : student?.status === "inativo"
+          ? "Seu cadastro está inativo. Fale com o Cris para regularizar seu acesso."
+          : "Entre com seu WhatsApp para acessar sua área.";
+
     return (
       <section className="premium-panel p-6 text-center sm:p-8">
         <HeartIcon className="mx-auto size-12 text-cris-pink" />
         <h1 className="mt-4 text-3xl font-black uppercase text-cris-navy">
-          Entre com seu WhatsApp para acessar sua área.
+          {accessMessage}
         </h1>
         <p className="mt-3 font-bold text-cris-navy/65">
-          Sua Área do Aluno é liberada após a confirmação do cadastro.
+          Errou... continua!
         </p>
         <Link
           className="mt-6 inline-flex min-h-12 items-center justify-center rounded-lg bg-cris-pink px-6 py-3 font-black uppercase text-white shadow-pop"
@@ -412,7 +424,7 @@ export function StudentArea() {
                 ? "Calculando próxima aula..."
                 : nextClass
                 ? formatNextClassDate(nextClass)
-                : "Nenhuma aula agendada no momento."}
+                : "Nenhuma aula disponível para confirmação no momento."}
             </h2>
             <p className="mt-2 font-bold text-white/80">
               {nextClass
