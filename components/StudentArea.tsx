@@ -24,6 +24,7 @@ import {
   confirmarPresenca,
   getConfirmacaoPorAlunoEAula
 } from "@/lib/services/confirmacaoService";
+import { createGoogleCalendarUrl } from "@/lib/utils/calendar";
 import type {
   AlunoStatus,
   Aula,
@@ -164,6 +165,20 @@ export function StudentArea() {
     confirmarPresenca(studentId, nextClass.id);
     setPresenceConfirmed(true);
     setAgendaFeedbackKey(null);
+  };
+
+  const addToCalendar = () => {
+    if (!nextClass || !presenceConfirmed) return;
+
+    const calendarWindow = window.open(createGoogleCalendarUrl(nextClass), "_blank");
+
+    if (calendarWindow) {
+      calendarWindow.opener = null;
+    }
+
+    setAgendaFeedbackKey(
+      calendarWindow ? presenceKey : `${presenceKey}-error`
+    );
   };
 
   if (!accessChecked) {
@@ -455,7 +470,7 @@ export function StudentArea() {
                   </p>
                   <button
                     className="mt-4 min-h-11 w-full rounded-lg border-2 border-white bg-transparent px-4 py-2.5 text-sm font-black uppercase text-white transition hover:bg-white hover:text-cris-pink focus:outline-none focus:ring-4 focus:ring-cris-yellow/50 sm:w-auto"
-                    onClick={() => setAgendaFeedbackKey(presenceKey)}
+                    onClick={addToCalendar}
                     type="button"
                   >
                     Adicionar à agenda
@@ -465,7 +480,16 @@ export function StudentArea() {
                       aria-live="polite"
                       className="mt-3 text-xs font-bold text-white/70"
                     >
-                      Integração com a agenda será liberada em uma próxima fase.
+                      Agenda aberta! Confirme o evento no seu calendário.
+                    </p>
+                  ) : null}
+                  {agendaFeedbackKey === `${presenceKey}-error` ? (
+                    <p
+                      aria-live="polite"
+                      className="mt-3 text-xs font-bold text-white/70"
+                    >
+                      Não foi possível abrir a agenda automaticamente. Tente
+                      novamente.
                     </p>
                   ) : null}
                 </div>
