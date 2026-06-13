@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CalendarIcon,
   MoneyIcon,
@@ -41,7 +42,9 @@ function formatDate(value: string) {
 }
 
 export function ProfessorDashboard() {
+  const router = useRouter();
   const [revision, setRevision] = useState(0);
+  const [isLeaving, setIsLeaving] = useState(false);
   const data = useMemo(() => {
     const students = getAlunosProfessor();
     return {
@@ -60,6 +63,16 @@ export function ProfessorDashboard() {
     void sincronizarDashboardProfessor().then(refresh);
   }, []);
 
+  const logout = async () => {
+    setIsLeaving(true);
+    try {
+      await fetch("/api/professor/logout", { method: "POST" });
+    } finally {
+      router.replace("/professor-login");
+      router.refresh();
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <header className="relative overflow-hidden rounded-lg bg-cris-navy p-6 text-white shadow-pop sm:p-8">
@@ -73,6 +86,14 @@ export function ProfessorDashboard() {
         <h1 className="mt-2 text-4xl font-black uppercase leading-none sm:text-6xl">
           Dashboard do Professor
         </h1>
+        <button
+          className="relative z-10 mt-5 min-h-11 rounded-lg border-2 border-white/40 px-5 py-2 font-black uppercase text-white transition hover:bg-white hover:text-cris-navy disabled:opacity-60"
+          disabled={isLeaving}
+          onClick={logout}
+          type="button"
+        >
+          {isLeaving ? "Saindo..." : "Sair"}
+        </button>
         <p className="mt-4 font-bold text-white/75">
           Gerencie alunos, pagamentos e confirmações da Central Zumba do Cris.
         </p>
