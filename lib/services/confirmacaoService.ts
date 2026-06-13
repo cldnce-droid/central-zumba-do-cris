@@ -1,4 +1,5 @@
 import type { Confirmacao } from "@/lib/student-data";
+import { appendRow, readSheet } from "@/lib/services/googleSheetsService";
 
 const STORAGE_KEY = "zdc_confirmacoes";
 
@@ -29,7 +30,7 @@ export function getConfirmacoesDoAluno(alunoId: string) {
   return readConfirmations().filter((item) => item.alunoId === alunoId);
 }
 
-export function confirmarPresenca(alunoId: string, aulaId: string) {
+export async function confirmarPresenca(alunoId: string, aulaId: string) {
   const confirmations = readConfirmations();
   const existing = confirmations.find(
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
@@ -51,5 +52,13 @@ export function confirmarPresenca(alunoId: string, aulaId: string) {
   };
 
   saveConfirmations([...confirmations, confirmation]);
+  const response = await readSheet("Confirmacoes");
+  const duplicate = response?.data.some(
+    (item) =>
+      item.alunoId === alunoId &&
+      item.aulaId === aulaId &&
+      item.status === "confirmado"
+  );
+  if (!duplicate) await appendRow("Confirmacoes", confirmation);
   return confirmation;
 }
