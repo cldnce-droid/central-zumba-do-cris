@@ -101,18 +101,24 @@ export async function salvarAlunoPendente(
   const aluno = createAlunoPendente(formData);
   const salvoNaPlanilha = await appendRow("Alunos", alunoToSheetRow(aluno));
 
-  if (!salvoNaPlanilha && typeof window !== "undefined") {
+  // Mantém uma cópia local para o painel deste dispositivo e como fallback.
+  if (typeof window !== "undefined") {
     try {
       const atuais = JSON.parse(
         localStorage.getItem(ALUNOS_PENDENTES_KEY) ?? "[]"
       ) as AlunoPendente[];
+      const semDuplicidade = atuais.filter((item) => item.id !== aluno.id);
       localStorage.setItem(
         ALUNOS_PENDENTES_KEY,
-        JSON.stringify([...atuais, aluno])
+        JSON.stringify([...semDuplicidade, aluno])
       );
     } catch {
       localStorage.setItem(ALUNOS_PENDENTES_KEY, JSON.stringify([aluno]));
     }
+  }
+
+  if (!salvoNaPlanilha) {
+    console.warn("Cadastro salvo apenas no fallback local:", aluno.id);
   }
 
   return aluno;
