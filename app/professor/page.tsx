@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "Dashboard do Professor | Zumba do Cris"
 };
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export default async function ProfessorPage() {
   const cookieStore = await cookies();
   if (!isProfessorTokenValid(cookieStore.get(PROFESSOR_COOKIE)?.value)) {
