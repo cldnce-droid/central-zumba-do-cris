@@ -13,9 +13,11 @@ export function ProfessorLoginForm() {
     setError("");
 
     try {
-      const response = await fetch("/api/admin/login", {
+      const loginUrl = new URL("/api/admin/login", window.location.origin);
+      const response = await fetch(loginUrl, {
         method: "POST",
         credentials: "same-origin",
+        cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password })
       });
