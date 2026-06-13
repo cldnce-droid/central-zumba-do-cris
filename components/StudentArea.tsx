@@ -621,4 +621,17 @@ export function StudentArea() {
                 <h3 className="text-lg font-black uppercase leading-tight">
                   {achievement.titulo}
                 </h3>
-                <p className="mt-1 text
+                <p className="mt-1 text-sm font-bold opacity-75">
+                  {achievement.descricao}
+                </p>
+                <p className="mt-2 text-[0.65rem] font-black uppercase opacity-65">
+                  {achievement.desbloqueada ? "Desbloqueada" : "Bloqueada"}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
