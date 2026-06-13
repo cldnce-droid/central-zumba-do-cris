@@ -90,7 +90,10 @@ export async function validarPresenca(
   compareceu: boolean
 ) {
   const presences = getPresencasProfessor();
-  const aula = aulas.find((item) => item.id === aulaId);
+  const remoteClasses = getCachedSheet("Aulas").map(sheetRowToAula);
+  const aula =
+    remoteClasses.find((item) => item.id === aulaId) ??
+    aulas.find((item) => item.id === aulaId);
   const existing = presences.find(
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
   );
