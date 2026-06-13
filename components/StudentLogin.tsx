@@ -5,7 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HeartIcon, MessageIcon, MoneyIcon } from "@/components/Icons";
 import { pixKey } from "@/lib/data";
-import { getAlunoByWhatsapp } from "@/lib/services/alunoService";
+import { getAlunoByWhatsappRemoto } from "@/lib/services/alunoService";
 import type { Aluno } from "@/lib/student-data";
 
 export function StudentLogin() {
@@ -15,7 +15,7 @@ export function StudentLogin() {
   const [pendingStudent, setPendingStudent] = useState<Aluno | null>(null);
   const [pixFeedback, setPixFeedback] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = whatsapp.replace(/\D/g, "");
 
@@ -24,7 +24,7 @@ export function StudentLogin() {
       return;
     }
 
-    const student = getAlunoByWhatsapp(normalized);
+    const student = await getAlunoByWhatsappRemoto(normalized);
 
     if (!student) {
       setError("Cadastro não encontrado. Confira o número ou faça seu cadastro.");
