@@ -8,6 +8,18 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+export async function GET() {
+  return NextResponse.json(
+    {
+      endpoint: "/api/admin/login",
+      method: "POST",
+      available: true,
+      adminPasswordConfigured: isAdminPasswordConfigured()
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
+}
+
 export async function POST(request: NextRequest) {
   const configured = isAdminPasswordConfigured();
   console.info("Login professor - ADMIN_PASSWORD configurado:", configured);
