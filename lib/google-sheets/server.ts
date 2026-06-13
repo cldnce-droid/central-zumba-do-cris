@@ -23,6 +23,17 @@ function base64Url(value: string | Buffer) {
     .replace(/\//g, "_");
 }
 
+function toSheetValue(value: unknown): SheetRow[string] {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  return value == null ? null : String(value);
+}
+
 export function isGoogleSheetsConfigured() {
   return Boolean(
     process.env.GOOGLE_SHEETS_ID &&
@@ -90,7 +101,12 @@ export async function readSheet(sheetName: string): Promise<SheetRow[]> {
   ) as { values?: unknown[][] };
   const [headers = [], ...rows] = data.values ?? [];
   return rows.map((row) =>
-    Object.fromEntries(headers.map((header, index) => [String(header), row[index] ?? ""]))
+    Object.fromEntries(
+      headers.map((header, index) => [
+        String(header),
+        toSheetValue(row[index])
+      ])
+    ) as SheetRow
   );
 }
 
@@ -121,8 +137,11 @@ export async function updateRow(
   const rowIndex = rows.findIndex((row) => String(row[idIndex]) === rowId);
   if (rowIndex < 0) throw new Error("Registro não encontrado.");
   const current = Object.fromEntries(
-    headers.map((header, index) => [String(header), rows[rowIndex][index] ?? ""])
-  );
+    headers.map((header, index) => [
+      String(header),
+      toSheetValue(rows[rowIndex][index])
+    ])
+  ) as SheetRow;
   const values = headers.map((header) => ({ ...current, ...updates })[String(header)] ?? "");
   return sheetsRequest(
     `values/${encodeURIComponent(`${sheetName}!A${rowIndex + 2}:Z${rowIndex + 2}`)}?valueInputOption=USER_ENTERED`,
