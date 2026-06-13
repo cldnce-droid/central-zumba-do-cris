@@ -22,8 +22,10 @@ export interface Aluno {
   plano: PlanoCodigo;
   status: AlunoStatus;
   dataEntrada: string;
-  diaVencimento: number;
+  diaVencimento: number | null;
   turmaPrincipal: string;
+  turmasEscolhidas?: string[];
+  formaPagamento?: MetodoPagamento;
   observacoes: string;
 }
 
