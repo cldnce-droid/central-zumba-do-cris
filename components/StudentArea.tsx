@@ -347,9 +347,9 @@ export function StudentArea() {
                 }`}
               >
                 {plano?.aulasPorSemana === 1
-                  ? "Minha turma"
+                  ? "Minha Aula"
                   : plano?.aulasPorSemana === 2
-                    ? "Minhas aulas disponíveis"
+                    ? "Minhas Aulas"
                     : plano?.aulasPorSemana === 3
                       ? "Passe 3x na semana"
                       : "Minhas aulas"}
@@ -372,7 +372,7 @@ export function StudentArea() {
 
           {plano?.aulasPorSemana === 2 ? (
             <p className="mt-4 rounded-lg bg-cris-blue/10 p-3 text-sm font-bold leading-relaxed text-cris-navy/70">
-              Seu plano permite participar de até 2 aulas por semana.
+              Seu plano permite até 2 aulas por semana.
             </p>
           ) : null}
 
@@ -422,7 +422,7 @@ export function StudentArea() {
               ))
             ) : (
               <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/65 ring-1 ring-cris-navy/10">
-                Nenhuma turma disponível no momento.
+                Nenhuma turma escolhida no cadastro.
               </p>
             )}
           </div>
