@@ -161,7 +161,9 @@ export function ProfessorDashboard() {
               </div>
               <p className="mt-3 font-bold text-cris-navy/70">
                 {student.planoDetalhes?.nome ?? student.plano} ·{" "}
-                {student.turmaPrincipal}
+                {student.turmasEscolhidas?.length
+                  ? student.turmasEscolhidas.join(", ")
+                  : student.turmaPrincipal}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {studentStatuses.map((status) => (
