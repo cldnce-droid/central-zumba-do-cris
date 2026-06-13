@@ -5,6 +5,20 @@ import type {
   PagamentoStatus,
   Presenca
 } from "@/lib/student-data";
+import {
+  getCachedSheet,
+  syncGoogleSheetsData,
+  updateRow,
+  appendRow
+} from "@/lib/services/googleSheetsService";
+import {
+  sheetRowToAluno,
+  sheetRowToAula,
+  sheetRowToConfirmacao,
+  sheetRowToPagamento,
+  sheetRowToPlano,
+  sheetRowToPresenca
+} from "@/lib/google-sheets/mappers";
 
 const STUDENT_STATUS_KEY = "zdc_alunos_status";
 const PAYMENT_STATUS_KEY = "zdc_pagamentos_status";
@@ -29,16 +43,22 @@ export function getAlunosProfessor() {
     STUDENT_STATUS_KEY,
     {}
   );
-  return alunos.map((aluno) => ({
+  const remoteStudents = getCachedSheet("Alunos").map(sheetRowToAluno);
+  const sourceStudents = remoteStudents.length ? remoteStudents : alunos;
+  const remotePlans = getCachedSheet("Planos").map(sheetRowToPlano);
+  const sourcePlans = remotePlans.length ? remotePlans : planos;
+  return sourceStudents.map((aluno) => ({
     ...aluno,
-    status: overrides[aluno.id] ?? aluno.status,
-    planoDetalhes: planos.find(
-      (plano) => plano.aulasPorSemana === Number(aluno.plano.replace("x", ""))
+    status: overrides[String(aluno.id)] ?? aluno.status,
+    planoDetalhes: sourcePlans.find(
+      (plano) =>
+        plano.aulasPorSemana ===
+        Number(String(aluno.plano).replace("x", ""))
     )
   }));
 }
 
-export function atualizarStatusAluno(alunoId: string, status: AlunoStatus) {
+export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus) {
   const overrides = readLocal<Record<string, AlunoStatus>>(
     STUDENT_STATUS_KEY,
     {}
@@ -47,17 +67,24 @@ export function atualizarStatusAluno(alunoId: string, status: AlunoStatus) {
     STUDENT_STATUS_KEY,
     JSON.stringify({ ...overrides, [alunoId]: status })
   );
+  await updateRow("Alunos", alunoId, { status });
 }
 
 export function getConfirmacoesProfessor() {
-  return readLocal<Confirmacao[]>(CONFIRMATIONS_KEY, []);
+  const remote = getCachedSheet("Confirmacoes").map(sheetRowToConfirmacao);
+  return remote.length
+    ? (remote as unknown as Confirmacao[])
+    : readLocal<Confirmacao[]>(CONFIRMATIONS_KEY, []);
 }
 
 export function getPresencasProfessor() {
-  return readLocal<Presenca[]>(PRESENCES_KEY, []);
+  const remote = getCachedSheet("Presencas").map(sheetRowToPresenca);
+  return remote.length
+    ? (remote as unknown as Presenca[])
+    : readLocal<Presenca[]>(PRESENCES_KEY, []);
 }
 
-export function validarPresenca(
+export async function validarPresenca(
   alunoId: string,
   aulaId: string,
   compareceu: boolean
@@ -82,6 +109,11 @@ export function validarPresenca(
     ? presences.map((item) => (item.id === existing.id ? presence : item))
     : [...presences, presence];
   localStorage.setItem(PRESENCES_KEY, JSON.stringify(next));
+  if (existing) {
+    await updateRow("Presencas", existing.id, { ...presence });
+  } else {
+    await appendRow("Presencas", { ...presence });
+  }
 }
 
 export function getPagamentosProfessor() {
@@ -89,13 +121,15 @@ export function getPagamentosProfessor() {
     PAYMENT_STATUS_KEY,
     {}
   );
-  return pagamentos.map((pagamento) => ({
+  const remote = getCachedSheet("Pagamentos").map(sheetRowToPagamento);
+  const source = remote.length ? remote : pagamentos;
+  return source.map((pagamento) => ({
     ...pagamento,
     status: overrides[pagamento.id] ?? pagamento.status
   }));
 }
 
-export function atualizarStatusPagamento(
+export async function atualizarStatusPagamento(
   pagamentoId: string,
   status: PagamentoStatus
 ) {
@@ -107,13 +141,32 @@ export function atualizarStatusPagamento(
     PAYMENT_STATUS_KEY,
     JSON.stringify({ ...overrides, [pagamentoId]: status })
   );
+  await updateRow("Pagamentos", pagamentoId, {
+    status,
+    ...(status === "pago"
+      ? { dataPagamento: new Date().toISOString().slice(0, 10) }
+      : {})
+  });
 }
 
 export function getProximasAulasProfessor() {
   const today = new Date().toISOString().slice(0, 10);
-  return aulas
+  const remote = getCachedSheet("Aulas").map(sheetRowToAula);
+  const source = remote.length ? remote : aulas;
+  return source
     .filter((aula) => aula.data >= today)
     .sort((first, second) => first.data.localeCompare(second.data));
+}
+
+export async function sincronizarDashboardProfessor() {
+  return syncGoogleSheetsData([
+    "Alunos",
+    "Planos",
+    "Aulas",
+    "Confirmacoes",
+    "Presencas",
+    "Pagamentos"
+  ]);
 }
 
 export function getResumoDashboard() {
