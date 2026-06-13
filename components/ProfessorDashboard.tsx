@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarIcon,
   MoneyIcon,
@@ -22,6 +22,7 @@ import {
   getPresencasProfessor,
   getProximasAulasProfessor,
   getResumoDashboard,
+  sincronizarDashboardProfessor,
   validarPresenca
 } from "@/lib/services/professorService";
 
@@ -54,6 +55,10 @@ export function ProfessorDashboard() {
   }, [revision]);
 
   const refresh = () => setRevision((value) => value + 1);
+
+  useEffect(() => {
+    void sincronizarDashboardProfessor().then(refresh);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -142,8 +147,8 @@ export function ProfessorDashboard() {
                   <button
                     className="rounded-lg border border-cris-navy/15 bg-white px-3 py-2 text-xs font-black uppercase text-cris-navy hover:bg-cris-yellow/30"
                     key={status}
-                    onClick={() => {
-                      atualizarStatusAluno(student.id, status);
+                    onClick={async () => {
+                      await atualizarStatusAluno(student.id, status);
                       refresh();
                     }}
                     type="button"
@@ -207,8 +212,8 @@ export function ProfessorDashboard() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-black uppercase text-white"
-                      onClick={() => {
-                        validarPresenca(
+                      onClick={async () => {
+                        await validarPresenca(
                           confirmation.alunoId,
                           confirmation.aulaId,
                           true
@@ -221,8 +226,8 @@ export function ProfessorDashboard() {
                     </button>
                     <button
                       className="rounded-lg bg-cris-pink px-4 py-2 text-xs font-black uppercase text-white"
-                      onClick={() => {
-                        validarPresenca(
+                      onClick={async () => {
+                        await validarPresenca(
                           confirmation.alunoId,
                           confirmation.aulaId,
                           false
@@ -281,8 +286,8 @@ export function ProfessorDashboard() {
                     <button
                       className="rounded-lg border border-cris-navy/15 bg-white px-3 py-2 text-xs font-black uppercase text-cris-navy"
                       key={status}
-                      onClick={() => {
-                        atualizarStatusPagamento(payment.id, status);
+                      onClick={async () => {
+                        await atualizarStatusPagamento(payment.id, status);
                         refresh();
                       }}
                       type="button"
