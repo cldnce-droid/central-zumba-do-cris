@@ -1,4 +1,8 @@
-import { alunos } from "@/lib/student-data/mockData";
+import {
+  alunos,
+  planos as mockPlans,
+  turmas as mockClasses
+} from "@/lib/student-data/mockData";
 import {
   getAlunoById as buscarAlunoPorId,
   getConquistasAluno,
@@ -45,6 +49,28 @@ function getAlunosDisponiveis() {
     ...getStoredAlunos(ALUNOS_PENDENTES_KEY),
     ...alunos
   ];
+}
+
+function normalizeClassName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function getSelectedClassNames(aluno: Aluno) {
+  const selected = Array.isArray(aluno.turmasEscolhidas)
+    ? aluno.turmasEscolhidas
+    : typeof aluno.turmasEscolhidas === "string"
+      ? String(aluno.turmasEscolhidas).split(",")
+      : [];
+  const normalized = selected.map((name) => name.trim()).filter(Boolean);
+  return normalized.length
+    ? normalized
+    : aluno.turmaPrincipal
+      ? [aluno.turmaPrincipal]
+      : [];
 }
 
 // Esta lista existe apenas enquanto não há login real.
@@ -96,39 +122,40 @@ export async function getAlunoByWhatsappRemoto(whatsapp: string) {
 
 export function getPlanoByAluno(alunoId: string) {
   const aluno = getAlunoById(alunoId);
+  if (!aluno) return undefined;
   const remotePlans = getCachedSheet("Planos").map(sheetRowToPlano);
-  const remotePlan = remotePlans.find(
+  const sourcePlans = remotePlans.length ? remotePlans : mockPlans;
+  const plan = sourcePlans.find(
     (plano) =>
       Number(plano.aulasPorSemana) ===
-      Number(String(aluno?.plano ?? "").replace("x", ""))
+      Number(String(aluno.plano).replace("x", ""))
   );
-  if (remotePlan) {
-    return remotePlan as unknown as ReturnType<typeof buscarPlanoPorAluno>;
+  if (plan) {
+    return plan as unknown as ReturnType<typeof buscarPlanoPorAluno>;
   }
   return buscarPlanoPorAluno(alunoId);
 }
 
 export function getTurmasDisponiveisPorPlano(alunoId: string) {
-  const aluno = getAlunoById(alunoId) as
-    | (Aluno & { turmasEscolhidas?: string[] })
-    | undefined;
+  const aluno = getAlunoById(alunoId);
+  if (!aluno) return [];
+
   const remoteClasses = getCachedSheet("Turmas").map(sheetRowToTurma);
-  if (aluno && remoteClasses.length) {
-    const selected = aluno.turmasEscolhidas?.length
-      ? remoteClasses.filter((turma) =>
-          aluno.turmasEscolhidas?.includes(String(turma.nome))
-        )
-      : remoteClasses.filter(
-          (turma) =>
-            turma.id === aluno.turmaPrincipal ||
-            turma.nome === aluno.turmaPrincipal
-        );
-    const limit = Number(String(aluno.plano).replace("x", ""));
-    return (selected.length ? selected : remoteClasses)
-      .filter((turma) => turma.ativa)
-      .slice(0, limit) as unknown as ReturnType<typeof buscarTurmasDisponiveis>;
-  }
-  return buscarTurmasDisponiveis(alunoId);
+  const sourceClasses = remoteClasses.length ? remoteClasses : mockClasses;
+  const selectedNames = new Set(
+    getSelectedClassNames(aluno).map(normalizeClassName)
+  );
+
+  if (!selectedNames.size) return [];
+
+  const limit = Number(String(aluno.plano).replace("x", ""));
+  return sourceClasses
+    .filter(
+      (turma) =>
+        turma.ativa &&
+        selectedNames.has(normalizeClassName(String(turma.nome)))
+    )
+    .slice(0, limit) as unknown as ReturnType<typeof buscarTurmasDisponiveis>;
 }
 
 export function getProximaAula(alunoId: string, referencia = new Date()) {
