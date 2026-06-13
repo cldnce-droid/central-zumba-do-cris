@@ -24,12 +24,13 @@ export function parseList(value: unknown) {
 
 export function sheetRowToAluno(row: SheetRow): Aluno {
   const turmasEscolhidas = parseList(row.turmasEscolhidas);
+  const turmaPrincipal = String(row.turmaPrincipal ?? "").trim();
   return {
     ...row,
     whatsapp: String(row.whatsapp ?? "").replace(/\D/g, ""),
     diaVencimento: Number(row.diaVencimento) || null,
     turmasEscolhidas,
-    turmaPrincipal: turmasEscolhidas[0] ?? ""
+    turmaPrincipal: turmasEscolhidas[0] ?? turmaPrincipal
   } as unknown as Aluno;
 }
 
