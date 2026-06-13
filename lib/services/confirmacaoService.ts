@@ -59,6 +59,6 @@ export async function confirmarPresenca(alunoId: string, aulaId: string) {
       item.aulaId === aulaId &&
       item.status === "confirmado"
   );
-  if (!duplicate) await appendRow("Confirmacoes", confirmation);
+  if (!duplicate) await appendRow("Confirmacoes", { ...confirmation });
   return confirmation;
 }
