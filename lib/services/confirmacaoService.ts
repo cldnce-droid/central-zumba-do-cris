@@ -36,22 +36,23 @@ export async function confirmarPresenca(alunoId: string, aulaId: string) {
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
   );
 
+  let confirmation: Confirmacao;
   if (existing) {
     existing.status = "confirmado";
     existing.dataConfirmacao = new Date().toISOString();
     saveConfirmations(confirmations);
-    return existing;
+    confirmation = existing;
+  } else {
+    confirmation = {
+      id: `CONF_TEMP_${Date.now()}`,
+      alunoId,
+      aulaId,
+      dataConfirmacao: new Date().toISOString(),
+      status: "confirmado"
+    };
+    saveConfirmations([...confirmations, confirmation]);
   }
 
-  const confirmation: Confirmacao = {
-    id: `CONF_TEMP_${Date.now()}`,
-    alunoId,
-    aulaId,
-    dataConfirmacao: new Date().toISOString(),
-    status: "confirmado"
-  };
-
-  saveConfirmations([...confirmations, confirmation]);
   const response = await readSheet("Confirmacoes");
   const duplicate = response?.data.some(
     (item) =>
