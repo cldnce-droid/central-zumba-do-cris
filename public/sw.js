@@ -1,4 +1,4 @@
-const CACHE_NAME = "central-zumba-do-cris-fase-8-20260612";
+const CACHE_NAME = "central-zumba-do-cris-fase-9-20260613";
 const APP_SHELL = [
   "/",
   "/turmas",
@@ -7,7 +7,6 @@ const APP_SHELL = [
   "/minha-area",
   "/cadastro",
   "/entrar",
-  "/professor",
   "/manifest.webmanifest?v=20260609",
   "/icons/icon-192.png?v=20260609",
   "/icons/icon-512.png?v=20260609",
@@ -31,6 +30,15 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
+    return;
+  }
+
+  const requestUrl = new URL(event.request.url);
+  if (
+    requestUrl.pathname.startsWith("/api/") ||
+    requestUrl.pathname.startsWith("/professor")
+  ) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
