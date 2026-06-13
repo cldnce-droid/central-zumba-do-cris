@@ -29,7 +29,11 @@ export function isAdminPasswordConfigured() {
 
 export function isValidAdminPassword(password: string) {
   const configuredPassword = getAdminPassword();
-  return Boolean(configuredPassword) && safeEqual(password, configuredPassword);
+  if (!configuredPassword) {
+    console.error("ADMIN_PASSWORD não configurado no servidor");
+    return false;
+  }
+  return safeEqual(password, configuredPassword);
 }
 
 export function isProfessorTokenValid(token?: string) {
@@ -46,9 +50,10 @@ export function setProfessorSession(response: NextResponse) {
   response.cookies.set(PROFESSOR_COOKIE, createSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 8
+    maxAge: 60 * 60 * 8,
+    priority: "high"
   });
 }
 
@@ -56,7 +61,7 @@ export function clearProfessorSession(response: NextResponse) {
   response.cookies.set(PROFESSOR_COOKIE, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge: 0
   });
