@@ -64,7 +64,7 @@ export function ProfessorDashboard() {
   const logout = async () => {
     setIsLeaving(true);
     try {
-      await fetch("/api/professor/logout", {
+      await fetch("/api/admin/logout", {
         method: "POST",
         credentials: "same-origin"
       });
