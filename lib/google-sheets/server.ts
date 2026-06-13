@@ -95,10 +95,14 @@ async function sheetsRequest(path: string, init?: RequestInit) {
   return response.json();
 }
 
-export async function readSheet(sheetName: string): Promise<SheetRow[]> {
-  const data = await sheetsRequest(
+async function readSheetValues(sheetName: string) {
+  return await sheetsRequest(
     `values/${encodeURIComponent(`${sheetName}!A:Z`)}`
   ) as { values?: unknown[][] };
+}
+
+export async function readSheet(sheetName: string): Promise<SheetRow[]> {
+  const data = await readSheetValues(sheetName);
   const [headers = [], ...rows] = data.values ?? [];
   return rows.map((row) =>
     Object.fromEntries(
@@ -111,9 +115,10 @@ export async function readSheet(sheetName: string): Promise<SheetRow[]> {
 }
 
 export async function appendRow(sheetName: string, data: SheetRow) {
-  const rows = await readSheet(sheetName);
-  const headers = rows.length
-    ? Object.keys(rows[0])
+  const sheet = await readSheetValues(sheetName);
+  const [headerRow = []] = sheet.values ?? [];
+  const headers = headerRow.length
+    ? headerRow.map(String)
     : Object.keys(data);
   return sheetsRequest(
     `values/${encodeURIComponent(`${sheetName}!A:Z`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
