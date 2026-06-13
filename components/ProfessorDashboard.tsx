@@ -160,10 +160,13 @@ export function ProfessorDashboard() {
                 </span>
               </div>
               <p className="mt-3 font-bold text-cris-navy/70">
-                {student.planoDetalhes?.nome ?? student.plano} ·{" "}
+                {student.planoDetalhes?.nome ?? student.plano}
+              </p>
+              <p className="mt-1 text-sm font-bold text-cris-navy/60">
+                Turmas escolhidas:{" "}
                 {student.turmasEscolhidas?.length
                   ? student.turmasEscolhidas.join(", ")
-                  : student.turmaPrincipal}
+                  : student.turmaPrincipal || "Nenhuma turma escolhida"}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {studentStatuses.map((status) => (
