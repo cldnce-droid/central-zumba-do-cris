@@ -3,6 +3,8 @@ import type {
   MetodoPagamento,
   PlanoCodigo
 } from "@/lib/student-data/types";
+import { alunoToSheetRow } from "@/lib/google-sheets/mappers";
+import { appendRow } from "@/lib/services/googleSheetsService";
 
 export interface CadastroAlunoFormData {
   nome: string;
@@ -28,6 +30,8 @@ export interface AlunoPendente {
   formaPagamento: MetodoPagamento;
   observacoes: string;
 }
+
+const ALUNOS_PENDENTES_KEY = "zdc_alunos_cadastrados";
 
 function formatLocalDate(date: Date) {
   const year = date.getFullYear();
@@ -76,7 +80,7 @@ export function createAlunoPendente(
   }
 
   return {
-    id: "ALU_TEMP_001",
+    id: `ALU_${now.getTime()}`,
     nome: formData.nome.trim(),
     whatsapp: formData.whatsapp.replace(/\D/g, ""),
     email: formData.email.trim(),
@@ -89,4 +93,27 @@ export function createAlunoPendente(
     formaPagamento: formData.formaPagamento,
     observacoes: formData.observacoes.trim()
   };
+}
+
+export async function salvarAlunoPendente(
+  formData: CadastroAlunoFormData
+): Promise<AlunoPendente> {
+  const aluno = createAlunoPendente(formData);
+  const salvoNaPlanilha = await appendRow("Alunos", alunoToSheetRow(aluno));
+
+  if (!salvoNaPlanilha && typeof window !== "undefined") {
+    try {
+      const atuais = JSON.parse(
+        localStorage.getItem(ALUNOS_PENDENTES_KEY) ?? "[]"
+      ) as AlunoPendente[];
+      localStorage.setItem(
+        ALUNOS_PENDENTES_KEY,
+        JSON.stringify([...atuais, aluno])
+      );
+    } catch {
+      localStorage.setItem(ALUNOS_PENDENTES_KEY, JSON.stringify([aluno]));
+    }
+  }
+
+  return aluno;
 }
