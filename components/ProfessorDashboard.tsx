@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   CalendarIcon,
   MoneyIcon,
@@ -42,7 +41,6 @@ function formatDate(value: string) {
 }
 
 export function ProfessorDashboard() {
-  const router = useRouter();
   const [revision, setRevision] = useState(0);
   const [isLeaving, setIsLeaving] = useState(false);
   const data = useMemo(() => {
@@ -66,10 +64,12 @@ export function ProfessorDashboard() {
   const logout = async () => {
     setIsLeaving(true);
     try {
-      await fetch("/api/professor/logout", { method: "POST" });
+      await fetch("/api/professor/logout", {
+        method: "POST",
+        credentials: "same-origin"
+      });
     } finally {
-      router.replace("/professor-login");
-      router.refresh();
+      window.location.assign("/professor-login");
     }
   };
 
