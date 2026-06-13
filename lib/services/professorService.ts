@@ -24,6 +24,7 @@ const STUDENT_STATUS_KEY = "zdc_alunos_status";
 const PAYMENT_STATUS_KEY = "zdc_pagamentos_status";
 const PRESENCES_KEY = "zdc_presencas";
 const CONFIRMATIONS_KEY = "zdc_confirmacoes";
+const REGISTERED_STUDENTS_KEY = "zdc_alunos_cadastrados";
 
 function readLocal<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -44,7 +45,15 @@ export function getAlunosProfessor() {
     {}
   );
   const remoteStudents = getCachedSheet("Alunos").map(sheetRowToAluno);
-  const sourceStudents = remoteStudents.length ? remoteStudents : alunos;
+  const localStudents = readLocal<typeof alunos>(
+    REGISTERED_STUDENTS_KEY,
+    []
+  );
+  const baseStudents = remoteStudents.length ? remoteStudents : alunos;
+  const studentsById = new Map(
+    [...localStudents, ...baseStudents].map((aluno) => [aluno.id, aluno])
+  );
+  const sourceStudents = Array.from(studentsById.values());
   const remotePlans = getCachedSheet("Planos").map(sheetRowToPlano);
   const sourcePlans = remotePlans.length ? remotePlans : planos;
   return sourceStudents.map((aluno) => ({
