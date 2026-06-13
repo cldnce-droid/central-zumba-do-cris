@@ -34,7 +34,8 @@ export function isValidAdminPassword(password: string) {
 
 export function isProfessorTokenValid(token?: string) {
   const expectedToken = createSessionToken();
-  return Boolean(token && expectedToken) && safeEqual(token, expectedToken);
+  if (!token || !expectedToken) return false;
+  return safeEqual(token, expectedToken);
 }
 
 export function isProfessorRequestAuthenticated(request: NextRequest) {
