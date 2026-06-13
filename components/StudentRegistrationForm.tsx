@@ -593,4 +593,14 @@ export function StudentRegistrationForm() {
       <button
         className="min-h-16 rounded-lg bg-cris-pink px-6 py-4 text-lg font-black uppercase text-white shadow-pop transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-cris-yellow/60"
         type="submit"
-        disabled={isSubm
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Enviando..." : "Enviar cadastro"}
+      </button>
+
+      <p className="text-center text-lg font-black text-cris-navy">
+        Vem fazer parte dessa história. 💖
+      </p>
+    </form>
+  );
+}
