@@ -1,10 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export function ProfessorLoginForm() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,6 +15,7 @@ export function ProfessorLoginForm() {
     try {
       const response = await fetch("/api/professor/login", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password })
       });
@@ -27,8 +26,7 @@ export function ProfessorLoginForm() {
         return;
       }
 
-      router.replace("/professor");
-      router.refresh();
+      window.location.assign("/professor");
     } catch {
       setError("Não foi possível entrar. Tente novamente.");
     } finally {
