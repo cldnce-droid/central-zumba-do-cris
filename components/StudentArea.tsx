@@ -20,6 +20,7 @@ import {
   getStatusPagamento,
   getTurmasDisponiveisPorPlano
 } from "@/lib/services/alunoService";
+import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
 import {
   confirmarPresenca,
   getConfirmacaoPorAlunoEAula
@@ -103,36 +104,40 @@ export function StudentArea() {
   const [nextClass, setNextClass] = useState<Aula | null>(null);
   const [nextClassLoaded, setNextClassLoaded] = useState(false);
   const [presenceConfirmed, setPresenceConfirmed] = useState(false);
+  const [dataRevision, setDataRevision] = useState(0);
   const [agendaFeedbackKey, setAgendaFeedbackKey] = useState<string | null>(
     null
   );
 
   const student = useMemo(
     () => getAlunoById(selectedStudentId),
-    [selectedStudentId]
+    [selectedStudentId, dataRevision]
   );
 
   const studentId = student?.id ?? selectedStudentId;
-  const plano = useMemo(() => getPlanoByAluno(studentId), [studentId]);
+  const plano = useMemo(
+    () => getPlanoByAluno(studentId),
+    [studentId, dataRevision]
+  );
   const availableClasses = useMemo(
     () => getTurmasDisponiveisPorPlano(studentId),
-    [studentId]
+    [studentId, dataRevision]
   );
   const frequency = useMemo(
     () => getResumoFrequencia(studentId),
-    [studentId]
+    [studentId, dataRevision]
   );
   const achievements = useMemo(
     () => getConquistasDoAluno(studentId),
-    [studentId]
+    [studentId, dataRevision]
   );
   const availableChallenges = useMemo(
     () => getDesafiosDisponiveis(studentId),
-    [studentId]
+    [studentId, dataRevision]
   );
   const paymentStatus = useMemo(
     () => getStatusPagamento(studentId),
-    [studentId]
+    [studentId, dataRevision]
   );
   const mainClass = availableClasses[0];
   const presenceKey = nextClass
@@ -141,6 +146,9 @@ export function StudentArea() {
   useEffect(() => {
     setSelectedStudentId(localStorage.getItem("alunoAtualId") ?? "");
     setAccessChecked(true);
+    void syncGoogleSheetsData().then((synced) => {
+      if (synced) setDataRevision((current) => current + 1);
+    });
   }, []);
 
   useEffect(() => {
@@ -157,12 +165,12 @@ export function StudentArea() {
     );
     setNextClassLoaded(true);
     setAgendaFeedbackKey(null);
-  }, [studentId]);
+  }, [studentId, dataRevision]);
 
   const confirmPresence = () => {
     if (!nextClass) return;
 
-    confirmarPresenca(studentId, nextClass.id);
+    void confirmarPresenca(studentId, nextClass.id);
     setPresenceConfirmed(true);
     setAgendaFeedbackKey(null);
   };
@@ -613,17 +621,4 @@ export function StudentArea() {
                 <h3 className="text-lg font-black uppercase leading-tight">
                   {achievement.titulo}
                 </h3>
-                <p className="mt-1 text-sm font-bold opacity-75">
-                  {achievement.descricao}
-                </p>
-                <p className="mt-2 text-[0.65rem] font-black uppercase opacity-65">
-                  {achievement.desbloqueada ? "Desbloqueada" : "Bloqueada"}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
+                <p className="mt-1 text
