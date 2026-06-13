@@ -33,12 +33,16 @@ export function sheetRowToAluno(row: SheetRow): Aluno {
   } as unknown as Aluno;
 }
 
-export function alunoToSheetRow(aluno: Record<string, unknown>): SheetRow {
+export function alunoToSheetRow<T extends object>(aluno: T): SheetRow {
+  const turmasEscolhidas = (
+    aluno as T & { turmasEscolhidas?: unknown }
+  ).turmasEscolhidas;
+
   return {
     ...aluno,
-    turmasEscolhidas: Array.isArray(aluno.turmasEscolhidas)
-      ? aluno.turmasEscolhidas.join(", ")
-      : aluno.turmasEscolhidas
+    turmasEscolhidas: Array.isArray(turmasEscolhidas)
+      ? turmasEscolhidas.join(", ")
+      : turmasEscolhidas
   } as SheetRow;
 }
 
