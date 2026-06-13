@@ -11,11 +11,11 @@ import {
 } from "@/components/Icons";
 import { pixKey } from "@/lib/data";
 import {
-  createAlunoPendente,
   getPlanoCadastro,
   getPlanosParaCadastro,
   getTurmaCadastro,
   getTurmasParaCadastro,
+  salvarAlunoPendente,
   type AlunoPendente,
   type CadastroAlunoFormData
 } from "@/lib/services/cadastroService";
@@ -91,6 +91,7 @@ export function StudentRegistrationForm() {
   const [registeredStudent, setRegisteredStudent] =
     useState<AlunoPendente | null>(null);
   const [pixFeedback, setPixFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedClasses = registeredStudent
     ? classes.filter((item) =>
@@ -155,7 +156,7 @@ export function StudentRegistrationForm() {
     );
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors = validateForm(form);
 
@@ -167,9 +168,14 @@ export function StudentRegistrationForm() {
       return;
     }
 
-    setRegisteredStudent(createAlunoPendente(form));
-    setPixFeedback("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setIsSubmitting(true);
+    try {
+      setRegisteredStudent(await salvarAlunoPendente(form));
+      setPixFeedback("");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const copyPix = async () => {
@@ -587,13 +593,4 @@ export function StudentRegistrationForm() {
       <button
         className="min-h-16 rounded-lg bg-cris-pink px-6 py-4 text-lg font-black uppercase text-white shadow-pop transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-cris-yellow/60"
         type="submit"
-      >
-        Enviar cadastro
-      </button>
-
-      <p className="text-center text-lg font-black text-cris-navy">
-        Vem fazer parte dessa história. 💖
-      </p>
-    </form>
-  );
-}
+        disabled={isSubm
