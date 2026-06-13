@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isProfessorRequestAuthenticated } from "@/lib/auth/professorAuth";
 import {
   isGoogleSheetsConfigured,
   SHEET_NAMES,
@@ -13,12 +14,21 @@ export async function PATCH(
   if (!SHEET_NAMES.includes(sheet as (typeof SHEET_NAMES)[number])) {
     return NextResponse.json({ error: "Aba inválida." }, { status: 400 });
   }
-  if (!isGoogleSheetsConfigured()) return NextResponse.json({ configured: false }, { status: 503 });
+  if (!isProfessorRequestAuthenticated(request)) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+  if (!isGoogleSheetsConfigured()) {
+    return NextResponse.json({ configured: false }, { status: 503 });
+  }
+
   try {
     const updates = await request.json();
     await updateRow(sheet, id, updates);
     return NextResponse.json({ configured: true, data: updates });
   } catch {
-    return NextResponse.json({ error: "Não foi possível atualizar a planilha." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Não foi possível atualizar a planilha." },
+      { status: 500 }
+    );
   }
 }
