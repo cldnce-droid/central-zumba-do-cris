@@ -1,9 +1,8 @@
-# Google Sheets - configuração da Fase 8
+# Google Sheets - configuração
 
-## 1. Criar a planilha
+## Abas da planilha
 
-Crie uma planilha e adicione estas abas, mantendo exatamente estes nomes e
-cabeçalhos na primeira linha:
+Crie estas abas com os cabeçalhos exatamente como descritos:
 
 - `Alunos`: id, nome, whatsapp, email, plano, status, dataEntrada,
   diaVencimento, turmasEscolhidas, formaPagamento, observacoes
@@ -18,17 +17,16 @@ cabeçalhos na primeira linha:
 
 Em campos de lista, use vírgulas. Exemplo: `Ganchos de Fora, Palmas`.
 
-## 2. Criar a conta de serviço
+## Conta de serviço
 
 1. No Google Cloud, crie ou selecione um projeto.
 2. Ative a API Google Sheets.
 3. Crie uma conta de serviço e gere uma chave JSON.
 4. Compartilhe a planilha com o e-mail da conta de serviço como Editor.
 
-Nunca envie o arquivo JSON ao GitHub e nunca use a chave privada em código do
-navegador.
+Nunca envie o JSON ao GitHub e nunca use a chave privada no navegador.
 
-## 3. Configurar na Vercel
+## Variáveis da Vercel
 
 Em `Settings > Environment Variables`, cadastre:
 
@@ -36,21 +34,30 @@ Em `Settings > Environment Variables`, cadastre:
 GOOGLE_SHEETS_ID
 GOOGLE_SERVICE_ACCOUNT_EMAIL
 GOOGLE_PRIVATE_KEY
+ADMIN_PASSWORD
 ```
 
 `GOOGLE_SHEETS_ID` é o trecho entre `/d/` e `/edit` na URL da planilha.
 Cole a chave privada completa em `GOOGLE_PRIVATE_KEY`. O código aceita quebras
 de linha reais ou `\n`.
 
-Depois, faça um novo deploy.
+Use uma senha forte e exclusiva em `ADMIN_PASSWORD`. O acesso administrativo
+é feito em `/professor-login`. O servidor cria um cookie `httpOnly` válido por
+8 horas; a senha não fica no bundle público.
 
-## 4. Testar
+Depois de configurar as variáveis, faça um novo deploy.
 
-1. Cadastro: envie `/cadastro` e confirme uma nova linha em `Alunos`.
-2. Login: use em `/entrar` o WhatsApp salvo na planilha.
-3. Confirmação: entre como aluno ativo e confirme a próxima aula; confira
+## Testes
+
+1. Cadastro: envie `/cadastro` e confira uma nova linha em `Alunos`.
+2. Aluno: use em `/entrar` o WhatsApp salvo na planilha.
+3. Confirmação: entre como aluno ativo, confirme uma aula e confira
    `Confirmacoes`.
-4. Professor: abra `/professor`, altere status, pagamento ou presença e confira
-   as abas correspondentes.
+4. Professor: entre por `/professor-login`, altere status, pagamento ou
+   presença e confira as abas correspondentes.
+5. Saída: clique em `Sair` e confirme o redirecionamento para o login.
 
-Sem as variáveis configuradas, o app continua usando mocks e `localStorage`.
+Sem uma sessão válida, `/professor` redireciona para o login e as rotas
+administrativas respondem com erro `401`. Cadastro, login do aluno, leituras e
+confirmações continuam públicos. Sem Google Sheets configurado, o app continua
+usando mocks e `localStorage`.
