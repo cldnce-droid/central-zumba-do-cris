@@ -118,7 +118,11 @@ export function getTurmasDisponiveisPorPlano(alunoId: string) {
       ? remoteClasses.filter((turma) =>
           aluno.turmasEscolhidas?.includes(String(turma.nome))
         )
-      : remoteClasses.filter((turma) => turma.id === aluno.turmaPrincipal);
+      : remoteClasses.filter(
+          (turma) =>
+            turma.id === aluno.turmaPrincipal ||
+            turma.nome === aluno.turmaPrincipal
+        );
     const limit = Number(String(aluno.plano).replace("x", ""));
     return (selected.length ? selected : remoteClasses)
       .filter((turma) => turma.ativa)
