@@ -13,22 +13,33 @@ export function ProfessorLoginForm() {
     setError("");
 
     try {
-      const response = await fetch("/api/professor/login", {
+      const response = await fetch("/api/admin/login", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password })
       });
-      const result = (await response.json()) as { error?: string };
+      const contentType = response.headers.get("content-type") ?? "";
+      const result = contentType.includes("application/json")
+        ? ((await response.json()) as { error?: string })
+        : {};
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível entrar.");
+        if (response.status === 401) {
+          setError("Senha incorreta.");
+        } else if (response.status === 500 || response.status === 503) {
+          setError("Senha administrativa não configurada no servidor.");
+        } else if (response.status === 404) {
+          setError("Não foi possível conectar ao servidor de login.");
+        } else {
+          setError(result.error ?? "Não foi possível entrar. Tente novamente.");
+        }
         return;
       }
 
       window.location.assign("/professor");
     } catch {
-      setError("Não foi possível entrar. Tente novamente.");
+      setError("Não foi possível conectar ao servidor de login.");
     } finally {
       setLoading(false);
     }
