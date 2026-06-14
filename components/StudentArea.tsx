@@ -544,6 +544,11 @@ export function StudentArea() {
             </p>
           </article>
         </div>
+        {frequency.totalPresencas === 0 ? (
+          <p className="mt-3 text-sm font-bold text-cris-navy/55">
+            Nenhuma presença validada ainda.
+          </p>
+        ) : null}
       </section>
 
       <section>
@@ -561,6 +566,14 @@ export function StudentArea() {
           </span>
         </div>
 
+        {!availableChallenges.length ? (
+          <div className="rounded-lg bg-white p-5 ring-1 ring-cris-navy/10">
+            <p className="font-black text-cris-navy">Desafios em breve</p>
+            <p className="mt-1 text-sm font-bold text-cris-navy/55">
+              Novas missões do Zumba do Cris vão aparecer aqui.
+            </p>
+          </div>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-2">
           {availableChallenges.map((desafio, index) => (
             <article
@@ -630,6 +643,9 @@ export function StudentArea() {
             </article>
           ))}
         </div>
+        <p className="mt-3 text-sm font-bold text-cris-navy/55">
+          Suas conquistas aparecerão aqui conforme sua presença for validada.
+        </p>
       </section>
     </div>
   );
