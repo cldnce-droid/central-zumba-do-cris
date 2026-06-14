@@ -60,24 +60,34 @@ const challengeStyles = [
 ];
 
 function formatEntryDate(value: string) {
+  if (!value) return "Data não informada";
+  const parsedDate = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return "Data não informada";
+
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "long",
     year: "numeric"
-  }).format(new Date(`${value}T12:00:00`));
+  }).format(parsedDate);
 }
 
 function formatNextClassDate(aula: Aula) {
+  const parsedDate = new Date(`${aula.data}T12:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return `${aula.diaSemana} às ${aula.horario}`;
+  }
+
   const date = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
     day: "2-digit",
     month: "long"
-  }).format(new Date(`${aula.data}T12:00:00`));
+  }).format(parsedDate);
 
   return `${date} às ${aula.horario}`;
 }
 
 function formatDays(days: string[]) {
+  if (!Array.isArray(days)) return "";
   const text =
     days.length > 1
       ? `${days.slice(0, -1).join(", ")} e ${days.at(-1)}`
