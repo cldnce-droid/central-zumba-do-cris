@@ -238,10 +238,9 @@ export function StudentArea() {
         </p>
       </header>
 
-      {student.status === "atrasado" ? (
+      {paymentStatus === "atrasado" ? (
         <aside className="rounded-lg bg-cris-yellow p-4 font-black text-cris-navy shadow-pop">
-          Seu plano está com pagamento pendente. Regularize para manter seu
-          acesso.
+          Seu plano está em atraso. Regularize para manter seu acesso.
         </aside>
       ) : null}
 
@@ -295,9 +294,11 @@ export function StudentArea() {
                 Vencimento
               </dt>
               <dd className="mt-1 font-bold text-white">
-                {student.diaVencimento
-                  ? `Todo dia ${student.diaVencimento}`
-                  : "Pagamento não informado."}
+                {student.status === "ativo" || student.status === "atrasado"
+                  ? "Todo dia 8"
+                  : student.diaVencimento
+                    ? `Todo dia ${student.diaVencimento}`
+                    : "Vencimento definido após ativação."}
               </dd>
             </div>
             <div className="sm:col-span-2">
@@ -305,17 +306,11 @@ export function StudentArea() {
                 Pagamento
               </dt>
               <dd className="mt-2">
-                {paymentStatus ? (
-                  <span
-                    className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-black uppercase ${paymentStyles[paymentStatus]}`}
-                  >
-                    {formatStatus(paymentStatus)}
-                  </span>
-                ) : (
-                  <span className="font-bold text-white/70">
-                    Pagamento não informado.
-                  </span>
-                )}
+                <span
+                  className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-black uppercase ${paymentStyles[paymentStatus]}`}
+                >
+                  {formatStatus(paymentStatus)}
+                </span>
               </dd>
             </div>
           </dl>
@@ -447,13 +442,17 @@ export function StudentArea() {
                 ? "Calculando próxima aula..."
                 : nextClass
                 ? formatNextClassDate(nextClass)
-                : "Nenhuma aula disponível para confirmação no momento."}
+                : availableClasses.length
+                  ? "Não foi possível calcular a próxima aula."
+                  : "Nenhuma turma escolhida no cadastro."}
             </h2>
             <p className="mt-2 font-bold text-white/80">
               {nextClass
                 ? `${nextClass.endereco} • ${nextClass.local}`
                 : nextClassLoaded
-                  ? "Assim que uma nova aula for agendada, ela aparecerá aqui."
+                  ? availableClasses.length
+                    ? "Confira novamente em alguns instantes."
+                    : "Escolha uma turma para visualizar a próxima aula."
                   : "Sua próxima oportunidade de dançar aparecerá aqui."}
             </p>
 
