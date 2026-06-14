@@ -105,7 +105,8 @@ export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus)
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const existing = getPagamentosProfessor().find(
       (payment) =>
-        payment.alunoId === alunoId && payment.vencimento.startsWith(month)
+        payment.alunoId === alunoId &&
+        String(payment.vencimento ?? "").startsWith(month)
     );
     const payment = {
       id: existing?.id ?? `PAG_${alunoId}_${month}`,
@@ -255,8 +256,10 @@ export function getProximasAulasProfessor() {
   const remote = getCachedSheet("Aulas").map(sheetRowToAula);
   const source = remote;
   return source
-    .filter((aula) => aula.data >= today)
-    .sort((first, second) => first.data.localeCompare(second.data));
+    .filter((aula) => String(aula.data ?? "") >= today)
+    .sort((first, second) =>
+      String(first.data ?? "").localeCompare(String(second.data ?? ""))
+    );
 }
 
 export function limparDadosLocaisDeTeste() {
