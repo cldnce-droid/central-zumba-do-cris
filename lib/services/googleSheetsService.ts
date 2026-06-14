@@ -57,22 +57,43 @@ export async function syncGoogleSheetsData(
     "Desafios"
   ]
 ) {
-  const entries = await Promise.all(
+  const results = await Promise.all(
     sheetNames.map(async (sheetName) => {
       const response = await readSheet(sheetName);
-      return [sheetName, response?.data ?? []] as const;
+      return { sheetName, response };
     })
   );
-  const hasRemoteData = entries.some(([, rows]) => rows.length > 0);
 
-  if (typeof window !== "undefined" && hasRemoteData) {
+  if (typeof window !== "undefined") {
+    let currentCache: SheetsCache = {};
+    try {
+      currentCache = JSON.parse(
+        localStorage.getItem(CACHE_KEY) ?? "{}"
+      ) as SheetsCache;
+    } catch {
+      currentCache = {};
+    }
+
+    const successfulResults = results.filter(
+      ({ response }) => response && !response.fallback
+    );
+
+    if (!successfulResults.length) return false;
+
+    const nextCache = { ...currentCache };
+    successfulResults.forEach(({ sheetName, response }) => {
+      nextCache[sheetName] = response?.data ?? [];
+    });
+
     localStorage.setItem(
       CACHE_KEY,
-      JSON.stringify(Object.fromEntries(entries) as SheetsCache)
+      JSON.stringify(nextCache)
     );
+
+    return true;
   }
 
-  return hasRemoteData;
+  return false;
 }
 
 export async function appendRow(sheetName: string, data: SheetRow) {
