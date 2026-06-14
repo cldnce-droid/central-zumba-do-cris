@@ -8,7 +8,6 @@ import {
   TrophyIcon,
   UsersIcon
 } from "@/components/Icons";
-import { aulas } from "@/lib/student-data/mockData";
 import type {
   AlunoStatus,
   PagamentoStatus
@@ -22,6 +21,7 @@ import {
   getPresencasProfessor,
   getProximasAulasProfessor,
   getResumoDashboard,
+  limparDadosLocaisDeTeste,
   sincronizarDashboardProfessor,
   validarPresenca
 } from "@/lib/services/professorService";
@@ -43,6 +43,7 @@ function formatDate(value: string) {
 export function ProfessorDashboard() {
   const [revision, setRevision] = useState(0);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [cleanupFeedback, setCleanupFeedback] = useState("");
   const data = useMemo(() => {
     const students = getAlunosProfessor();
     return {
@@ -140,6 +141,11 @@ export function ProfessorDashboard() {
       </section>
 
       <DashboardSection icon={<UsersIcon className="size-6" />} title="Alunos">
+        {!data.students.length ? (
+          <p className="font-bold text-cris-navy/55">
+            Nenhum aluno cadastrado ainda.
+          </p>
+        ) : null}
         <div className="grid gap-3 lg:grid-cols-2">
           {data.students.map((student) => (
             <article
@@ -202,7 +208,7 @@ export function ProfessorDashboard() {
               const student = data.students.find(
                 (item) => item.id === confirmation.alunoId
               );
-              const lesson = aulas.find(
+              const lesson = data.classes.find(
                 (item) => item.id === confirmation.aulaId
               );
               const presence = data.presences.find(
@@ -271,7 +277,7 @@ export function ProfessorDashboard() {
           </div>
         ) : (
           <p className="font-bold text-cris-navy/55">
-            Nenhuma confirmação local recebida ainda.
+            Nenhuma confirmação de presença ainda.
           </p>
         )}
       </DashboardSection>
@@ -280,6 +286,11 @@ export function ProfessorDashboard() {
         icon={<MoneyIcon className="size-6" />}
         title="Pagamentos"
       >
+        {!data.payments.length ? (
+          <p className="font-bold text-cris-navy/55">
+            Nenhum pagamento registrado ainda.
+          </p>
+        ) : null}
         <div className="grid gap-3 lg:grid-cols-2">
           {data.payments.map((payment) => {
             const student = data.students.find(
@@ -332,6 +343,11 @@ export function ProfessorDashboard() {
         icon={<CalendarIcon className="size-6" />}
         title="Próximas aulas"
       >
+        {!data.classes.length ? (
+          <p className="font-bold text-cris-navy/55">
+            Nenhuma aula cadastrada ainda.
+          </p>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.classes.map((lesson) => (
             <article
@@ -354,6 +370,27 @@ export function ProfessorDashboard() {
           ))}
         </div>
       </DashboardSection>
+
+      <section className="flex flex-col items-start gap-3 px-1">
+        <button
+          className="rounded-lg border border-cris-navy/20 bg-white px-4 py-2 text-xs font-black uppercase text-cris-navy"
+          onClick={() => {
+            limparDadosLocaisDeTeste();
+            setCleanupFeedback(
+              "Dados locais removidos. O Google Sheets não foi alterado."
+            );
+            refresh();
+          }}
+          type="button"
+        >
+          Limpar dados locais de teste
+        </button>
+        {cleanupFeedback ? (
+          <p className="text-xs font-bold text-cris-navy/55">
+            {cleanupFeedback}
+          </p>
+        ) : null}
+      </section>
     </div>
   );
 }
