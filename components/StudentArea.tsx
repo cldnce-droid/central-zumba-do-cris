@@ -180,7 +180,7 @@ export function StudentArea() {
   const confirmPresence = () => {
     if (!nextClass) return;
 
-    void confirmarPresenca(studentId, nextClass.id);
+    void confirmarPresenca(studentId, nextClass);
     setPresenceConfirmed(true);
     setAgendaFeedbackKey(null);
   };
