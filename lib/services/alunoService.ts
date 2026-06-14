@@ -33,6 +33,7 @@ import {
 export const alunoAtualId = "ALU001";
 const ALUNOS_PENDENTES_KEY = "zdc_alunos_cadastrados";
 const ALUNOS_REMOTOS_KEY = "zdc_alunos_remotos";
+const CREATED_PAYMENTS_KEY = "zdc_pagamentos_criados";
 
 function getStoredAlunos(key: string): Aluno[] {
   if (typeof window === "undefined") return [];
@@ -71,6 +72,36 @@ function getSelectedClassNames(aluno: Aluno) {
     : aluno.turmaPrincipal
       ? [aluno.turmaPrincipal]
       : [];
+}
+
+const weekDays: Record<string, number> = {
+  domingo: 0,
+  segunda: 1,
+  terca: 2,
+  quarta: 3,
+  quinta: 4,
+  sexta: 5,
+  sabado: 6
+};
+
+function formatLocalDate(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function createClassDate(reference: Date, day: string, time: string) {
+  const targetDay = weekDays[normalizeClassName(day)];
+  if (targetDay === undefined) return null;
+  const [hour, minute = "0"] = time.toLowerCase().split("h");
+  const occurrence = new Date(reference);
+  occurrence.setSeconds(0, 0);
+  occurrence.setHours(Number(hour), Number(minute), 0, 0);
+  occurrence.setDate(
+    reference.getDate() + ((targetDay - reference.getDay() + 7) % 7)
+  );
+  if (occurrence.getTime() <= reference.getTime()) {
+    occurrence.setDate(occurrence.getDate() + 7);
+  }
+  return occurrence;
 }
 
 // Esta lista existe apenas enquanto não há login real.
@@ -159,24 +190,36 @@ export function getTurmasDisponiveisPorPlano(alunoId: string) {
 }
 
 export function getProximaAula(alunoId: string, referencia = new Date()) {
-  const remoteClasses = getTurmasDisponiveisPorPlano(alunoId);
-  const classIds = new Set(remoteClasses.map((turma) => turma.id));
-  const today = referencia.toISOString().slice(0, 10);
-  const remoteClass = getCachedSheet("Aulas")
-    .map(sheetRowToAula)
-    .filter(
-      (aula) =>
-        classIds.has(String(aula.turmaId)) &&
-        aula.status === "agendada" &&
-        String(aula.data) >= today
+  const selectedClasses = getTurmasDisponiveisPorPlano(alunoId);
+  if (!selectedClasses.length) return undefined;
+
+  const generatedClasses = selectedClasses
+    .flatMap((turma) =>
+      turma.dias.flatMap((day) => {
+        const occurrence = createClassDate(referencia, day, turma.horario);
+        if (!occurrence) return [];
+        const date = formatLocalDate(occurrence);
+        return [{
+          id: `AULA_${turma.id.replace("TURMA_", "")}_${date}_${turma.horario.replace(/\D/g, "")}`,
+          turmaId: turma.id,
+          data: date,
+          diaSemana: day,
+          horario: turma.horario,
+          local: turma.nome,
+          endereco: turma.endereco,
+          status: "agendada"
+        }];
+      })
     )
     .sort((first, second) =>
-      String(first.data).localeCompare(String(second.data))
-    )[0];
-  if (remoteClass) {
-    return remoteClass as unknown as ReturnType<typeof buscarProximaAula>;
-  }
-  return buscarProximaAula(alunoId, referencia);
+      `${first.data}-${first.horario}`.localeCompare(
+        `${second.data}-${second.horario}`
+      )
+    );
+
+  return generatedClasses[0] as unknown as ReturnType<
+    typeof buscarProximaAula
+  >;
 }
 
 export function getStatusPagamento(alunoId: string) {
@@ -187,9 +230,26 @@ export function getStatusPagamento(alunoId: string) {
       String(second.vencimento).localeCompare(String(first.vencimento))
     )[0];
   if (remotePayment) {
-    return remotePayment as unknown as ReturnType<typeof buscarStatusPagamento>;
+    return remotePayment.status === "pago" ? "pago" : "atrasado";
   }
-  return buscarStatusPagamento(alunoId);
+  if (typeof window !== "undefined") {
+    try {
+      const localPayments = JSON.parse(
+        localStorage.getItem(CREATED_PAYMENTS_KEY) ?? "[]"
+      ) as Array<{ alunoId: string; vencimento: string; status: string }>;
+      const localPayment = localPayments
+        .filter((payment) => payment.alunoId === alunoId)
+        .sort((first, second) =>
+          second.vencimento.localeCompare(first.vencimento)
+        )[0];
+      if (localPayment) {
+        return localPayment.status === "pago" ? "pago" : "atrasado";
+      }
+    } catch {
+      // O fallback mockado abaixo mantém a tela funcional.
+    }
+  }
+  return buscarStatusPagamento(alunoId) === "pago" ? "pago" : "atrasado";
 }
 
 export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
