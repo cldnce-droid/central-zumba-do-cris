@@ -32,7 +32,7 @@ const studentStatuses: AlunoStatus[] = [
   "atrasado",
   "inativo"
 ];
-const paymentStatuses: PagamentoStatus[] = ["pago", "pendente", "atrasado"];
+const paymentStatuses: PagamentoStatus[] = ["pago", "atrasado"];
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR").format(
