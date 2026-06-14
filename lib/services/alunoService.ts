@@ -1,15 +1,10 @@
 import {
-  alunos,
   planos as mockPlans,
   turmas as mockClasses
 } from "@/lib/student-data/mockData";
 import {
-  getAlunoById as buscarAlunoPorId,
-  getConquistasAluno,
-  getDesafiosDisponiveis as buscarDesafiosDisponiveis,
   getPlanoByAluno as buscarPlanoPorAluno,
   getProximaAula as buscarProximaAula,
-  getResumoFrequencia as buscarResumoFrequencia,
   getStatusPagamento as buscarStatusPagamento,
   getTurmasDisponiveisPorPlano as buscarTurmasDisponiveis
 } from "@/lib/student-data/selectors";
@@ -47,8 +42,7 @@ function getStoredAlunos(key: string): Aluno[] {
 function getAlunosDisponiveis() {
   return [
     ...getStoredAlunos(ALUNOS_REMOTOS_KEY),
-    ...getStoredAlunos(ALUNOS_PENDENTES_KEY),
-    ...alunos
+    ...getStoredAlunos(ALUNOS_PENDENTES_KEY)
   ];
 }
 
@@ -106,13 +100,12 @@ function createClassDate(reference: Date, day: string, time: string) {
 
 // Esta lista existe apenas enquanto não há login real.
 export function getAlunosParaTeste() {
-  return alunos;
+  return [];
 }
 
 export function getAlunoById(id: string) {
   const aluno =
-    getAlunosDisponiveis().find((item) => item.id === id) ??
-    buscarAlunoPorId(id);
+    getAlunosDisponiveis().find((item) => item.id === id);
   const status = aluno ? getStatusAlunoLocal(aluno.id) : undefined;
   return aluno ? { ...aluno, status: status ?? aluno.status } : undefined;
 }
@@ -269,19 +262,43 @@ export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
       totalPresencas: remotePresences.length
     };
   }
-  return buscarResumoFrequencia(alunoId, referencia);
+  return { aulasNoMes: 0, sequenciaAtual: 0, totalPresencas: 0 };
 }
 
-export function getDesafiosDisponiveis(alunoId: string) {
+export function getDesafiosDisponiveis(_alunoId: string) {
   const remoteChallenges = getCachedSheet("Desafios").map(sheetRowToDesafio);
   if (remoteChallenges.length) {
-    return remoteChallenges as unknown as ReturnType<
-      typeof buscarDesafiosDisponiveis
-    >;
+    return remoteChallenges.map((challenge) => ({
+      ...challenge,
+      ativo: false,
+      statusVisual: "em_breve" as const
+    }));
   }
-  return buscarDesafiosDisponiveis(alunoId);
+  return [];
 }
 
-export function getConquistasDoAluno(alunoId: string) {
-  return getConquistasAluno(alunoId);
+export function getConquistasDoAluno(_alunoId: string) {
+  return [
+    {
+      id: "primeira-aula",
+      titulo: "Primeira aula",
+      descricao: "Sua conquista aparecerá após a presença ser validada.",
+      desbloqueada: false,
+      accent: "pink" as const
+    },
+    {
+      id: "primeiro-mes",
+      titulo: "Primeiro mês",
+      descricao: "Continue no ritmo para desbloquear.",
+      desbloqueada: false,
+      accent: "blue" as const
+    },
+    {
+      id: "errou-continua",
+      titulo: "Errou... continua!",
+      descricao: "Cada presença validada conta nessa caminhada.",
+      desbloqueada: false,
+      accent: "yellow" as const
+    }
+  ];
 }
