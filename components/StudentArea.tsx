@@ -154,7 +154,7 @@ export function StudentArea() {
   useEffect(() => {
     if (!studentId) return;
     setNextClassLoaded(false);
-    const nextClassResult = getProximaAula(studentId);
+    const nextClassResult = getProximaAula(studentId) ?? null;
     setNextClass(nextClassResult);
     setPresenceConfirmed(
       nextClassResult
