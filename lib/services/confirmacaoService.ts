@@ -1,5 +1,9 @@
-import type { Confirmacao } from "@/lib/student-data";
-import { appendRow, readSheet } from "@/lib/services/googleSheetsService";
+import type { Aula, Confirmacao } from "@/lib/student-data";
+import {
+  appendRow,
+  readSheet,
+  syncGoogleSheetsData
+} from "@/lib/services/googleSheetsService";
 
 const STORAGE_KEY = "zdc_confirmacoes";
 
@@ -30,7 +34,8 @@ export function getConfirmacoesDoAluno(alunoId: string) {
   return readConfirmations().filter((item) => item.alunoId === alunoId);
 }
 
-export async function confirmarPresenca(alunoId: string, aulaId: string) {
+export async function confirmarPresenca(alunoId: string, aula: Aula) {
+  const aulaId = aula.id;
   const confirmations = readConfirmations();
   const existing = confirmations.find(
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
@@ -53,13 +58,23 @@ export async function confirmarPresenca(alunoId: string, aulaId: string) {
     saveConfirmations([...confirmations, confirmation]);
   }
 
-  const response = await readSheet("Confirmacoes");
-  const duplicate = response?.data.some(
+  const [classesResponse, confirmationsResponse] = await Promise.all([
+    readSheet("Aulas"),
+    readSheet("Confirmacoes")
+  ]);
+  const classExists = classesResponse?.data.some(
+    (item) => String(item.id) === aulaId
+  );
+  const duplicate = confirmationsResponse?.data.some(
     (item) =>
       item.alunoId === alunoId &&
       item.aulaId === aulaId &&
       item.status === "confirmado"
   );
+
+  // A aula calculada no app precisa existir para o painel exibir seus detalhes.
+  if (!classExists) await appendRow("Aulas", { ...aula });
   if (!duplicate) await appendRow("Confirmacoes", { ...confirmation });
+  await syncGoogleSheetsData(["Aulas", "Confirmacoes"]);
   return confirmation;
 }
