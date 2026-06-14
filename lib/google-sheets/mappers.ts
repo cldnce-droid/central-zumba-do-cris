@@ -22,15 +22,48 @@ export function parseList(value: unknown) {
     .filter(Boolean);
 }
 
+function parsePlanoCodigo(value: unknown) {
+  const match = String(value ?? "").toLowerCase().match(/[123]\s*x/);
+  return (match?.[0].replace(/\s/g, "") || "1x") as Aluno["plano"];
+}
+
+function parseAlunoStatus(value: unknown) {
+  const status = String(value ?? "").trim().toLowerCase();
+  return ["ativo", "pendente", "atrasado", "inativo"].includes(status)
+    ? status as Aluno["status"]
+    : "pendente";
+}
+
+function parseSheetDate(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
 export function sheetRowToAluno(row: SheetRow): Aluno {
   const turmasEscolhidas = parseList(row.turmasEscolhidas);
   const turmaPrincipal = String(row.turmaPrincipal ?? "").trim();
   return {
     ...row,
+    id: String(row.id ?? ""),
+    nome: String(row.nome ?? ""),
     whatsapp: String(row.whatsapp ?? "").replace(/\D/g, ""),
+    email: String(row.email ?? ""),
+    plano: parsePlanoCodigo(row.plano),
+    status: parseAlunoStatus(row.status),
+    dataEntrada: parseSheetDate(row.dataEntrada),
     diaVencimento: Number(row.diaVencimento) || null,
     turmasEscolhidas,
-    turmaPrincipal: turmasEscolhidas[0] ?? turmaPrincipal
+    turmaPrincipal: turmasEscolhidas[0] ?? turmaPrincipal,
+    observacoes: String(row.observacoes ?? "")
   } as unknown as Aluno;
 }
 
