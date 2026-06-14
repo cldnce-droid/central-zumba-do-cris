@@ -1,4 +1,4 @@
-import { alunos, aulas, pagamentos, planos } from "@/lib/student-data/mockData";
+import { alunos, pagamentos, planos } from "@/lib/student-data/mockData";
 import type {
   AlunoStatus,
   Confirmacao,
@@ -50,7 +50,7 @@ export function getAlunosProfessor() {
     REGISTERED_STUDENTS_KEY,
     []
   );
-  const baseStudents = remoteStudents.length ? remoteStudents : alunos;
+  const baseStudents = remoteStudents.length ? remoteStudents : [];
   const studentsById = new Map(
     [...localStudents, ...baseStudents].map((aluno) => [aluno.id, aluno])
   );
@@ -159,8 +159,7 @@ export async function validarPresenca(
   const presences = getPresencasProfessor();
   const remoteClasses = getCachedSheet("Aulas").map(sheetRowToAula);
   const aula =
-    remoteClasses.find((item) => item.id === aulaId) ??
-    aulas.find((item) => item.id === aulaId);
+    remoteClasses.find((item) => item.id === aulaId);
   const existing = presences.find(
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
   );
@@ -193,7 +192,7 @@ export function getPagamentosProfessor() {
   );
   const remote = getCachedSheet("Pagamentos").map(sheetRowToPagamento);
   const created = readLocal<typeof pagamentos>(CREATED_PAYMENTS_KEY, []);
-  const base = remote.length ? remote : pagamentos;
+  const base = remote.length ? remote : [];
   const source = Array.from(
     new Map([...created, ...base].map((payment) => [payment.id, payment])).values()
   );
@@ -254,10 +253,24 @@ export async function atualizarStatusPagamento(
 export function getProximasAulasProfessor() {
   const today = new Date().toISOString().slice(0, 10);
   const remote = getCachedSheet("Aulas").map(sheetRowToAula);
-  const source = remote.length ? remote : aulas;
+  const source = remote;
   return source
     .filter((aula) => aula.data >= today)
     .sort((first, second) => first.data.localeCompare(second.data));
+}
+
+export function limparDadosLocaisDeTeste() {
+  [
+    STUDENT_STATUS_KEY,
+    PAYMENT_STATUS_KEY,
+    PRESENCES_KEY,
+    CONFIRMATIONS_KEY,
+    REGISTERED_STUDENTS_KEY,
+    CREATED_PAYMENTS_KEY,
+    "zdc_alunos_remotos",
+    "zdc_google_sheets_cache",
+    "alunoAtualId"
+  ].forEach((key) => localStorage.removeItem(key));
 }
 
 export async function sincronizarDashboardProfessor() {
