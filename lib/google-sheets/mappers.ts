@@ -81,10 +81,12 @@ export function sheetRowToPresenca(row: SheetRow): Presenca {
 }
 
 export function sheetRowToPagamento(row: SheetRow): Pagamento {
+  const status = row.status === "pago" ? "pago" : "atrasado";
   return {
     ...row,
     valor: Number(row.valor),
-    dataPagamento: row.dataPagamento || null
+    dataPagamento: row.dataPagamento || null,
+    status
   } as unknown as Pagamento;
 }
 
