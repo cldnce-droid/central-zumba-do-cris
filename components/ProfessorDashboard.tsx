@@ -35,9 +35,32 @@ const studentStatuses: AlunoStatus[] = [
 const paymentStatuses: PagamentoStatus[] = ["pago", "atrasado"];
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR").format(
-    new Date(`${value}T12:00:00`)
-  );
+  if (!value) return "Data não informada";
+  const parsedDate = new Date(`${value}T12:00:00`);
+  return Number.isNaN(parsedDate.getTime())
+    ? "Data não informada"
+    : new Intl.DateTimeFormat("pt-BR").format(parsedDate);
+}
+
+function formatDateTime(value: string) {
+  if (!value) return "Data não informada";
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime())
+    ? "Data não informada"
+    : parsedDate.toLocaleString("pt-BR");
+}
+
+function formatSelectedClasses(value: unknown, fallback: unknown) {
+  const classes = Array.isArray(value)
+    ? value.map(String)
+    : String(value ?? "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  return classes.length
+    ? classes.join(", ")
+    : String(fallback || "Nenhuma turma escolhida");
 }
 
 export function ProfessorDashboard() {
@@ -170,9 +193,10 @@ export function ProfessorDashboard() {
               </p>
               <p className="mt-1 text-sm font-bold text-cris-navy/60">
                 Turmas escolhidas:{" "}
-                {student.turmasEscolhidas?.length
-                  ? student.turmasEscolhidas.join(", ")
-                  : student.turmaPrincipal || "Nenhuma turma escolhida"}
+                {formatSelectedClasses(
+                  student.turmasEscolhidas,
+                  student.turmaPrincipal
+                )}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {studentStatuses.map((status) => (
@@ -232,9 +256,7 @@ export function ProfessorDashboard() {
                   </p>
                   <p className="mt-1 text-xs font-bold text-cris-navy/45">
                     Confirmado em{" "}
-                    {new Date(confirmation.dataConfirmacao).toLocaleString(
-                      "pt-BR"
-                    )}
+                    {formatDateTime(confirmation.dataConfirmacao)}
                   </p>
                   {presence ? (
                     <p className="mt-2 text-sm font-black text-cris-blue">
