@@ -1,8 +1,4 @@
-import { createSign } from "node:crypto";
 import type { SheetRow } from "./mappers";
-
-const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 
 export const SHEET_NAMES = [
   "Alunos",
@@ -15,118 +11,101 @@ export const SHEET_NAMES = [
   "Desafios"
 ] as const;
 
-function base64Url(value: string | Buffer) {
-  return Buffer.from(value)
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-}
+type SheetName = (typeof SHEET_NAMES)[number];
 
-function toSheetValue(value: unknown): SheetRow[string] {
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return value;
-  }
-  return value == null ? null : String(value);
-}
+const readActions: Record<SheetName, string> = {
+  Alunos: "getAlunos",
+  Planos: "getPlanos",
+  Turmas: "getTurmas",
+  Aulas: "getAulas",
+  Confirmacoes: "getConfirmacoes",
+  Presencas: "getPresencas",
+  Pagamentos: "getPagamentos",
+  Desafios: "getDesafios"
+};
+
+const createActions: Record<SheetName, string> = {
+  Alunos: "createAluno",
+  Planos: "createPlano",
+  Turmas: "createTurma",
+  Aulas: "createAula",
+  Confirmacoes: "createConfirmacao",
+  Presencas: "upsertPresenca",
+  Pagamentos: "upsertPagamento",
+  Desafios: "createDesafio"
+};
+
+const updateActions: Record<SheetName, string> = {
+  Alunos: "updateAluno",
+  Planos: "updatePlano",
+  Turmas: "updateTurma",
+  Aulas: "updateAula",
+  Confirmacoes: "updateConfirmacao",
+  Presencas: "upsertPresenca",
+  Pagamentos: "upsertPagamento",
+  Desafios: "updateDesafio"
+};
 
 export function isGoogleSheetsConfigured() {
   return Boolean(
-    process.env.GOOGLE_SHEETS_ID &&
-      process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_PRIVATE_KEY
+    process.env.GOOGLE_APPS_SCRIPT_URL &&
+      process.env.GOOGLE_APPS_SCRIPT_SECRET
   );
 }
 
-async function getAccessToken() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!email || !privateKey) throw new Error("Google Sheets não configurado.");
+function assertSheetName(sheetName: string): SheetName {
+  if (!SHEET_NAMES.includes(sheetName as SheetName)) {
+    throw new Error("Aba inválida.");
+  }
+  return sheetName as SheetName;
+}
 
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = base64Url(
-    JSON.stringify({
-      iss: email,
-      scope: SCOPE,
-      aud: TOKEN_URL,
-      exp: now + 3600,
-      iat: now
-    })
-  );
-  const unsigned = `${header}.${claim}`;
-  const signer = createSign("RSA-SHA256");
-  signer.update(unsigned);
-  const assertion = `${unsigned}.${base64Url(signer.sign(privateKey))}`;
-  const response = await fetch(TOKEN_URL, {
+async function appsScriptRequest(
+  action: string,
+  data: SheetRow = {}
+): Promise<unknown> {
+  const url = process.env.GOOGLE_APPS_SCRIPT_URL;
+  const secret = process.env.GOOGLE_APPS_SCRIPT_SECRET;
+
+  if (!url || !secret) {
+    console.info("Google Apps Script não configurado. Usando fallback.");
+    throw new Error("Google Apps Script não configurado.");
+  }
+
+  const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion
-    }),
-    cache: "no-store"
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ secret, action, data }),
+    cache: "no-store",
+    redirect: "follow"
   });
-  if (!response.ok) throw new Error("Falha ao autenticar no Google Sheets.");
-  return (await response.json() as { access_token: string }).access_token;
-}
 
-async function sheetsRequest(path: string, init?: RequestInit) {
-  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
-  if (!spreadsheetId) throw new Error("Google Sheets não configurado.");
-  const token = await getAccessToken();
-  const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/${path}`,
-    {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        ...init?.headers
-      },
-      cache: "no-store"
-    }
-  );
-  if (!response.ok) throw new Error(`Google Sheets respondeu ${response.status}.`);
-  return response.json();
-}
+  if (!response.ok) {
+    throw new Error(`Google Apps Script respondeu ${response.status}.`);
+  }
 
-async function readSheetValues(sheetName: string) {
-  return await sheetsRequest(
-    `values/${encodeURIComponent(`${sheetName}!A:Z`)}`
-  ) as { values?: unknown[][] };
+  const result = await response.json() as {
+    ok?: boolean;
+    data?: unknown;
+    error?: string;
+  };
+
+  if (!result.ok) {
+    throw new Error(result.error || "Falha no Google Apps Script.");
+  }
+
+  return result.data;
 }
 
 export async function readSheet(sheetName: string): Promise<SheetRow[]> {
-  const data = await readSheetValues(sheetName);
-  const [headers = [], ...rows] = data.values ?? [];
-  return rows.map((row) =>
-    Object.fromEntries(
-      headers.map((header, index) => [
-        String(header),
-        toSheetValue(row[index])
-      ])
-    ) as SheetRow
-  );
+  const sheet = assertSheetName(sheetName);
+  const data = await appsScriptRequest(readActions[sheet]);
+  return Array.isArray(data) ? data as SheetRow[] : [];
 }
 
 export async function appendRow(sheetName: string, data: SheetRow) {
-  const sheet = await readSheetValues(sheetName);
-  const [headerRow = []] = sheet.values ?? [];
-  const headers = headerRow.length
-    ? headerRow.map(String)
-    : Object.keys(data);
-  return sheetsRequest(
-    `values/${encodeURIComponent(`${sheetName}!A:Z`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    {
-      method: "POST",
-      body: JSON.stringify({ values: [headers.map((key) => data[key] ?? "")] })
-    }
-  );
+  const sheet = assertSheetName(sheetName);
+  return appsScriptRequest(createActions[sheet], data);
 }
 
 export async function updateRow(
@@ -134,24 +113,8 @@ export async function updateRow(
   rowId: string,
   updates: SheetRow
 ) {
-  const data = await sheetsRequest(
-    `values/${encodeURIComponent(`${sheetName}!A:Z`)}`
-  ) as { values?: unknown[][] };
-  const [headers = [], ...rows] = data.values ?? [];
-  const idIndex = headers.findIndex((header) => String(header) === "id");
-  const rowIndex = rows.findIndex((row) => String(row[idIndex]) === rowId);
-  if (rowIndex < 0) throw new Error("Registro não encontrado.");
-  const current = Object.fromEntries(
-    headers.map((header, index) => [
-      String(header),
-      toSheetValue(rows[rowIndex][index])
-    ])
-  ) as SheetRow;
-  const values = headers.map((header) => ({ ...current, ...updates })[String(header)] ?? "");
-  return sheetsRequest(
-    `values/${encodeURIComponent(`${sheetName}!A${rowIndex + 2}:Z${rowIndex + 2}`)}?valueInputOption=USER_ENTERED`,
-    { method: "PUT", body: JSON.stringify({ values: [values] }) }
-  );
+  const sheet = assertSheetName(sheetName);
+  return appsScriptRequest(updateActions[sheet], { ...updates, id: rowId });
 }
 
 export async function findRowById(sheetName: string, id: string) {
