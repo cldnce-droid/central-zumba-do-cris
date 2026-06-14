@@ -99,11 +99,28 @@ export function sheetRowToTurma(row: SheetRow): Turma {
 }
 
 export function sheetRowToAula(row: SheetRow): Aula {
-  return row as unknown as Aula;
+  return {
+    ...row,
+    id: String(row.id ?? ""),
+    turmaId: String(row.turmaId ?? ""),
+    data: parseSheetDate(row.data),
+    diaSemana: String(row.diaSemana ?? ""),
+    horario: String(row.horario ?? ""),
+    local: String(row.local ?? ""),
+    endereco: String(row.endereco ?? ""),
+    status: String(row.status ?? "agendada")
+  } as unknown as Aula;
 }
 
 export function sheetRowToConfirmacao(row: SheetRow): Confirmacao {
-  return row as unknown as Confirmacao;
+  return {
+    ...row,
+    id: String(row.id ?? ""),
+    alunoId: String(row.alunoId ?? ""),
+    aulaId: String(row.aulaId ?? ""),
+    dataConfirmacao: String(row.dataConfirmacao ?? ""),
+    status: String(row.status ?? "confirmado")
+  } as unknown as Confirmacao;
 }
 
 export function sheetRowToPresenca(row: SheetRow): Presenca {
@@ -117,9 +134,16 @@ export function sheetRowToPagamento(row: SheetRow): Pagamento {
   const status = row.status === "pago" ? "pago" : "atrasado";
   return {
     ...row,
+    id: String(row.id ?? ""),
+    alunoId: String(row.alunoId ?? ""),
+    plano: parsePlanoCodigo(row.plano),
     valor: Number(row.valor),
-    dataPagamento: row.dataPagamento || null,
-    status
+    vencimento: parseSheetDate(row.vencimento),
+    dataPagamento: row.dataPagamento
+      ? parseSheetDate(row.dataPagamento)
+      : null,
+    status,
+    metodo: String(row.metodo ?? "outro")
   } as unknown as Pagamento;
 }
 
