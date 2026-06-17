@@ -26,7 +26,7 @@ export function getConfirmacaoPorAlunoEAula(alunoId: string, aulaId: string) {
     (item) =>
       item.alunoId === alunoId &&
       item.aulaId === aulaId &&
-      item.status === "confirmado"
+      (item.status === "solicitada" || item.status === "aceita")
   );
 }
 
@@ -43,7 +43,7 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
 
   let confirmation: Confirmacao;
   if (existing) {
-    existing.status = "confirmado";
+    existing.status = "solicitada";
     existing.dataConfirmacao = new Date().toISOString();
     saveConfirmations(confirmations);
     confirmation = existing;
@@ -53,7 +53,7 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
       alunoId,
       aulaId,
       dataConfirmacao: new Date().toISOString(),
-      status: "confirmado"
+      status: "solicitada"
     };
     saveConfirmations([...confirmations, confirmation]);
   }
@@ -69,7 +69,7 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
     (item) =>
       item.alunoId === alunoId &&
       item.aulaId === aulaId &&
-      item.status === "confirmado"
+      (item.status === "solicitada" || item.status === "aceita")
   );
 
   // A aula calculada no app precisa existir para o painel exibir seus detalhes.
