@@ -186,6 +186,39 @@ export async function validarPresenca(
   }
 }
 
+function saveConfirmations(confirmations: Confirmacao[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(CONFIRMATIONS_KEY, JSON.stringify(confirmations));
+  }
+}
+
+export async function aceitarSolicitacaoPresenca(confirmacaoId: string) {
+  const confirmations = getConfirmacoesProfessor();
+  const confirmation = confirmations.find((item) => item.id === confirmacaoId);
+  if (!confirmation) return;
+
+  const updated = { ...confirmation, status: "aceita" as const };
+  saveConfirmations(
+    confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
+  );
+  await updateRow("Confirmacoes", confirmacaoId, { status: "aceita" });
+  await validarPresenca(updated.alunoId, updated.aulaId, true);
+  await syncGoogleSheetsData(["Confirmacoes", "Presencas"]);
+}
+
+export async function recusarSolicitacaoPresenca(confirmacaoId: string) {
+  const confirmations = getConfirmacoesProfessor();
+  const confirmation = confirmations.find((item) => item.id === confirmacaoId);
+  if (!confirmation) return;
+
+  const updated = { ...confirmation, status: "recusada" as const };
+  saveConfirmations(
+    confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
+  );
+  await updateRow("Confirmacoes", confirmacaoId, { status: "recusada" });
+  await syncGoogleSheetsData(["Confirmacoes"]);
+}
+
 export function getPagamentosProfessor() {
   const overrides = readLocal<Record<string, PagamentoStatus>>(
     PAYMENT_STATUS_KEY,
@@ -295,7 +328,7 @@ export function getResumoDashboard() {
     pendentes: students.filter((item) => item.status === "pendente").length,
     atrasados: students.filter((item) => item.status === "atrasado").length,
     confirmacoes: getConfirmacoesProfessor().filter(
-      (item) => item.status === "confirmado"
+      (item) => item.status === "solicitada" || item.status === "confirmado"
     ).length
   };
 }
