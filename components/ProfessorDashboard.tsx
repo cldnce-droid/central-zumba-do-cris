@@ -12,6 +12,7 @@ import type {
   AlunoStatus,
   Confirmacao,
   Pagamento,
+  PagamentoStatus,
   Presenca
 } from "@/lib/student-data";
 import {
@@ -80,7 +81,11 @@ function statusLabel(status: string) {
   return labels[status] ?? status;
 }
 
-function latestPayment(payments: Pagamento[], alunoId: string) {
+type ProfessorPayment = Omit<Pagamento, "status"> & {
+  status: PagamentoStatus;
+};
+
+function latestPayment(payments: ProfessorPayment[], alunoId: string) {
   return payments
     .filter((payment) => payment.alunoId === alunoId)
     .sort((first, second) =>
