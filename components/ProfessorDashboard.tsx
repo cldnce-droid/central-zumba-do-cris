@@ -85,12 +85,19 @@ type ProfessorPayment = Omit<Pagamento, "status"> & {
   status: PagamentoStatus;
 };
 
-function latestPayment(payments: ProfessorPayment[], alunoId: string) {
-  return payments
+function latestPayment(payments: Pagamento[], alunoId: string): ProfessorPayment | undefined {
+  const payment = payments
     .filter((payment) => payment.alunoId === alunoId)
     .sort((first, second) =>
       String(second.vencimento ?? "").localeCompare(String(first.vencimento ?? ""))
     )[0];
+
+  if (!payment) return undefined;
+
+  return {
+    ...payment,
+    status: payment.status === "pago" ? "pago" : "atrasado"
+  };
 }
 
 function frequencySummary(presences: Presenca[], alunoId: string) {
