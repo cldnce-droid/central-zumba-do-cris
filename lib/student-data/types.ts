@@ -9,7 +9,12 @@ export type DiaSemana =
   | "sexta"
   | "sábado";
 export type AulaStatus = "agendada" | "realizada" | "cancelada";
-export type ConfirmacaoStatus = "confirmado" | "cancelado";
+export type ConfirmacaoStatus =
+  | "solicitada"
+  | "aceita"
+  | "recusada"
+  | "confirmado"
+  | "cancelado";
 export type PagamentoStatus = "pago" | "pendente" | "atrasado";
 export type MetodoPagamento = "pix" | "dinheiro" | "outro";
 export type StatusVisualDesafio = "em_breve" | "bloqueado" | "disponivel";
