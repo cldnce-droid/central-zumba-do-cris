@@ -81,11 +81,18 @@ function statusLabel(status: string) {
   return labels[status] ?? status;
 }
 
-type ProfessorPayment = Omit<Pagamento, "status"> & {
+type RawProfessorPayment = Omit<Pagamento, "status"> & {
+  status: string;
+};
+
+type ProfessorPayment = Omit<RawProfessorPayment, "status"> & {
   status: PagamentoStatus;
 };
 
-function latestPayment(payments: Pagamento[], alunoId: string): ProfessorPayment | undefined {
+function latestPayment(
+  payments: RawProfessorPayment[],
+  alunoId: string
+): ProfessorPayment | undefined {
   const payment = payments
     .filter((payment) => payment.alunoId === alunoId)
     .sort((first, second) =>
