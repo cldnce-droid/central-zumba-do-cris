@@ -113,13 +113,21 @@ export function sheetRowToAula(row: SheetRow): Aula {
 }
 
 export function sheetRowToConfirmacao(row: SheetRow): Confirmacao {
+  const rawStatus = String(row.status ?? "solicitada").trim().toLowerCase();
+  const status =
+    rawStatus === "aceita" || rawStatus === "recusada"
+      ? rawStatus
+      : rawStatus === "cancelado" || rawStatus === "nao_vou"
+        ? "recusada"
+        : "solicitada";
+
   return {
     ...row,
     id: String(row.id ?? ""),
     alunoId: String(row.alunoId ?? ""),
     aulaId: String(row.aulaId ?? ""),
     dataConfirmacao: String(row.dataConfirmacao ?? ""),
-    status: String(row.status ?? "confirmado")
+    status
   } as unknown as Confirmacao;
 }
 
