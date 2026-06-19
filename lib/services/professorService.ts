@@ -1,661 +1,294 @@
-"use client";
-
-import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import {
-  CalendarIcon,
-  MoneyIcon,
-  TrophyIcon,
-  UsersIcon
-} from "@/components/Icons";
+import { alunos, planos } from "@/lib/student-data/mockData";
 import type {
   AlunoStatus,
   Confirmacao,
-  Pagamento,
   PagamentoStatus,
   Presenca
 } from "@/lib/student-data";
 import {
-  aceitarSolicitacaoPresenca,
-  atualizarStatusAluno,
-  atualizarStatusPagamento,
-  getAlunosProfessor,
-  getConfirmacoesProfessor,
-  getPagamentosProfessor,
-  getPresencasProfessor,
-  getProximasAulasProfessor,
-  recusarSolicitacaoPresenca,
-  sincronizarDashboardProfessor
-} from "@/lib/services/professorService";
+  getCachedSheet,
+  syncGoogleSheetsData,
+  updateCachedRow,
+  updateRow,
+  appendRow
+} from "@/lib/services/googleSheetsService";
+import {
+  sheetRowToAluno,
+  sheetRowToAula,
+  sheetRowToConfirmacao,
+  sheetRowToPlano,
+  sheetRowToPresenca
+} from "@/lib/google-sheets/mappers";
 
-type DashboardTab = "alunos" | "presencas";
+const STUDENT_STATUS_KEY = "zdc_alunos_status";
+const PRESENCES_KEY = "zdc_presencas";
+const CONFIRMATIONS_KEY = "zdc_confirmacoes";
+const REGISTERED_STUDENTS_KEY = "zdc_alunos_cadastrados";
 
-const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Calheiros"];
-
-function onlyNumbers(value: string) {
-  return value.replace(/\D/g, "");
+function readLocal<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? JSON.stringify(fallback));
+  } catch {
+    return fallback;
+  }
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return "Data não informada";
-  const parsedDate = new Date(`${value}T12:00:00`);
-  return Number.isNaN(parsedDate.getTime())
-    ? "Data não informada"
-    : new Intl.DateTimeFormat("pt-BR").format(parsedDate);
+export function getStatusAlunoLocal(alunoId: string) {
+  return readLocal<Record<string, AlunoStatus>>(STUDENT_STATUS_KEY, {})[alunoId];
 }
 
-function formatDateTime(value: string) {
-  if (!value) return "Data não informada";
-  const parsedDate = new Date(value);
-  return Number.isNaN(parsedDate.getTime())
-    ? "Data não informada"
-    : parsedDate.toLocaleString("pt-BR");
-}
-
-function selectedClasses(value: unknown, fallback: unknown) {
-  const classes = Array.isArray(value)
-    ? value.map(String)
-    : String(value ?? "")
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-  return classes.length
-    ? classes
-    : String(fallback || "")
-      ? [String(fallback)]
-      : [];
-}
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    ativo: "Ativo",
-    inativo: "Inativo",
-    pendente: "Pendente",
-    atrasado: "Atrasado",
-    pago: "Pago",
-    solicitada: "Solicitada",
-    aceita: "Aceita",
-    recusada: "Recusada"
-  };
-  return labels[status] ?? status;
-}
-
-type RawProfessorPayment = Omit<Pagamento, "status"> & {
-  status: string;
-};
-
-type ProfessorPayment = Omit<RawProfessorPayment, "status"> & {
-  status: PagamentoStatus;
-};
-
-function latestPayment(
-  payments: RawProfessorPayment[],
-  alunoId: string
-): ProfessorPayment | undefined {
-  const payment = payments
-    .filter((payment) => payment.alunoId === alunoId)
-    .sort((first, second) =>
-      String(second.vencimento ?? "").localeCompare(String(first.vencimento ?? ""))
-    )[0];
-
-  if (!payment) return undefined;
-
-  return {
-    ...payment,
-    status: payment.status === "pago" ? "pago" : "atrasado"
-  };
-}
-
-function frequencySummary(presences: Presenca[], alunoId: string) {
-  const accepted = presences
-    .filter((presence) => presence.alunoId === alunoId && presence.compareceu)
-    .sort((first, second) =>
-      String(second.data ?? "").localeCompare(String(first.data ?? ""))
-    );
-
-  return {
-    total: accepted.length,
-    streak: accepted.length
-  };
-}
-
-export function ProfessorDashboard() {
-  const [activeTab, setActiveTab] = useState<DashboardTab>("alunos");
-  const [revision, setRevision] = useState(0);
-  const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState("Todas");
-  const [selectedStudentId, setSelectedStudentId] = useState("");
-  const [isLeaving, setIsLeaving] = useState(false);
-  const [paymentFeedback, setPaymentFeedback] = useState("");
-  const [updatingPayment, setUpdatingPayment] = useState(false);
-
-  const data = useMemo(() => {
-    const students = getAlunosProfessor();
-    return {
-      students,
-      confirmations: getConfirmacoesProfessor(),
-      presences: getPresencasProfessor(),
-      payments: getPagamentosProfessor(),
-      classes: getProximasAulasProfessor()
-    };
-  }, [revision]);
-
-  const refresh = () => setRevision((value) => value + 1);
-
-  useEffect(() => {
-    void sincronizarDashboardProfessor().then(refresh);
-  }, []);
-
-  const filteredStudents = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    const numericQuery = onlyNumbers(search);
-
-    if (!query && classFilter === "Todas") return [];
-
-    return data.students.filter((student) => {
-      const classes = selectedClasses(
-        student.turmasEscolhidas,
-        student.turmaPrincipal
-      );
-      const matchesClass =
-        classFilter === "Todas" || classes.includes(classFilter);
-      const matchesSearch =
-        !query ||
-        String(student.nome ?? "").toLowerCase().includes(query) ||
-        onlyNumbers(String(student.whatsapp ?? "")).includes(numericQuery) ||
-        classes.some((turma) => turma.toLowerCase().includes(query));
-
-      return matchesClass && matchesSearch;
-    });
-  }, [classFilter, data.students, search]);
-
-  const selectedStudent = data.students.find(
-    (student) => student.id === selectedStudentId
+export function getAlunosProfessor() {
+  const overrides = readLocal<Record<string, AlunoStatus>>(
+    STUDENT_STATUS_KEY,
+    {}
   );
-  const selectedPayment = selectedStudent
-    ? latestPayment(data.payments, selectedStudent.id)
-    : undefined;
-  const selectedFrequency = selectedStudent
-    ? frequencySummary(data.presences, selectedStudent.id)
-    : { total: 0, streak: 0 };
-
-  const requests = data.confirmations
-    .map((confirmation) => ({
-      confirmation,
-      student: data.students.find((item) => item.id === confirmation.alunoId),
-      lesson: data.classes.find((item) => item.id === confirmation.aulaId),
-      presence: data.presences.find(
-        (item) =>
-          item.alunoId === confirmation.alunoId &&
-          item.aulaId === confirmation.aulaId
-      )
-    }))
-    .filter(
-      ({ confirmation }) =>
-        confirmation.status === "solicitada" ||
-        confirmation.status === "confirmado"
+  const remoteStudents = getCachedSheet("Alunos").map(sheetRowToAluno);
+  const localStudents = readLocal<typeof alunos>(
+    REGISTERED_STUDENTS_KEY,
+    []
+  );
+  const baseStudents = remoteStudents.length ? remoteStudents : [];
+  const studentsById = new Map(
+    [...localStudents, ...baseStudents].map((aluno) => [aluno.id, aluno])
+  );
+  const sourceStudents = Array.from(studentsById.values());
+  const remotePlans = getCachedSheet("Planos").map(sheetRowToPlano);
+  const sourcePlans = remotePlans.length ? remotePlans : planos;
+  return sourceStudents.map((aluno) => ({
+    ...aluno,
+    status: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
+    statusCadastro: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
+    statusPagamento: aluno.statusPagamento ?? "atrasado",
+    planoDetalhes: sourcePlans.find(
+      (plano) =>
+        plano.aulasPorSemana ===
+        Number(String(aluno.plano).replace("x", ""))
     )
-    .sort((first, second) =>
-      String(second.confirmation.dataConfirmacao ?? "").localeCompare(
-        String(first.confirmation.dataConfirmacao ?? "")
+  }));
+}
+
+export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus) {
+  const overrides = readLocal<Record<string, AlunoStatus>>(
+    STUDENT_STATUS_KEY,
+    {}
+  );
+  localStorage.setItem(
+    STUDENT_STATUS_KEY,
+    JSON.stringify({ ...overrides, [alunoId]: status })
+  );
+  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+  if (localStudents.some((student) => student.id === alunoId)) {
+    localStorage.setItem(
+      REGISTERED_STUDENTS_KEY,
+      JSON.stringify(
+        localStudents.map((student) =>
+          student.id === alunoId
+            ? {
+                ...student,
+                status,
+                statusCadastro: status,
+                ...(status === "ativo"
+                  ? { diaVencimento: 8, statusPagamento: "atrasado" }
+                  : {})
+              }
+            : student
+        )
       )
     );
+  }
+  await updateRow("Alunos", alunoId, {
+    status,
+    statusCadastro: status,
+    ...(status === "ativo"
+      ? { diaVencimento: 8, statusPagamento: "atrasado" }
+      : {})
+  });
+  await syncGoogleSheetsData(["Alunos"]);
+}
 
-  const logout = async () => {
-    setIsLeaving(true);
-    try {
-      await fetch("/api/admin/logout", {
-        method: "POST",
-        credentials: "same-origin"
-      });
-    } finally {
-      window.location.assign("/professor-login");
-    }
+export function getConfirmacoesProfessor() {
+  const remote = getCachedSheet("Confirmacoes").map(sheetRowToConfirmacao);
+  return remote.length
+    ? (remote as unknown as Confirmacao[])
+    : readLocal<Confirmacao[]>(CONFIRMATIONS_KEY, []);
+}
+
+export function getPresencasProfessor() {
+  const remote = getCachedSheet("Presencas").map(sheetRowToPresenca);
+  return remote.length
+    ? (remote as unknown as Presenca[])
+    : readLocal<Presenca[]>(PRESENCES_KEY, []);
+}
+
+export async function validarPresenca(
+  alunoId: string,
+  aulaId: string,
+  compareceu: boolean
+) {
+  const presences = getPresencasProfessor();
+  const remoteClasses = getCachedSheet("Aulas").map(sheetRowToAula);
+  const aula =
+    remoteClasses.find((item) => item.id === aulaId);
+  const aluno = getAlunosProfessor().find((item) => item.id === alunoId);
+  const existing = presences.find(
+    (item) => item.alunoId === alunoId && item.aulaId === aulaId
+  );
+
+  const presence: Presenca = {
+    id: existing?.id ?? `PRES_TEMP_${Date.now()}`,
+    alunoId,
+    nomeAluno: aluno?.nome ?? "",
+    whatsapp: aluno?.whatsapp ?? "",
+    aulaId,
+    turma: aula?.local ?? "",
+    local: aula?.endereco ?? aula?.local ?? "",
+    data: aula?.data ?? new Date().toISOString().slice(0, 10),
+    dataAula: aula?.data ?? new Date().toISOString().slice(0, 10),
+    horario: aula?.horario ?? "",
+    dataValidacao: new Date().toISOString(),
+    status: compareceu ? "aceita" : "recusada",
+    compareceu,
+    validadoPor: "professor",
+    observacao: ""
   };
 
-  return (
-    <div className="flex flex-col gap-5">
-      <header className="relative overflow-hidden rounded-lg bg-cris-navy p-6 text-white shadow-pop sm:p-8">
-        <div
-          aria-hidden="true"
-          className="paint-stroke absolute -right-8 top-7 h-10 w-48 bg-cris-pink"
-        />
-        <p className="text-sm font-black uppercase text-cris-yellow">
-          Central Zumba do Cris
-        </p>
-        <h1 className="mt-2 text-4xl font-black uppercase leading-none sm:text-6xl">
-          Área do Professor
-        </h1>
-        <p className="mt-4 max-w-2xl font-bold text-white/75">
-          Consulta rápida de alunas e validação das solicitações de presença.
-        </p>
-        <button
-          className="relative z-10 mt-5 min-h-11 rounded-lg border-2 border-white/40 px-5 py-2 font-black uppercase text-white transition hover:bg-white hover:text-cris-navy disabled:opacity-60"
-          disabled={isLeaving}
-          onClick={logout}
-          type="button"
-        >
-          {isLeaving ? "Saindo..." : "Sair"}
-        </button>
-      </header>
-
-      <nav className="grid gap-3 rounded-lg bg-white p-2 shadow-pop ring-1 ring-cris-navy/10 sm:grid-cols-2">
-        <TabButton
-          active={activeTab === "alunos"}
-          icon={<UsersIcon className="size-5" />}
-          onClick={() => setActiveTab("alunos")}
-        >
-          Alunos
-        </TabButton>
-        <TabButton
-          active={activeTab === "presencas"}
-          icon={<TrophyIcon className="size-5" />}
-          onClick={() => setActiveTab("presencas")}
-        >
-          Presenças
-        </TabButton>
-      </nav>
-
-      {activeTab === "alunos" ? (
-        <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-          <DashboardSection
-            icon={<UsersIcon className="size-6" />}
-            title="Consulta de Alunos"
-          >
-            <p className="mb-5 font-bold leading-relaxed text-cris-navy/60">
-              Busque por nome, WhatsApp ou turma para consultar e atualizar
-              dados principais.
-            </p>
-
-            <label className="text-sm font-black text-cris-navy">
-              Buscar por nome ou WhatsApp
-              <input
-                className="mt-2 min-h-12 w-full rounded-lg border-2 border-cris-navy/10 bg-white px-4 py-3 text-base font-bold text-cris-navy outline-none focus:border-cris-blue"
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setSelectedStudentId("");
-                }}
-                placeholder="Ex.: Cristiano ou 419..."
-                type="search"
-                value={search}
-              />
-            </label>
-
-            <label className="mt-4 block text-sm font-black text-cris-navy">
-              Filtrar por turma
-              <select
-                className="mt-2 min-h-12 w-full rounded-lg border-2 border-cris-navy/10 bg-white px-4 py-3 text-base font-bold text-cris-navy outline-none focus:border-cris-blue"
-                onChange={(event) => {
-                  setClassFilter(event.target.value);
-                  setSelectedStudentId("");
-                }}
-                value={classFilter}
-              >
-                {classFilters.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-
-            <div className="mt-5 grid gap-3">
-              {!search.trim() && classFilter === "Todas" ? (
-                <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
-                  Busque uma aluna por nome, WhatsApp ou turma.
-                </p>
-              ) : filteredStudents.length ? (
-                filteredStudents.map((student) => {
-                  const payment = latestPayment(data.payments, student.id);
-                  return (
-                    <article
-                      className="rounded-lg bg-cris-paper p-4 ring-1 ring-cris-navy/10"
-                      key={student.id}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-xl font-black text-cris-navy">
-                            {student.nome}
-                          </h3>
-                          <p className="text-sm font-bold text-cris-navy/55">
-                            {student.whatsapp}
-                          </p>
-                        </div>
-                        <StatusBadge>{statusLabel(student.status)}</StatusBadge>
-                      </div>
-                      <p className="mt-3 font-bold text-cris-navy/70">
-                        {student.planoDetalhes?.nome ?? student.plano}
-                      </p>
-                      <p className="mt-1 text-sm font-bold text-cris-navy/60">
-                        {selectedClasses(
-                          student.turmasEscolhidas,
-                          student.turmaPrincipal
-                        ).join(", ") || "Nenhuma turma escolhida"}
-                      </p>
-                      <p className="mt-1 text-sm font-bold text-cris-navy/60">
-                        Pagamento: {statusLabel(payment?.status ?? "atrasado")}
-                      </p>
-                      <button
-                        className="mt-4 min-h-11 rounded-lg bg-cris-pink px-4 py-2 text-sm font-black uppercase text-white"
-                        onClick={() => setSelectedStudentId(student.id)}
-                        type="button"
-                      >
-                        Abrir ficha
-                      </button>
-                    </article>
-                  );
-                })
-              ) : (
-                <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
-                  Nenhum aluno encontrado.
-                </p>
-              )}
-            </div>
-          </DashboardSection>
-
-          <DashboardSection
-            icon={<MoneyIcon className="size-6" />}
-            title="Ficha do Aluno"
-          >
-            {selectedStudent ? (
-              <div className="flex flex-col gap-5">
-                <div>
-                  <h3 className="text-3xl font-black text-cris-navy">
-                    {selectedStudent.nome}
-                  </h3>
-                  <p className="mt-1 font-bold text-cris-navy/60">
-                    {selectedStudent.whatsapp}
-                  </p>
-                  {selectedStudent.email ? (
-                    <p className="font-bold text-cris-navy/60">
-                      {selectedStudent.email}
-                    </p>
-                  ) : null}
-                </div>
-
-                <dl className="grid gap-3 sm:grid-cols-2">
-                  <Info label="Plano">
-                    {selectedStudent.planoDetalhes?.nome ??
-                      selectedStudent.plano}
-                  </Info>
-                  <Info label="Turmas escolhidas">
-                    {selectedClasses(
-                      selectedStudent.turmasEscolhidas,
-                      selectedStudent.turmaPrincipal
-                    ).join(", ") || "Nenhuma turma escolhida"}
-                  </Info>
-                  <Info label="Data de entrada">
-                    {formatDate(selectedStudent.dataEntrada)}
-                  </Info>
-                  <Info label="Vencimento">Todo dia 8</Info>
-                  <Info label="Status do cadastro">
-                    {statusLabel(selectedStudent.status)}
-                  </Info>
-                  <Info label="Status do pagamento">
-                    {statusLabel(selectedPayment?.status ?? "atrasado")}
-                  </Info>
-                  <Info label="Presenças validadas">
-                    {selectedFrequency.total}
-                  </Info>
-                  <Info label="Sequência atual">
-                    {selectedFrequency.streak}
-                  </Info>
-                </dl>
-
-                {selectedStudent.observacoes ? (
-                  <div className="rounded-lg bg-cris-paper p-4 ring-1 ring-cris-navy/10">
-                    <p className="text-xs font-black uppercase text-cris-pink">
-                      Observações
-                    </p>
-                    <p className="mt-1 font-bold text-cris-navy/65">
-                      {selectedStudent.observacoes}
-                    </p>
-                  </div>
-                ) : null}
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <button
-                    className="min-h-12 rounded-lg bg-cris-blue px-4 py-3 text-sm font-black uppercase text-white"
-                    onClick={async () => {
-                      const nextStatus: AlunoStatus =
-                        selectedStudent.status === "ativo"
-                          ? "inativo"
-                          : "ativo";
-                      await atualizarStatusAluno(selectedStudent.id, nextStatus);
-                      refresh();
-                    }}
-                    type="button"
-                  >
-                    {selectedStudent.status === "ativo"
-                      ? "Inativar cadastro"
-                      : "Ativar cadastro"}
-                  </button>
-
-                  <button
-                    className="min-h-12 rounded-lg bg-cris-yellow px-4 py-3 text-sm font-black uppercase text-cris-navy disabled:opacity-50"
-                    disabled={!selectedPayment || updatingPayment}
-                    onClick={async () => {
-                      if (!selectedPayment) return;
-                      setUpdatingPayment(true);
-                      setPaymentFeedback("");
-                      try {
-                        await atualizarStatusPagamento(
-                          selectedStudent.id,
-                          selectedPayment.status === "pago"
-                            ? "atrasado"
-                            : "pago"
-                        );
-                        setPaymentFeedback("Pagamento atualizado com sucesso.");
-                        refresh();
-                      } catch {
-                        setPaymentFeedback(
-                          "Não foi possível atualizar. Confira a coluna statusPagamento na aba Alunos."
-                        );
-                      } finally {
-                        setUpdatingPayment(false);
-                      }
-                    }}
-                    type="button"
-                  >
-                    {updatingPayment
-                      ? "Atualizando..."
-                      : selectedPayment?.status === "pago"
-                      ? "Marcar como atrasado"
-                      : "Marcar como pago"}
-                  </button>
-                </div>
-                {paymentFeedback ? (
-                  <p className="font-bold text-cris-pink" aria-live="polite">
-                    {paymentFeedback}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
-                Abra a ficha de uma aluna para consultar os detalhes.
-              </p>
-            )}
-          </DashboardSection>
-        </section>
-      ) : (
-        <DashboardSection
-          icon={<CalendarIcon className="size-6" />}
-          title="Solicitações de Presença"
-        >
-          <p className="mb-5 font-bold leading-relaxed text-cris-navy/60">
-            Valide as solicitações de presença das alunas.
-          </p>
-
-          {!requests.length ? (
-            <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
-              Nenhuma solicitação de presença no momento.
-            </p>
-          ) : (
-            <div className="grid gap-3 lg:grid-cols-2">
-              {requests.map(({ confirmation, student, lesson, presence }) => (
-                <PresenceRequestCard
-                  confirmation={confirmation}
-                  key={confirmation.id}
-                  lesson={lesson}
-                  onAccept={async () => {
-                    await aceitarSolicitacaoPresenca(confirmation.id);
-                    refresh();
-                  }}
-                  onReject={async () => {
-                    await recusarSolicitacaoPresenca(confirmation.id);
-                    refresh();
-                  }}
-                  presence={presence}
-                  student={student}
-                />
-              ))}
-            </div>
-          )}
-        </DashboardSection>
-      )}
-    </div>
-  );
+  const next = existing
+    ? presences.map((item) => (item.id === existing.id ? presence : item))
+    : [...presences, presence];
+  localStorage.setItem(PRESENCES_KEY, JSON.stringify(next));
+  if (existing) {
+    await updateRow("Presencas", existing.id, { ...presence });
+  } else {
+    await appendRow("Presencas", { ...presence });
+  }
 }
 
-function TabButton({
-  active,
-  children,
-  icon,
-  onClick
-}: {
-  active: boolean;
-  children: ReactNode;
-  icon: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-black uppercase transition ${
-        active
-          ? "bg-cris-pink text-white shadow-pop"
-          : "bg-cris-paper text-cris-navy hover:bg-cris-yellow/25"
-      }`}
-      onClick={onClick}
-      type="button"
-    >
-      {icon}
-      {children}
-    </button>
-  );
+function saveConfirmations(confirmations: Confirmacao[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(CONFIRMATIONS_KEY, JSON.stringify(confirmations));
+  }
 }
 
-function DashboardSection({
-  icon,
-  title,
-  children
-}: {
-  icon: ReactNode;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="premium-panel p-5 sm:p-7">
-      <div className="mb-5 flex items-center gap-3">
-        <span className="grid size-12 place-items-center rounded-lg bg-cris-purple text-white">
-          {icon}
-        </span>
-        <h2 className="text-2xl font-black uppercase text-cris-navy">
-          {title}
-        </h2>
-      </div>
-      {children}
-    </section>
+export async function aceitarSolicitacaoPresenca(confirmacaoId: string) {
+  const confirmations = getConfirmacoesProfessor();
+  const confirmation = confirmations.find((item) => item.id === confirmacaoId);
+  if (!confirmation) return;
+
+  const updated = { ...confirmation, status: "aceita" as const };
+  saveConfirmations(
+    confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
   );
+  await updateRow("Confirmacoes", confirmacaoId, { status: "aceita" });
+  await validarPresenca(updated.alunoId, updated.aulaId, true);
+  await syncGoogleSheetsData(["Confirmacoes", "Presencas"]);
 }
 
-function Info({ children, label }: { children: ReactNode; label: string }) {
-  return (
-    <div className="rounded-lg bg-cris-paper p-4 ring-1 ring-cris-navy/10">
-      <dt className="text-xs font-black uppercase text-cris-navy/45">
-        {label}
-      </dt>
-      <dd className="mt-1 font-black text-cris-navy">{children}</dd>
-    </div>
+export async function recusarSolicitacaoPresenca(confirmacaoId: string) {
+  const confirmations = getConfirmacoesProfessor();
+  const confirmation = confirmations.find((item) => item.id === confirmacaoId);
+  if (!confirmation) return;
+
+  const updated = { ...confirmation, status: "recusada" as const };
+  saveConfirmations(
+    confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
   );
+  await updateRow("Confirmacoes", confirmacaoId, { status: "recusada" });
+  await syncGoogleSheetsData(["Confirmacoes"]);
 }
 
-function StatusBadge({ children }: { children: ReactNode }) {
-  return (
-    <span className="rounded-lg bg-white px-3 py-1 text-xs font-black uppercase text-cris-pink">
-      {children}
-    </span>
-  );
+export function getPagamentosProfessor() {
+  return getAlunosProfessor().map((aluno) => ({
+    id: aluno.id,
+    alunoId: aluno.id,
+    plano: aluno.plano,
+    valor: aluno.planoDetalhes?.valor ?? 0,
+    vencimento: `${new Date().toISOString().slice(0, 7)}-08`,
+    dataPagamento: null,
+    status: aluno.statusPagamento === "pago" ? "pago" : "atrasado",
+    metodo: aluno.formaPagamento ?? "outro"
+  }));
 }
 
-function PresenceRequestCard({
-  confirmation,
-  lesson,
-  onAccept,
-  onReject,
-  presence,
-  student
-}: {
-  confirmation: Confirmacao;
-  lesson?: {
-    data: string;
-    endereco: string;
-    horario: string;
-    local: string;
+export async function atualizarStatusPagamento(
+  alunoId: string,
+  status: PagamentoStatus
+) {
+  const normalizedStatus = status === "pago" ? "pago" : "atrasado";
+  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+  if (localStudents.some((student) => student.id === alunoId)) {
+    localStorage.setItem(
+      REGISTERED_STUDENTS_KEY,
+      JSON.stringify(
+        localStudents.map((student) =>
+          student.id === alunoId
+            ? { ...student, statusPagamento: normalizedStatus }
+            : student
+        )
+      )
+    );
+  }
+  updateCachedRow("Alunos", alunoId, {
+    statusPagamento: normalizedStatus
+  });
+  const updated = await updateRow("Alunos", alunoId, {
+    statusPagamento: normalizedStatus
+  });
+  if (!updated) {
+    throw new Error("Não foi possível atualizar o pagamento na planilha.");
+  }
+  const synced = await syncGoogleSheetsData(["Alunos"]);
+  const savedStatus = getCachedSheet("Alunos").find(
+    (student) => String(student.id) === alunoId
+  )?.statusPagamento;
+  if (!synced || savedStatus !== normalizedStatus) {
+    throw new Error("A coluna statusPagamento não foi atualizada.");
+  }
+}
+
+export function getProximasAulasProfessor() {
+  const today = new Date().toISOString().slice(0, 10);
+  const remote = getCachedSheet("Aulas").map(sheetRowToAula);
+  const source = remote;
+  return source
+    .filter((aula) => String(aula.data ?? "") >= today)
+    .sort((first, second) =>
+      String(first.data ?? "").localeCompare(String(second.data ?? ""))
+    );
+}
+
+export function limparDadosLocaisDeTeste() {
+  [
+    STUDENT_STATUS_KEY,
+    PRESENCES_KEY,
+    CONFIRMATIONS_KEY,
+    REGISTERED_STUDENTS_KEY,
+    "zdc_alunos_remotos",
+    "zdc_google_sheets_cache",
+    "alunoAtualId"
+  ].forEach((key) => localStorage.removeItem(key));
+}
+
+export async function sincronizarDashboardProfessor() {
+  return syncGoogleSheetsData([
+    "Alunos",
+    "Planos",
+    "Aulas",
+    "Confirmacoes",
+    "Presencas",
+    "Conquistas"
+  ]);
+}
+
+export function getResumoDashboard() {
+  const students = getAlunosProfessor();
+  return {
+    total: students.length,
+    ativos: students.filter((item) => item.status === "ativo").length,
+    pendentes: students.filter((item) => item.status === "pendente").length,
+    atrasados: students.filter((item) => item.status === "atrasado").length,
+    confirmacoes: getConfirmacoesProfessor().filter(
+      (item) => item.status === "solicitada" || item.status === "confirmado"
+    ).length
   };
-  onAccept: () => Promise<void>;
-  onReject: () => Promise<void>;
-  presence?: Presenca;
-  student?: {
-    nome: string;
-    whatsapp: string;
-  };
-}) {
-  const isPending =
-    confirmation.status === "solicitada" || confirmation.status === "confirmado";
-  const visibleStatus = presence?.compareceu
-    ? "aceita"
-    : confirmation.status === "confirmado"
-      ? "solicitada"
-      : confirmation.status;
-
-  return (
-    <article className="rounded-lg bg-cris-paper p-4 ring-1 ring-cris-navy/10">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-xl font-black text-cris-navy">
-            {student?.nome ?? confirmation.alunoId}
-          </h3>
-          <p className="text-sm font-bold text-cris-navy/55">
-            {student?.whatsapp ?? "WhatsApp não encontrado"}
-          </p>
-        </div>
-        <StatusBadge>{statusLabel(visibleStatus)}</StatusBadge>
-      </div>
-
-      <div className="mt-4 grid gap-2 text-sm font-bold text-cris-navy/65">
-        <p>Turma/local: {lesson?.local ?? confirmation.aulaId}</p>
-        <p>Data da aula: {formatDate(lesson?.data)}</p>
-        <p>Horário: {lesson?.horario ?? "Horário não encontrado"}</p>
-        <p>Solicitada em: {formatDateTime(confirmation.dataConfirmacao)}</p>
-      </div>
-
-      {isPending ? (
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <button
-            className="min-h-11 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-black uppercase text-white"
-            onClick={onAccept}
-            type="button"
-          >
-            Aceitar presença
-          </button>
-          <button
-            className="min-h-11 rounded-lg bg-cris-pink px-4 py-2 text-xs font-black uppercase text-white"
-            onClick={onReject}
-            type="button"
-          >
-            Recusar
-          </button>
-        </div>
-      ) : null}
-    </article>
-  );
 }
