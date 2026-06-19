@@ -8,7 +8,8 @@ export const SHEET_NAMES = [
   "Confirmacoes",
   "Presencas",
   "Pagamentos",
-  "Desafios"
+  "Desafios",
+  "Conquistas"
 ] as const;
 
 type SheetName = (typeof SHEET_NAMES)[number];
@@ -21,7 +22,8 @@ const readActions: Record<SheetName, string> = {
   Confirmacoes: "getConfirmacoes",
   Presencas: "getPresencas",
   Pagamentos: "getPagamentos",
-  Desafios: "getDesafios"
+  Desafios: "getDesafios",
+  Conquistas: "getConquistas"
 };
 
 const createActions: Record<SheetName, string> = {
@@ -32,7 +34,8 @@ const createActions: Record<SheetName, string> = {
   Confirmacoes: "createConfirmacao",
   Presencas: "upsertPresenca",
   Pagamentos: "upsertPagamento",
-  Desafios: "createDesafio"
+  Desafios: "createDesafio",
+  Conquistas: "createConquista"
 };
 
 const updateActions: Record<SheetName, string> = {
@@ -43,7 +46,8 @@ const updateActions: Record<SheetName, string> = {
   Confirmacoes: "updateConfirmacao",
   Presencas: "upsertPresenca",
   Pagamentos: "upsertPagamento",
-  Desafios: "updateDesafio"
+  Desafios: "updateDesafio",
+  Conquistas: "updateConquista"
 };
 
 export function isGoogleSheetsConfigured() {
