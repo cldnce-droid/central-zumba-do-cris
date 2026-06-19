@@ -61,15 +61,23 @@ export default function Home() {
 
           <div className="grid gap-3">
             <Link
-              className="group relative isolate flex min-h-20 w-full overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(115deg,#ffffff_0%,#dff6ff_22%,#eee5ff_44%,#ffe1f0_66%,#e5fbff_82%,#ffffff_100%)] p-[2px] shadow-[0_16px_38px_rgba(89,91,181,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(242,7,114,0.24)] focus:outline-none focus:ring-4 focus:ring-cris-pink/30"
+              className="group relative isolate flex min-h-20 w-full overflow-hidden rounded-lg border border-white/80 bg-cover bg-center p-[2px] shadow-[0_16px_38px_rgba(89,91,181,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(242,7,114,0.3)] focus:outline-none focus:ring-4 focus:ring-cris-pink/30"
               href="/entrar"
+              style={{
+                backgroundImage:
+                  "url('/references/textura-holografica-area-aluno.png')"
+              }}
             >
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 bg-white/15 transition duration-300 group-hover:bg-white/5"
+              />
               <span
                 aria-hidden="true"
                 className="absolute -left-1/2 top-0 h-full w-1/3 -skew-x-12 bg-white/70 blur-md transition duration-700 group-hover:left-[120%]"
               />
-              <span className="relative flex w-full items-center justify-center gap-3 rounded-[6px] bg-white/45 px-5 py-4 text-center text-lg font-black uppercase text-cris-navy backdrop-blur-sm">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white/70 text-cris-pink shadow-sm">
+              <span className="relative flex w-full items-center justify-center gap-3 rounded-[6px] bg-white/30 px-5 py-4 text-center text-lg font-black uppercase text-cris-navy backdrop-blur-[1px]">
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white/75 text-cris-pink shadow-sm ring-1 ring-white/80">
                   <HeartIcon className="size-6" />
                 </span>
                 Entrar na minha área
