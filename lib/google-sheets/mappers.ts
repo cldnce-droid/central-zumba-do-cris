@@ -34,6 +34,12 @@ function parseAlunoStatus(value: unknown) {
     : "pendente";
 }
 
+function parsePagamentoStatus(value: unknown) {
+  return String(value ?? "").trim().toLowerCase() === "pago"
+    ? "pago"
+    : "atrasado";
+}
+
 function parseSheetDate(value: unknown) {
   const text = String(value ?? "").trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
@@ -51,6 +57,8 @@ function parseSheetDate(value: unknown) {
 export function sheetRowToAluno(row: SheetRow): Aluno {
   const turmasEscolhidas = parseList(row.turmasEscolhidas);
   const turmaPrincipal = String(row.turmaPrincipal ?? "").trim();
+  const statusCadastro = parseAlunoStatus(row.statusCadastro ?? row.status);
+  const statusPagamento = parsePagamentoStatus(row.statusPagamento);
   return {
     ...row,
     id: String(row.id ?? ""),
@@ -58,7 +66,9 @@ export function sheetRowToAluno(row: SheetRow): Aluno {
     whatsapp: String(row.whatsapp ?? "").replace(/\D/g, ""),
     email: String(row.email ?? ""),
     plano: parsePlanoCodigo(row.plano),
-    status: parseAlunoStatus(row.status),
+    status: statusCadastro,
+    statusCadastro,
+    statusPagamento,
     dataEntrada: parseSheetDate(row.dataEntrada),
     diaVencimento: Number(row.diaVencimento) || null,
     turmasEscolhidas,
@@ -72,8 +82,18 @@ export function alunoToSheetRow<T extends object>(aluno: T): SheetRow {
     aluno as T & { turmasEscolhidas?: unknown }
   ).turmasEscolhidas;
 
+  const status = (aluno as T & { status?: unknown; statusCadastro?: unknown }).status;
+  const statusCadastro = (
+    aluno as T & { statusCadastro?: unknown }
+  ).statusCadastro ?? status;
+  const statusPagamento = (
+    aluno as T & { statusPagamento?: unknown }
+  ).statusPagamento ?? "atrasado";
+
   return {
     ...aluno,
+    statusCadastro,
+    statusPagamento,
     turmasEscolhidas: Array.isArray(turmasEscolhidas)
       ? turmasEscolhidas.join(", ")
       : turmasEscolhidas
@@ -134,7 +154,21 @@ export function sheetRowToConfirmacao(row: SheetRow): Confirmacao {
 export function sheetRowToPresenca(row: SheetRow): Presenca {
   return {
     ...row,
-    compareceu: parseBoolean(row.compareceu)
+    id: String(row.id ?? ""),
+    alunoId: String(row.alunoId ?? ""),
+    nomeAluno: String(row.nomeAluno ?? ""),
+    whatsapp: String(row.whatsapp ?? ""),
+    aulaId: String(row.aulaId ?? ""),
+    turma: String(row.turma ?? row.local ?? ""),
+    local: String(row.local ?? row.turma ?? ""),
+    data: parseSheetDate(row.data ?? row.dataAula),
+    dataAula: parseSheetDate(row.dataAula ?? row.data),
+    horario: String(row.horario ?? ""),
+    dataValidacao: String(row.dataValidacao ?? ""),
+    status: String(row.status ?? "aceita") === "recusada" ? "recusada" : "aceita",
+    compareceu: parseBoolean(row.compareceu) || String(row.status ?? "") === "aceita",
+    validadoPor: String(row.validadoPor ?? "professor"),
+    observacao: String(row.observacao ?? "")
   } as unknown as Presenca;
 }
 
