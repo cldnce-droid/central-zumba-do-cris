@@ -189,7 +189,11 @@ export function ProfessorDashboard() {
           item.aulaId === confirmation.aulaId
       )
     }))
-    .filter(({ confirmation }) => confirmation.status !== "recusada")
+    .filter(
+      ({ confirmation }) =>
+        confirmation.status === "solicitada" ||
+        confirmation.status === "confirmado"
+    )
     .sort((first, second) =>
       String(second.confirmation.dataConfirmacao ?? "").localeCompare(
         String(first.confirmation.dataConfirmacao ?? "")
