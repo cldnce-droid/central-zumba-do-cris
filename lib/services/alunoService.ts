@@ -14,7 +14,7 @@ import {
   readSheet,
   syncGoogleSheetsData
 } from "@/lib/services/googleSheetsService";
-import type { Aluno } from "@/lib/student-data/types";
+import type { Aluno, ConquistaVisual } from "@/lib/student-data/types";
 import {
   sheetRowToAula,
   sheetRowToDesafio,
@@ -251,6 +251,6 @@ export function getDesafiosDisponiveis(_alunoId: string) {
   return [];
 }
 
-export function getConquistasDoAluno(_alunoId: string) {
+export function getConquistasDoAluno(_alunoId: string): ConquistaVisual[] {
   return [];
 }
