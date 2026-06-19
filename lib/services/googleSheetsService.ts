@@ -8,7 +8,8 @@ export type SheetName =
   | "Confirmacoes"
   | "Presencas"
   | "Pagamentos"
-  | "Desafios";
+  | "Desafios"
+  | "Conquistas";
 
 const CACHE_KEY = "zdc_google_sheets_cache";
 type SheetsCache = Partial<Record<SheetName, SheetRow[]>>;
@@ -53,8 +54,7 @@ export async function syncGoogleSheetsData(
     "Aulas",
     "Confirmacoes",
     "Presencas",
-    "Pagamentos",
-    "Desafios"
+    "Conquistas"
   ]
 ) {
   const results = await Promise.all(
