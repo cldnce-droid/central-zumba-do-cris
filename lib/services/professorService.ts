@@ -1,4 +1,4 @@
-import { alunos, pagamentos, planos } from "@/lib/student-data/mockData";
+import { alunos, planos } from "@/lib/student-data/mockData";
 import type {
   AlunoStatus,
   Confirmacao,
@@ -15,17 +15,14 @@ import {
   sheetRowToAluno,
   sheetRowToAula,
   sheetRowToConfirmacao,
-  sheetRowToPagamento,
   sheetRowToPlano,
   sheetRowToPresenca
 } from "@/lib/google-sheets/mappers";
 
 const STUDENT_STATUS_KEY = "zdc_alunos_status";
-const PAYMENT_STATUS_KEY = "zdc_pagamentos_status";
 const PRESENCES_KEY = "zdc_presencas";
 const CONFIRMATIONS_KEY = "zdc_confirmacoes";
 const REGISTERED_STUDENTS_KEY = "zdc_alunos_cadastrados";
-const CREATED_PAYMENTS_KEY = "zdc_pagamentos_criados";
 
 function readLocal<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -59,7 +56,9 @@ export function getAlunosProfessor() {
   const sourcePlans = remotePlans.length ? remotePlans : planos;
   return sourceStudents.map((aluno) => ({
     ...aluno,
-    status: overrides[String(aluno.id)] ?? aluno.status,
+    status: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
+    statusCadastro: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
+    statusPagamento: aluno.statusPagamento ?? "atrasado",
     planoDetalhes: sourcePlans.find(
       (plano) =>
         plano.aulasPorSemana ===
@@ -87,55 +86,24 @@ export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus)
             ? {
                 ...student,
                 status,
-                ...(status === "ativo" ? { diaVencimento: 8 } : {})
+                statusCadastro: status,
+                ...(status === "ativo"
+                  ? { diaVencimento: 8, statusPagamento: "atrasado" }
+                  : {})
               }
             : student
         )
       )
     );
   }
-  const student = getAlunosProfessor().find((item) => item.id === alunoId);
   await updateRow("Alunos", alunoId, {
     status,
-    ...(status === "ativo" ? { diaVencimento: 8 } : {})
+    statusCadastro: status,
+    ...(status === "ativo"
+      ? { diaVencimento: 8, statusPagamento: "atrasado" }
+      : {})
   });
-
-  if (status === "ativo" && student) {
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const existing = getPagamentosProfessor().find(
-      (payment) =>
-        payment.alunoId === alunoId &&
-        String(payment.vencimento ?? "").startsWith(month)
-    );
-    const payment = {
-      id: existing?.id ?? `PAG_${alunoId}_${month}`,
-      alunoId,
-      plano: student.plano,
-      valor: student.planoDetalhes?.valor ?? 0,
-      vencimento: `${month}-08`,
-      dataPagamento: null,
-      status: "atrasado" as const,
-      metodo: student.formaPagamento ?? "outro"
-    };
-
-    if (existing) {
-      await updateRow("Pagamentos", existing.id, { ...payment });
-    } else {
-      await appendRow("Pagamentos", { ...payment });
-    }
-
-    const localPayments = readLocal<typeof pagamentos>(
-      CREATED_PAYMENTS_KEY,
-      []
-    ).filter((item) => item.id !== payment.id);
-    localStorage.setItem(
-      CREATED_PAYMENTS_KEY,
-      JSON.stringify([...localPayments, payment])
-    );
-  }
-
-  await syncGoogleSheetsData(["Alunos", "Pagamentos"]);
+  await syncGoogleSheetsData(["Alunos"]);
 }
 
 export function getConfirmacoesProfessor() {
@@ -161,6 +129,7 @@ export async function validarPresenca(
   const remoteClasses = getCachedSheet("Aulas").map(sheetRowToAula);
   const aula =
     remoteClasses.find((item) => item.id === aulaId);
+  const aluno = getAlunosProfessor().find((item) => item.id === alunoId);
   const existing = presences.find(
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
   );
@@ -168,8 +137,16 @@ export async function validarPresenca(
   const presence: Presenca = {
     id: existing?.id ?? `PRES_TEMP_${Date.now()}`,
     alunoId,
+    nomeAluno: aluno?.nome ?? "",
+    whatsapp: aluno?.whatsapp ?? "",
     aulaId,
+    turma: aula?.local ?? "",
+    local: aula?.endereco ?? aula?.local ?? "",
     data: aula?.data ?? new Date().toISOString().slice(0, 10),
+    dataAula: aula?.data ?? new Date().toISOString().slice(0, 10),
+    horario: aula?.horario ?? "",
+    dataValidacao: new Date().toISOString(),
+    status: compareceu ? "aceita" : "recusada",
     compareceu,
     validadoPor: "professor",
     observacao: ""
@@ -220,68 +197,38 @@ export async function recusarSolicitacaoPresenca(confirmacaoId: string) {
 }
 
 export function getPagamentosProfessor() {
-  const overrides = readLocal<Record<string, PagamentoStatus>>(
-    PAYMENT_STATUS_KEY,
-    {}
-  );
-  const remote = getCachedSheet("Pagamentos").map(sheetRowToPagamento);
-  const created = readLocal<typeof pagamentos>(CREATED_PAYMENTS_KEY, []);
-  const base = remote.length ? remote : [];
-  const source = Array.from(
-    new Map([...created, ...base].map((payment) => [payment.id, payment])).values()
-  );
-  return source.map((pagamento) => ({
-    ...pagamento,
-    status:
-      overrides[pagamento.id] === "pago" || pagamento.status === "pago"
-        ? "pago"
-        : "atrasado"
+  return getAlunosProfessor().map((aluno) => ({
+    id: aluno.id,
+    alunoId: aluno.id,
+    plano: aluno.plano,
+    valor: aluno.planoDetalhes?.valor ?? 0,
+    vencimento: `${new Date().toISOString().slice(0, 7)}-08`,
+    dataPagamento: null,
+    status: aluno.statusPagamento === "pago" ? "pago" : "atrasado",
+    metodo: aluno.formaPagamento ?? "outro"
   }));
 }
 
 export async function atualizarStatusPagamento(
-  pagamentoId: string,
+  alunoId: string,
   status: PagamentoStatus
 ) {
   const normalizedStatus = status === "pago" ? "pago" : "atrasado";
-  const overrides = readLocal<Record<string, PagamentoStatus>>(
-    PAYMENT_STATUS_KEY,
-    {}
-  );
-  localStorage.setItem(
-    PAYMENT_STATUS_KEY,
-    JSON.stringify({ ...overrides, [pagamentoId]: normalizedStatus })
-  );
-  const createdPayments = readLocal<typeof pagamentos>(
-    CREATED_PAYMENTS_KEY,
-    []
-  );
-  if (createdPayments.some((payment) => payment.id === pagamentoId)) {
+  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+  if (localStudents.some((student) => student.id === alunoId)) {
     localStorage.setItem(
-      CREATED_PAYMENTS_KEY,
+      REGISTERED_STUDENTS_KEY,
       JSON.stringify(
-        createdPayments.map((payment) =>
-          payment.id === pagamentoId
-            ? {
-                ...payment,
-                status: normalizedStatus,
-                dataPagamento:
-                  normalizedStatus === "pago"
-                    ? new Date().toISOString().slice(0, 10)
-                    : null
-              }
-            : payment
+        localStudents.map((student) =>
+          student.id === alunoId
+            ? { ...student, statusPagamento: normalizedStatus }
+            : student
         )
       )
     );
   }
-  await updateRow("Pagamentos", pagamentoId, {
-    status: normalizedStatus,
-    ...(normalizedStatus === "pago"
-      ? { dataPagamento: new Date().toISOString().slice(0, 10) }
-      : { dataPagamento: "" })
-  });
-  await syncGoogleSheetsData(["Pagamentos"]);
+  await updateRow("Alunos", alunoId, { statusPagamento: normalizedStatus });
+  await syncGoogleSheetsData(["Alunos"]);
 }
 
 export function getProximasAulasProfessor() {
@@ -298,11 +245,9 @@ export function getProximasAulasProfessor() {
 export function limparDadosLocaisDeTeste() {
   [
     STUDENT_STATUS_KEY,
-    PAYMENT_STATUS_KEY,
     PRESENCES_KEY,
     CONFIRMATIONS_KEY,
     REGISTERED_STUDENTS_KEY,
-    CREATED_PAYMENTS_KEY,
     "zdc_alunos_remotos",
     "zdc_google_sheets_cache",
     "alunoAtualId"
@@ -316,7 +261,7 @@ export async function sincronizarDashboardProfessor() {
     "Aulas",
     "Confirmacoes",
     "Presencas",
-    "Pagamentos"
+    "Conquistas"
   ]);
 }
 
