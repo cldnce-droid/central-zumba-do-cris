@@ -41,7 +41,6 @@ const statusStyles: Record<AlunoStatus, string> = {
 
 const paymentStyles: Record<PagamentoStatus, string> = {
   pago: "bg-emerald-100 text-emerald-700",
-  pendente: "bg-cris-yellow/25 text-cris-navy",
   atrasado: "bg-cris-pink/20 text-cris-pink"
 };
 
