@@ -30,6 +30,8 @@ export const alunos: Aluno[] = [
     email: "ana@email.com",
     plano: "1x",
     status: "pendente",
+    statusCadastro: "pendente",
+    statusPagamento: "atrasado",
     dataEntrada: "2026-05-20",
     diaVencimento: 5,
     turmaPrincipal: "Palmas",
@@ -296,7 +298,7 @@ export const pagamentos: Pagamento[] = [
     valor: 50,
     vencimento: "2026-06-05",
     dataPagamento: null,
-    status: "pendente",
+    status: "atrasado",
     metodo: "pix"
   },
   {
