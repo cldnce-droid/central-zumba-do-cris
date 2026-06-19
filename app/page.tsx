@@ -61,23 +61,11 @@ export default function Home() {
 
           <div className="grid gap-3">
             <Link
-              className="group relative isolate flex min-h-24 w-full overflow-hidden rounded-lg border border-white bg-cover bg-center p-2 shadow-[0_16px_38px_rgba(89,91,181,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(109,43,191,0.25)] focus:outline-none focus:ring-4 focus:ring-cris-pink/25"
+              className="student-portal-3d"
               href="/entrar"
-              style={{
-                backgroundImage:
-                  "url('/references/textura-holografica-area-aluno.png')"
-              }}
             >
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 bg-white/5 transition duration-300 group-hover:bg-white/0"
-              />
-              <span
-                aria-hidden="true"
-                className="absolute -left-1/2 top-0 z-20 h-full w-1/4 -skew-x-12 bg-white/45 blur-lg transition duration-700 group-hover:left-[125%]"
-              />
-              <span className="relative z-10 flex w-full items-center justify-center gap-3 rounded-[5px] border border-white/80 bg-white/75 px-5 py-4 text-center text-lg font-black uppercase text-cris-navy shadow-[0_5px_18px_rgba(41,35,94,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-md">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-cris-navy text-cris-yellow shadow-sm">
+              <span className="student-portal-3d__label">
+                <span className="student-portal-3d__icon">
                   <HeartIcon className="size-6" />
                 </span>
                 Entrar na minha área
