@@ -23,6 +23,8 @@ export interface AlunoPendente {
   email: string;
   plano: PlanoCodigo;
   status: "pendente";
+  statusCadastro: "pendente";
+  statusPagamento: "atrasado";
   dataEntrada: string;
   diaVencimento: null;
   turmasEscolhidas: string[];
@@ -86,6 +88,8 @@ export function createAlunoPendente(
     email: formData.email.trim(),
     plano: formData.plano,
     status: "pendente",
+    statusCadastro: "pendente",
+    statusPagamento: "atrasado",
     dataEntrada: formatLocalDate(now),
     diaVencimento: null,
     turmasEscolhidas: turmasSelecionadas.map((turma) => turma.nome),
