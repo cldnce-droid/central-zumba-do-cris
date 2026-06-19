@@ -61,11 +61,11 @@ export default function Home() {
 
           <div className="grid gap-3">
             <Link
-              className="student-portal-3d"
+              className="premium-student-area-button"
               href="/entrar"
             >
-              <span className="student-portal-3d__label">
-                <span className="student-portal-3d__icon">
+              <span className="premium-student-area-button__label">
+                <span className="premium-student-area-button__icon">
                   <HeartIcon className="size-6" />
                 </span>
                 Entrar na minha área
