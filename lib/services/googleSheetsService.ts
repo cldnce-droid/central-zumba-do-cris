@@ -46,6 +46,26 @@ export function getCachedSheet(sheetName: SheetName) {
   }
 }
 
+export function updateCachedRow(
+  sheetName: SheetName,
+  id: string,
+  updates: SheetRow
+) {
+  if (typeof window === "undefined") return;
+  try {
+    const cache = JSON.parse(
+      localStorage.getItem(CACHE_KEY) ?? "{}"
+    ) as SheetsCache;
+    const rows = cache[sheetName] ?? [];
+    cache[sheetName] = rows.map((row) =>
+      String(row.id) === id ? { ...row, ...updates } : row
+    );
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // A próxima sincronização remota recompõe o cache.
+  }
+}
+
 export async function syncGoogleSheetsData(
   sheetNames: SheetName[] = [
     "Alunos",
