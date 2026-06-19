@@ -127,6 +127,8 @@ export function ProfessorDashboard() {
   const [classFilter, setClassFilter] = useState("Todas");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [isLeaving, setIsLeaving] = useState(false);
+  const [paymentFeedback, setPaymentFeedback] = useState("");
+  const [updatingPayment, setUpdatingPayment] = useState(false);
 
   const data = useMemo(() => {
     const students = getAlunosProfessor();
@@ -430,24 +432,42 @@ export function ProfessorDashboard() {
 
                   <button
                     className="min-h-12 rounded-lg bg-cris-yellow px-4 py-3 text-sm font-black uppercase text-cris-navy disabled:opacity-50"
-                    disabled={!selectedPayment}
+                    disabled={!selectedPayment || updatingPayment}
                     onClick={async () => {
                       if (!selectedPayment) return;
-                      await atualizarStatusPagamento(
-                        selectedPayment.id,
-                        selectedPayment.status === "pago"
-                          ? "atrasado"
-                          : "pago"
-                      );
-                      refresh();
+                      setUpdatingPayment(true);
+                      setPaymentFeedback("");
+                      try {
+                        await atualizarStatusPagamento(
+                          selectedStudent.id,
+                          selectedPayment.status === "pago"
+                            ? "atrasado"
+                            : "pago"
+                        );
+                        setPaymentFeedback("Pagamento atualizado com sucesso.");
+                        refresh();
+                      } catch {
+                        setPaymentFeedback(
+                          "Não foi possível atualizar. Confira a coluna statusPagamento na aba Alunos."
+                        );
+                      } finally {
+                        setUpdatingPayment(false);
+                      }
                     }}
                     type="button"
                   >
-                    {selectedPayment?.status === "pago"
+                    {updatingPayment
+                      ? "Atualizando..."
+                      : selectedPayment?.status === "pago"
                       ? "Marcar como atrasado"
                       : "Marcar como pago"}
                   </button>
                 </div>
+                {paymentFeedback ? (
+                  <p className="font-bold text-cris-pink" aria-live="polite">
+                    {paymentFeedback}
+                  </p>
+                ) : null}
               </div>
             ) : (
               <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
