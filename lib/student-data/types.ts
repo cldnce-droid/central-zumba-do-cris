@@ -15,7 +15,7 @@ export type ConfirmacaoStatus =
   | "recusada"
   | "confirmado"
   | "cancelado";
-export type PagamentoStatus = "pago" | "pendente" | "atrasado";
+export type PagamentoStatus = "pago" | "atrasado";
 export type MetodoPagamento = "pix" | "dinheiro" | "outro";
 export type StatusVisualDesafio = "em_breve" | "bloqueado" | "disponivel";
 
@@ -26,6 +26,8 @@ export interface Aluno {
   email: string;
   plano: PlanoCodigo;
   status: AlunoStatus;
+  statusCadastro?: "pendente" | "ativo" | "inativo";
+  statusPagamento?: PagamentoStatus;
   dataEntrada: string;
   diaVencimento: number | null;
   turmaPrincipal: string;
@@ -76,8 +78,16 @@ export interface Confirmacao {
 export interface Presenca {
   id: string;
   alunoId: string;
+  nomeAluno?: string;
+  whatsapp?: string;
   aulaId: string;
+  turma?: string;
+  local?: string;
   data: string;
+  dataAula?: string;
+  horario?: string;
+  dataValidacao?: string;
+  status?: "aceita" | "recusada";
   compareceu: boolean;
   validadoPor: string;
   observacao: string;
