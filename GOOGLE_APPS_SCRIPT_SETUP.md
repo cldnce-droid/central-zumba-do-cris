@@ -13,7 +13,7 @@
 9. Autorize o acesso solicitado e copie a URL terminada em `/exec`.
 
 ```javascript
-const SCRIPT_SECRET = "COLOQUE_UM_SEGREDO_FORTE_AQUI";
+const SCRIPT_SECRET = "1474674";
 
 const ACTIONS = {
   getAlunos: () => readRows("Alunos"),
