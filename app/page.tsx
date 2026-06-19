@@ -61,7 +61,7 @@ export default function Home() {
 
           <div className="grid gap-3">
             <Link
-              className="group relative isolate flex min-h-20 w-full overflow-hidden rounded-lg border border-white/80 bg-cover bg-center p-[2px] shadow-[0_16px_38px_rgba(89,91,181,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(242,7,114,0.3)] focus:outline-none focus:ring-4 focus:ring-cris-pink/30"
+              className="group relative isolate flex min-h-24 w-full rounded-lg border border-white/80 bg-cover bg-center p-[7px] shadow-[0_18px_42px_rgba(89,91,181,0.3)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_54px_rgba(242,7,114,0.3)] focus:outline-none focus:ring-4 focus:ring-cris-pink/30"
               href="/entrar"
               style={{
                 backgroundImage:
@@ -70,14 +70,26 @@ export default function Home() {
             >
               <span
                 aria-hidden="true"
-                className="absolute inset-0 bg-white/15 transition duration-300 group-hover:bg-white/5"
+                className="absolute -left-3 top-1/2 h-16 w-12 -translate-y-1/2 rotate-6 rounded-lg bg-cover bg-center shadow-[5px_8px_18px_rgba(56,37,113,0.28)] ring-1 ring-white/70"
+                style={{
+                  backgroundImage:
+                    "url('/references/textura-holografica-area-aluno.png')"
+                }}
               />
               <span
                 aria-hidden="true"
-                className="absolute -left-1/2 top-0 h-full w-1/3 -skew-x-12 bg-white/70 blur-md transition duration-700 group-hover:left-[120%]"
+                className="absolute -right-3 top-1/2 h-16 w-12 -translate-y-1/2 -rotate-6 rounded-lg bg-cover bg-center shadow-[-5px_8px_18px_rgba(56,37,113,0.28)] ring-1 ring-white/70"
+                style={{
+                  backgroundImage:
+                    "url('/references/textura-holografica-area-aluno.png')"
+                }}
               />
-              <span className="relative flex w-full items-center justify-center gap-3 rounded-[6px] bg-white/30 px-5 py-4 text-center text-lg font-black uppercase text-cris-navy backdrop-blur-[1px]">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white/75 text-cris-pink shadow-sm ring-1 ring-white/80">
+              <span
+                aria-hidden="true"
+                className="absolute -left-1/2 top-0 z-20 h-full w-1/3 -skew-x-12 bg-white/55 blur-md transition duration-700 group-hover:left-[120%]"
+              />
+              <span className="relative z-10 mx-2 flex w-full items-center justify-center gap-3 rounded-[5px] border border-white/35 bg-cris-navy/90 px-5 py-4 text-center text-lg font-black uppercase text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-sm">
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white/15 text-cris-yellow shadow-sm ring-1 ring-white/25">
                   <HeartIcon className="size-6" />
                 </span>
                 Entrar na minha área
