@@ -5,7 +5,6 @@ import {
 import {
   getPlanoByAluno as buscarPlanoPorAluno,
   getProximaAula as buscarProximaAula,
-  getStatusPagamento as buscarStatusPagamento,
   getTurmasDisponiveisPorPlano as buscarTurmasDisponiveis
 } from "@/lib/student-data/selectors";
 import { getStatusAlunoLocal } from "@/lib/services/professorService";
@@ -19,7 +18,6 @@ import type { Aluno } from "@/lib/student-data/types";
 import {
   sheetRowToAula,
   sheetRowToDesafio,
-  sheetRowToPagamento,
   sheetRowToPlano,
   sheetRowToPresenca,
   sheetRowToTurma
@@ -28,7 +26,6 @@ import {
 export const alunoAtualId = "ALU001";
 const ALUNOS_PENDENTES_KEY = "zdc_alunos_cadastrados";
 const ALUNOS_REMOTOS_KEY = "zdc_alunos_remotos";
-const CREATED_PAYMENTS_KEY = "zdc_pagamentos_criados";
 
 function getStoredAlunos(key: string): Aluno[] {
   if (typeof window === "undefined") return [];
@@ -216,33 +213,8 @@ export function getProximaAula(alunoId: string, referencia = new Date()) {
 }
 
 export function getStatusPagamento(alunoId: string) {
-  const remotePayment = getCachedSheet("Pagamentos")
-    .map(sheetRowToPagamento)
-    .filter((pagamento) => pagamento.alunoId === alunoId)
-    .sort((first, second) =>
-      String(second.vencimento).localeCompare(String(first.vencimento))
-    )[0];
-  if (remotePayment) {
-    return remotePayment.status === "pago" ? "pago" : "atrasado";
-  }
-  if (typeof window !== "undefined") {
-    try {
-      const localPayments = JSON.parse(
-        localStorage.getItem(CREATED_PAYMENTS_KEY) ?? "[]"
-      ) as Array<{ alunoId: string; vencimento: string; status: string }>;
-      const localPayment = localPayments
-        .filter((payment) => payment.alunoId === alunoId)
-        .sort((first, second) =>
-          second.vencimento.localeCompare(first.vencimento)
-        )[0];
-      if (localPayment) {
-        return localPayment.status === "pago" ? "pago" : "atrasado";
-      }
-    } catch {
-      // O fallback mockado abaixo mantém a tela funcional.
-    }
-  }
-  return buscarStatusPagamento(alunoId) === "pago" ? "pago" : "atrasado";
+  const aluno = getAlunoById(alunoId);
+  return aluno?.statusPagamento === "pago" ? "pago" : "atrasado";
 }
 
 export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
@@ -250,7 +222,9 @@ export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
     .map(sheetRowToPresenca)
     .filter(
       (presenca) =>
-        presenca.alunoId === alunoId && presenca.compareceu === true
+        presenca.alunoId === alunoId &&
+        presenca.compareceu === true &&
+        (presenca.status === undefined || presenca.status === "aceita")
     );
   if (remotePresences.length) {
     const month = referencia.toISOString().slice(0, 7);
@@ -278,27 +252,5 @@ export function getDesafiosDisponiveis(_alunoId: string) {
 }
 
 export function getConquistasDoAluno(_alunoId: string) {
-  return [
-    {
-      id: "primeira-aula",
-      titulo: "Primeira aula",
-      descricao: "Sua conquista aparecerá após a presença ser validada.",
-      desbloqueada: false,
-      accent: "pink" as const
-    },
-    {
-      id: "primeiro-mes",
-      titulo: "Primeiro mês",
-      descricao: "Continue no ritmo para desbloquear.",
-      desbloqueada: false,
-      accent: "blue" as const
-    },
-    {
-      id: "errou-continua",
-      titulo: "Errou... continua!",
-      descricao: "Cada presença validada conta nessa caminhada.",
-      desbloqueada: false,
-      accent: "yellow" as const
-    }
-  ];
+  return [];
 }
