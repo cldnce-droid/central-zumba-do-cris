@@ -99,7 +99,7 @@ export function StudentArea() {
   useEffect(() => {
     setStudentId(localStorage.getItem("alunoAtualId") ?? "");
     setAccessChecked(true);
-    void syncGoogleSheetsData().then((synced) => {
+    void syncGoogleSheetsData(["Alunos", "Presencas", "Conquistas"]).then((synced) => {
       if (synced) setRevision((current) => current + 1);
     });
   }, []);
@@ -178,7 +178,7 @@ export function StudentArea() {
           }
         }
       );
-    }, 30000);
+    }, 10000);
 
     return () => window.clearInterval(timer);
   }, [nextClass, presenceRequested, studentId]);
