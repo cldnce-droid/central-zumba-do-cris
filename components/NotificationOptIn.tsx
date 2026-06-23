@@ -1,152 +1,140 @@
 "use client";
 
+import Script from "next/script";
 import { useEffect, useState } from "react";
 
-type NotificationStatus = "idle" | "success" | "denied" | "unsupported";
-type TestStatus = "idle" | "shown" | "permission-needed" | "failed";
+type NotificationStatus =
+  | "loading"
+  | "idle"
+  | "success"
+  | "denied"
+  | "unsupported"
+  | "not-configured"
+  | "failed";
 
-const messages: Record<Exclude<NotificationStatus, "idle">, string> = {
+interface OneSignalClient {
+  init(options: Record<string, unknown>): Promise<void>;
+  Notifications: {
+    permission: boolean;
+    requestPermission(): Promise<void>;
+  };
+}
+
+declare global {
+  interface Window {
+    OneSignalDeferred?: Array<(oneSignal: OneSignalClient) => void | Promise<void>>;
+  }
+}
+
+const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+
+const messages: Partial<Record<NotificationStatus, string>> = {
   success: "💖 Notificações ativadas com sucesso!",
   denied: "Tudo bem! Você ainda pode acompanhar os avisos por aqui.",
-  unsupported: "Seu navegador ainda não permite notificações."
+  unsupported: "Seu navegador ainda não permite notificações.",
+  "not-configured": "As notificações ainda não foram configuradas.",
+  failed: "Não foi possível ativar agora. Tente novamente."
 };
 
 export function NotificationOptIn() {
-  const [status, setStatus] = useState<NotificationStatus>("idle");
-  const [testStatus, setTestStatus] = useState<TestStatus>("idle");
+  const [status, setStatus] = useState<NotificationStatus>("loading");
+  const [oneSignal, setOneSignal] = useState<OneSignalClient | null>(null);
 
   useEffect(() => {
-    if (!("Notification" in window)) {
+    if (!appId) {
+      setStatus("not-configured");
+      return;
+    }
+
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
       setStatus("unsupported");
       return;
     }
 
-    if (Notification.permission === "granted") setStatus("success");
-    if (Notification.permission === "denied") setStatus("denied");
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (client) => {
+      try {
+        await client.init({
+          appId,
+          serviceWorkerPath: "sw.js",
+          serviceWorkerParam: { scope: "/" },
+          notifyButton: { enable: false }
+        });
+        setOneSignal(client);
+        setStatus(client.Notifications.permission ? "success" : "idle");
+      } catch {
+        setStatus("failed");
+      }
+    });
   }, []);
 
   const requestNotifications = async () => {
-    if (!("Notification" in window)) {
-      setStatus("unsupported");
+    if (!oneSignal) {
+      setStatus(appId ? "failed" : "not-configured");
       return;
     }
 
     try {
-      // This registration is also the base for a future PushManager subscription.
-      if ("serviceWorker" in navigator) {
-        await navigator.serviceWorker.register("/sw.js");
-      }
-
-      const permission = await Notification.requestPermission();
-      setStatus(permission === "granted" ? "success" : "denied");
+      await oneSignal.Notifications.requestPermission();
+      setStatus(oneSignal.Notifications.permission ? "success" : "denied");
     } catch {
-      setStatus("unsupported");
+      setStatus("failed");
     }
   };
 
-  const testNotification = async () => {
-    if (!("Notification" in window)) {
-      setStatus("unsupported");
-      return;
-    }
-
-    if (Notification.permission !== "granted") {
-      setTestStatus("permission-needed");
-      return;
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-
-      // Local preview only: no backend or push subscription is involved.
-      await registration.showNotification("🔥 ALERTA DE MOVIMENTO", {
-        body:
-          "Foi detectado um risco elevado de preguiça hoje. 😅\n\n" +
-          "A recomendação oficial é:\n\n" +
-          "💃 Zumba do Cris\n" +
-          "⏰ Hoje tem aula!\n\n" +
-          "Seu sofá já foi avisado.\n\n" +
-          "💖 Errou... continua!",
-        icon: "/icons/icon-192.png?v=20260609",
-        badge: "/icons/icon-192.png?v=20260609",
-        data: { url: "/avisos" },
-        tag: "zumba-do-cris-teste"
-      });
-
-      setTestStatus("shown");
-    } catch {
-      setTestStatus("failed");
-    }
-  };
-
-  const isFinished = status !== "idle";
+  const buttonDisabled = status === "loading" || status === "success";
 
   return (
-    <section className="relative overflow-hidden rounded-lg bg-cris-navy p-5 text-white shadow-[0_20px_55px_rgba(7,16,70,0.22)] sm:p-6">
-      <div
-        aria-hidden="true"
-        className="paint-stroke absolute -right-10 top-6 h-9 w-44 bg-cris-pink"
-      />
-      <div className="relative max-w-2xl">
-        <p className="text-sm font-black uppercase text-cris-yellow">
-          🔔 Ative as notificações
-        </p>
-        <p className="mt-3 text-base font-bold leading-relaxed text-white/80">
-          Receba novidades, lembretes das aulas e avisos importantes do Zumba do
-          Cris direto no seu celular.
-        </p>
+    <>
+      {appId ? (
+        <Script
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+          strategy="afterInteractive"
+        />
+      ) : null}
 
-        <button
-          className="mt-5 min-h-12 rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy shadow-[0_10px_25px_rgba(255,196,0,0.22)] transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-cris-pink/45 disabled:cursor-default disabled:opacity-70"
-          disabled={isFinished}
-          onClick={requestNotifications}
-          type="button"
-        >
-          Ativar notificações
-        </button>
+      <section className="relative overflow-hidden rounded-lg bg-cris-navy p-5 text-white shadow-[0_20px_55px_rgba(7,16,70,0.22)] sm:p-6">
+        <div
+          aria-hidden="true"
+          className="paint-stroke absolute -right-10 top-6 h-9 w-44 bg-cris-pink"
+        />
+        <div className="relative max-w-2xl">
+          <p className="text-sm font-black uppercase text-cris-yellow">
+            🔔 Ative as notificações
+          </p>
+          <p className="mt-3 text-base font-bold leading-relaxed text-white/80">
+            Receba novidades, lembretes das aulas e avisos importantes do Zumba
+            do Cris direto no seu celular.
+          </p>
 
-        <div aria-live="polite">
-          {isFinished ? (
-            <p
-              className={`mt-4 rounded-lg px-4 py-3 text-sm font-black ${
-                status === "success"
-                  ? "bg-cris-pink text-white"
-                  : "bg-white/10 text-white"
-              }`}
-            >
-              {messages[status]}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="mt-5 border-t border-white/15 pt-5">
           <button
-            className="min-h-12 rounded-lg border-2 border-cris-blue bg-white/5 px-5 py-3 text-sm font-black uppercase text-white transition hover:bg-cris-blue/20 focus:outline-none focus:ring-4 focus:ring-cris-yellow/45"
-            onClick={testNotification}
+            className="mt-5 min-h-12 rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy shadow-[0_10px_25px_rgba(255,196,0,0.22)] transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-cris-pink/45 disabled:cursor-default disabled:opacity-70"
+            disabled={buttonDisabled}
+            onClick={requestNotifications}
             type="button"
           >
-            🧪 Testar Notificação
+            {status === "loading"
+              ? "Preparando notificações..."
+              : status === "success"
+                ? "Notificações ativadas"
+                : "Ativar notificações"}
           </button>
 
           <div aria-live="polite">
-            {testStatus === "shown" ? (
-              <p className="mt-3 text-sm font-bold text-cris-yellow">
-                Notificação de teste enviada para este dispositivo.
-              </p>
-            ) : null}
-            {testStatus === "permission-needed" ? (
-              <p className="mt-3 text-sm font-bold text-white/80">
-                Ative as notificações antes de realizar o teste.
-              </p>
-            ) : null}
-            {testStatus === "failed" ? (
-              <p className="mt-3 text-sm font-bold text-white/80">
-                Não foi possível exibir o teste neste navegador.
+            {messages[status] ? (
+              <p
+                className={`mt-4 rounded-lg px-4 py-3 text-sm font-black ${
+                  status === "success"
+                    ? "bg-cris-pink text-white"
+                    : "bg-white/10 text-white"
+                }`}
+              >
+                {messages[status]}
               </p>
             ) : null}
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
