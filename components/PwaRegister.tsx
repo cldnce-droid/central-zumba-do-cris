@@ -4,6 +4,11 @@ import { useEffect } from "react";
 
 export function PwaRegister() {
   useEffect(() => {
+    // OneSignal owns the root service worker when push is enabled.
+    if (process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID) {
+      return;
+    }
+
     if (!("serviceWorker" in navigator)) {
       return;
     }
