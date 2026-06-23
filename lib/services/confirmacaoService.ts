@@ -58,13 +58,7 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
     saveConfirmations([...confirmations, confirmation]);
   }
 
-  const [classesResponse, confirmationsResponse] = await Promise.all([
-    readSheet("Aulas"),
-    readSheet("Confirmacoes")
-  ]);
-  const classExists = classesResponse?.data.some(
-    (item) => String(item.id) === aulaId
-  );
+  const confirmationsResponse = await readSheet("Confirmacoes");
   const duplicate = confirmationsResponse?.data.some(
     (item) =>
       item.alunoId === alunoId &&
@@ -72,9 +66,12 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
       (item.status === "solicitada" || item.status === "aceita")
   );
 
-  // A aula calculada no app precisa existir para o painel exibir seus detalhes.
-  if (!classExists) await appendRow("Aulas", { ...aula });
-  if (!duplicate) await appendRow("Confirmacoes", { ...confirmation });
-  await syncGoogleSheetsData(["Aulas", "Confirmacoes"]);
+  if (!duplicate) {
+    const saved = await appendRow("Confirmacoes", { ...confirmation });
+    if (!saved) {
+      throw new Error("Não foi possível registrar a solicitação.");
+    }
+  }
+  await syncGoogleSheetsData(["Confirmacoes"]);
   return confirmation;
 }
