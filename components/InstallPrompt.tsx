@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { links } from "@/lib/data";
 
-const STORAGE_KEY = "zumba-do-cris-install-prompt-dismissed";
+// A versão permite reapresentar instruções melhoradas a quem fechou o aviso antigo.
+const STORAGE_KEY = "zumba-do-cris-install-prompt-dismissed-v2";
 
 type InstallChoice = {
   outcome: "accepted" | "dismissed";
@@ -54,7 +55,7 @@ export function InstallPrompt() {
   const [isVisible, setIsVisible] = useState(false);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [showInstructions, setShowInstructions] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [platform, setPlatform] = useState<MobilePlatform>("other");
 
   useEffect(() => {
