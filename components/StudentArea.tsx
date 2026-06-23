@@ -79,6 +79,14 @@ function formatDays(days: string[]) {
   return capitalize(text);
 }
 
+function localDateKey(date = new Date()) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
 export function StudentArea() {
   const [studentId, setStudentId] = useState("");
   const [accessChecked, setAccessChecked] = useState(false);
@@ -124,18 +132,61 @@ export function StudentArea() {
 
   useEffect(() => {
     if (!studentId) return;
-    const lesson = getProximaAula(studentId) ?? null;
-    setNextClass(lesson);
-    setPresenceRequested(false);
-    if (lesson) {
-      void getConfirmacaoRemotaPorAlunoEAula(studentId, lesson.id).then(
-        (confirmation) => setPresenceRequested(Boolean(confirmation))
-      );
-    }
+    let active = true;
+
+    void (async () => {
+      let lesson = getProximaAula(studentId) ?? null;
+      let requested = false;
+
+      for (let index = 0; lesson && index < 8; index += 1) {
+        const confirmation = await getConfirmacaoRemotaPorAlunoEAula(
+          studentId,
+          lesson.id
+        );
+        const status = String(confirmation?.status ?? "").toLowerCase();
+
+        if (status !== "aceita") {
+          requested = status === "solicitada" || status === "confirmado";
+          break;
+        }
+
+        const afterAcceptedLesson = new Date(`${lesson.data}T23:59:59`);
+        lesson = getProximaAula(studentId, afterAcceptedLesson) ?? null;
+      }
+
+      if (active) {
+        setNextClass(lesson);
+        setPresenceRequested(requested);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [studentId, revision]);
 
+  useEffect(() => {
+    if (!presenceRequested || !nextClass) return;
+
+    const timer = window.setInterval(() => {
+      void getConfirmacaoRemotaPorAlunoEAula(studentId, nextClass.id).then(
+        (confirmation) => {
+          if (String(confirmation?.status).toLowerCase() === "aceita") {
+            void syncGoogleSheetsData(["Confirmacoes", "Presencas"]).then(() =>
+              setRevision((current) => current + 1)
+            );
+          }
+        }
+      );
+    }, 30000);
+
+    return () => window.clearInterval(timer);
+  }, [nextClass, presenceRequested, studentId]);
+
+  const canRequestPresence = nextClass?.data === localDateKey();
+
   const requestPresence = async () => {
-    if (!nextClass || requestingPresence) return;
+    if (!nextClass || !canRequestPresence || requestingPresence) return;
     setRequestingPresence(true);
     setRequestError("");
     try {
@@ -297,7 +348,7 @@ export function StudentArea() {
                     Adicionar à agenda
                   </button>
                 </div>
-              ) : (
+              ) : canRequestPresence ? (
                 <button
                   className="mt-5 min-h-12 w-full rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy sm:w-auto"
                   disabled={requestingPresence}
@@ -306,6 +357,22 @@ export function StudentArea() {
                 >
                   {requestingPresence ? "Enviando..." : "Solicitar presença"}
                 </button>
+              ) : (
+                <div className="mt-5 rounded-lg bg-white/15 p-4 ring-1 ring-white/20">
+                  <p className="font-black text-cris-yellow">
+                    Confirmação disponível no dia da aula
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-white/85">
+                    Você poderá solicitar presença em {formatDate(nextClass.data)}.
+                  </p>
+                  <button
+                    className="mt-4 min-h-11 rounded-lg border-2 border-white px-4 py-2 text-sm font-black uppercase"
+                    onClick={addToCalendar}
+                    type="button"
+                  >
+                    Adicionar à agenda
+                  </button>
+                </div>
               )
             ) : null}
             {requestError ? <p className="mt-3 font-bold text-white">{requestError}</p> : null}
