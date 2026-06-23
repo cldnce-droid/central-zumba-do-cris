@@ -64,25 +64,15 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
     status: "solicitada"
   };
 
-  const confirmationsResponse = await readSheet("Confirmacoes");
-  const duplicate = confirmationsResponse?.data.some(
-    (item) =>
-      item.alunoId === alunoId &&
-      item.aulaId === aulaId &&
-      (item.status === "solicitada" || item.status === "aceita")
-  );
-
-  if (!duplicate) {
-    const saved = await appendRow("Confirmacoes", { ...confirmation });
-    if (!saved) {
-      throw new Error("Não foi possível registrar a solicitação.");
-    }
+  const saved = await appendRow("Confirmacoes", { ...confirmation });
+  if (!saved) {
+    throw new Error("Não foi possível registrar a solicitação.");
   }
 
   const nextLocal = confirmations.filter(
     (item) => !(item.alunoId === alunoId && item.aulaId === aulaId)
   );
   saveConfirmations([...nextLocal, confirmation]);
-  await syncGoogleSheetsData(["Confirmacoes"]);
+  void syncGoogleSheetsData(["Confirmacoes"]);
   return confirmation;
 }
