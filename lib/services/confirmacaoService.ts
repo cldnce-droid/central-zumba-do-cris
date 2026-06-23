@@ -57,7 +57,7 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
   );
 
   const confirmation: Confirmacao = {
-    id: existing?.id ?? `CONF_${alunoId}_${Date.now()}`,
+    id: existing?.id ?? `CONF_${alunoId}_${aulaId}`,
     alunoId,
     aulaId,
     dataConfirmacao: new Date().toISOString(),
