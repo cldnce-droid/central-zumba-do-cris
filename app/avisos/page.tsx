@@ -1,5 +1,4 @@
 import { MegaphoneIcon } from "@/components/Icons";
-import { NotificationOptIn } from "@/components/NotificationOptIn";
 import { notices } from "@/lib/data";
 
 const accentStyles = {
@@ -27,8 +26,6 @@ export default function AvisosPage() {
           Acompanhe novidades, lembretes e tudo o que acontece no Zumba do Cris.
         </p>
       </header>
-
-      <NotificationOptIn />
 
       <section>
         <div className="mb-4 flex items-end justify-between gap-4">
