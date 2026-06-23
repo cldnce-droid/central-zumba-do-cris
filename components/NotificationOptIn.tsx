@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useState } from "react";
 
 type NotificationStatus =
@@ -37,7 +36,7 @@ const messages: Partial<Record<NotificationStatus, string>> = {
 };
 
 export function NotificationOptIn() {
-  const [status, setStatus] = useState<NotificationStatus>("loading");
+  const [status, setStatus] = useState<NotificationStatus>("idle");
   const [oneSignal, setOneSignal] = useState<OneSignalClient | null>(null);
   const [errorDetail, setErrorDetail] = useState("");
 
@@ -52,33 +51,44 @@ export function NotificationOptIn() {
       return;
     }
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async (client) => {
-      try {
-        await client.init({
-          appId,
-          notifyButton: { enable: false }
-        });
-        setOneSignal(client);
-        setStatus(client.Notifications.permission ? "success" : "idle");
-      } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error);
-        console.error("Falha ao iniciar OneSignal:", detail);
-        setErrorDetail(detail);
-        setStatus("failed");
-      }
-    });
+    setStatus(Notification.permission === "granted" ? "success" : "idle");
   }, []);
 
+  const loadOneSignal = () =>
+    new Promise<OneSignalClient>((resolve, reject) => {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async (client) => {
+        try {
+          await client.init({ appId, notifyButton: { enable: false } });
+          setOneSignal(client);
+          resolve(client);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      if (document.querySelector("script[data-onesignal-sdk]")) return;
+
+      const script = document.createElement("script");
+      script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+      script.defer = true;
+      script.dataset.onesignalSdk = "true";
+      script.onerror = () => reject(new Error("Não foi possível carregar o serviço de notificações."));
+      document.head.appendChild(script);
+    });
+
   const requestNotifications = async () => {
-    if (!oneSignal) {
-      setStatus(appId ? "failed" : "not-configured");
+    if (!appId) {
+      setStatus("not-configured");
       return;
     }
 
     try {
-      await oneSignal.Notifications.requestPermission();
-      setStatus(oneSignal.Notifications.permission ? "success" : "denied");
+      setStatus("loading");
+      setErrorDetail("");
+      const client = oneSignal ?? await loadOneSignal();
+      await client.Notifications.requestPermission();
+      setStatus(client.Notifications.permission ? "success" : "denied");
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error("Falha ao solicitar notificações:", detail);
@@ -90,14 +100,6 @@ export function NotificationOptIn() {
   const buttonDisabled = status === "loading" || status === "success";
 
   return (
-    <>
-      {appId ? (
-        <Script
-          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-          strategy="afterInteractive"
-        />
-      ) : null}
-
       <section className="relative overflow-hidden rounded-lg bg-cris-navy p-5 text-white shadow-[0_20px_55px_rgba(7,16,70,0.22)] sm:p-6">
         <div
           aria-hidden="true"
@@ -145,6 +147,5 @@ export function NotificationOptIn() {
           </div>
         </div>
       </section>
-    </>
   );
 }
