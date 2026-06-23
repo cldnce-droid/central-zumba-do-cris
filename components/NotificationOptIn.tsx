@@ -26,6 +26,7 @@ declare global {
 }
 
 const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+const WORKER_RELOAD_KEY = "zdc-onesignal-worker-reload";
 
 const messages: Partial<Record<NotificationStatus, string>> = {
   success: "💖 Notificações ativadas com sucesso!",
@@ -41,6 +42,8 @@ export function NotificationOptIn() {
   const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
+    sessionStorage.removeItem(WORKER_RELOAD_KEY);
+
     if (!appId) {
       setStatus("not-configured");
       return;
@@ -94,7 +97,27 @@ export function NotificationOptIn() {
       }
 
       // Inicializa o provedor somente depois que o pop-up nativo foi concluído.
-      if (!oneSignal) await loadOneSignal();
+      if (!oneSignal) {
+        const reloadAfterWorkerChange = () => {
+          if (sessionStorage.getItem(WORKER_RELOAD_KEY) === "pending") {
+            sessionStorage.setItem(WORKER_RELOAD_KEY, "done");
+            window.location.reload();
+          }
+        };
+
+        sessionStorage.setItem(WORKER_RELOAD_KEY, "pending");
+        navigator.serviceWorker.addEventListener(
+          "controllerchange",
+          reloadAfterWorkerChange,
+          { once: true }
+        );
+        await loadOneSignal();
+        window.setTimeout(() => {
+          if (sessionStorage.getItem(WORKER_RELOAD_KEY) === "pending") {
+            sessionStorage.removeItem(WORKER_RELOAD_KEY);
+          }
+        }, 5000);
+      }
       setStatus("success");
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
