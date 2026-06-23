@@ -66,6 +66,19 @@ export function updateCachedRow(
   }
 }
 
+export function replaceCachedSheet(sheetName: SheetName, rows: SheetRow[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const cache = JSON.parse(
+      localStorage.getItem(CACHE_KEY) ?? "{}"
+    ) as SheetsCache;
+    cache[sheetName] = rows;
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ [sheetName]: rows }));
+  }
+}
+
 export async function syncGoogleSheetsData(
   sheetNames: SheetName[] = [
     "Alunos",
