@@ -76,6 +76,14 @@ function validateForm(form: CadastroAlunoFormData) {
     errors.plano = "Escolha o plano que combina com seu ritmo.";
   }
 
+  if (form.plano) {
+    const requiredClasses = Number(form.plano.replace("x", ""));
+
+    if (form.turmaIds.length !== requiredClasses) {
+      errors.turmaIds = `Escolha exatamente ${requiredClasses} ${requiredClasses === 1 ? "local" : "locais"} para este plano.`;
+    }
+  }
+
   if (!form.formaPagamento) {
     errors.formaPagamento = "Escolha uma forma de pagamento.";
   }
@@ -92,6 +100,7 @@ export function StudentRegistrationForm() {
     useState<AlunoPendente | null>(null);
   const [pixFeedback, setPixFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const selectedClasses = registeredStudent
     ? classes.filter((item) =>
@@ -169,10 +178,17 @@ export function StudentRegistrationForm() {
     }
 
     setIsSubmitting(true);
+    setSubmitError("");
     try {
       setRegisteredStudent(await salvarAlunoPendente(form));
       setPixFeedback("");
       window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar o cadastro. Tente novamente."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -422,7 +438,7 @@ export function StudentRegistrationForm() {
 
         <p className="mt-4 font-bold text-cris-navy/65">
           {form.plano
-            ? `Seu plano permite escolher até ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "local" : "locais"}.`
+            ? `Escolha exatamente ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
             : "Escolha primeiro seu plano para liberar a seleção de locais."}
         </p>
 
@@ -597,6 +613,15 @@ export function StudentRegistrationForm() {
       >
         {isSubmitting ? "Enviando..." : "Enviar cadastro"}
       </button>
+
+      {submitError ? (
+        <p
+          className="rounded-lg border-2 border-cris-pink/30 bg-cris-pink/10 px-4 py-3 text-center font-bold text-cris-pink"
+          role="alert"
+        >
+          {submitError}
+        </p>
+      ) : null}
 
       <p className="text-center text-lg font-black text-cris-navy">
         Vem fazer parte dessa história. 💖
