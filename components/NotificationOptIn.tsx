@@ -39,6 +39,7 @@ const messages: Partial<Record<NotificationStatus, string>> = {
 export function NotificationOptIn() {
   const [status, setStatus] = useState<NotificationStatus>("loading");
   const [oneSignal, setOneSignal] = useState<OneSignalClient | null>(null);
+  const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
     if (!appId) {
@@ -60,7 +61,10 @@ export function NotificationOptIn() {
         });
         setOneSignal(client);
         setStatus(client.Notifications.permission ? "success" : "idle");
-      } catch {
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        console.error("Falha ao iniciar OneSignal:", detail);
+        setErrorDetail(detail);
         setStatus("failed");
       }
     });
@@ -75,7 +79,10 @@ export function NotificationOptIn() {
     try {
       await oneSignal.Notifications.requestPermission();
       setStatus(oneSignal.Notifications.permission ? "success" : "denied");
-    } catch {
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      console.error("Falha ao solicitar notificações:", detail);
+      setErrorDetail(detail);
       setStatus("failed");
     }
   };
@@ -128,6 +135,11 @@ export function NotificationOptIn() {
                 }`}
               >
                 {messages[status]}
+              </p>
+            ) : null}
+            {status === "failed" && errorDetail ? (
+              <p className="mt-2 break-words text-xs font-bold text-white/65">
+                Detalhe: {errorDetail}
               </p>
             ) : null}
           </div>
