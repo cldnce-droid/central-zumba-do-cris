@@ -27,6 +27,7 @@ import {
   recusarSolicitacaoPresenca,
   sincronizarDashboardProfessor
 } from "@/lib/services/professorService";
+import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
 type DashboardTab = "alunos" | "presencas";
 
@@ -184,7 +185,9 @@ export function ProfessorDashboard() {
     .map((confirmation) => ({
       confirmation,
       student: data.students.find((item) => item.id === confirmation.alunoId),
-      lesson: data.classes.find((item) => item.id === confirmation.aulaId),
+      lesson:
+        data.classes.find((item) => item.id === confirmation.aulaId) ??
+        getLessonDetailsFromId(confirmation.aulaId),
       presence: data.presences.find(
         (item) =>
           item.alunoId === confirmation.alunoId &&
@@ -631,11 +634,17 @@ function PresenceRequestCard({
         <StatusBadge>{statusLabel(visibleStatus)}</StatusBadge>
       </div>
 
-      <div className="mt-4 grid gap-2 text-sm font-bold text-cris-navy/65">
-        <p>Turma/local: {lesson?.local ?? confirmation.aulaId}</p>
-        <p>Data da aula: {formatDate(lesson?.data)}</p>
-        <p>Horário: {lesson?.horario ?? "Horário não encontrado"}</p>
-        <p>Solicitada em: {formatDateTime(confirmation.dataConfirmacao)}</p>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <RequestInfo label="Turma" value={lesson?.local ?? "Não identificada"} />
+        <RequestInfo label="Horário" value={lesson?.horario ?? "Não informado"} />
+        <RequestInfo label="Data da aula" value={formatDate(lesson?.data)} />
+        <RequestInfo label="Local" value={lesson?.endereco ?? "Não informado"} />
+        <div className="col-span-2">
+          <RequestInfo
+            label="Solicitação enviada em"
+            value={formatDateTime(confirmation.dataConfirmacao)}
+          />
+        </div>
       </div>
 
       {isPending ? (
@@ -657,5 +666,18 @@ function PresenceRequestCard({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function RequestInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-white p-3 ring-1 ring-cris-navy/10">
+      <p className="text-[0.65rem] font-black uppercase text-cris-pink">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-black leading-snug text-cris-navy">
+        {value}
+      </p>
+    </div>
   );
 }
