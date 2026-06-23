@@ -19,6 +19,7 @@ import {
   sheetRowToPlano,
   sheetRowToPresenca
 } from "@/lib/google-sheets/mappers";
+import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
 const STUDENT_STATUS_KEY = "zdc_alunos_status";
 const PRESENCES_KEY = "zdc_presencas";
@@ -129,7 +130,8 @@ export async function validarPresenca(
   const presences = getPresencasProfessor();
   const remoteClasses = getCachedSheet("Aulas").map(sheetRowToAula);
   const aula =
-    remoteClasses.find((item) => item.id === aulaId);
+    remoteClasses.find((item) => item.id === aulaId) ??
+    getLessonDetailsFromId(aulaId);
   const aluno = getAlunosProfessor().find((item) => item.id === alunoId);
   const existing = presences.find(
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
