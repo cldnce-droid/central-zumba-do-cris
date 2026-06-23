@@ -25,9 +25,9 @@ import {
   getPresencasProfessor,
   getProximasAulasProfessor,
   recusarSolicitacaoPresenca,
+  sincronizarSolicitacoesProfessor,
   sincronizarDashboardProfessor
 } from "@/lib/services/professorService";
-import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
 type DashboardTab = "alunos" | "presencas";
@@ -132,6 +132,7 @@ export function ProfessorDashboard() {
   const [paymentFeedback, setPaymentFeedback] = useState("");
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [requestsFeedback, setRequestsFeedback] = useState("");
 
   const data = useMemo(() => {
     const students = getAlunosProfessor();
@@ -153,8 +154,14 @@ export function ProfessorDashboard() {
   useEffect(() => {
     if (activeTab !== "presencas") return;
     setLoadingRequests(true);
-    void syncGoogleSheetsData(["Alunos", "Aulas", "Confirmacoes", "Presencas"])
-      .then(refresh)
+    setRequestsFeedback("");
+    void sincronizarSolicitacoesProfessor()
+      .then(() => refresh())
+      .catch(() =>
+        setRequestsFeedback(
+          "Não foi possível acessar a aba Confirmacoes. Verifique o Apps Script."
+        )
+      )
       .finally(() => setLoadingRequests(false));
   }, [activeTab]);
 
@@ -503,20 +510,29 @@ export function ProfessorDashboard() {
               disabled={loadingRequests}
               onClick={async () => {
                 setLoadingRequests(true);
-                await syncGoogleSheetsData([
-                  "Alunos",
-                  "Aulas",
-                  "Confirmacoes",
-                  "Presencas"
-                ]);
-                refresh();
-                setLoadingRequests(false);
+                setRequestsFeedback("");
+                try {
+                  await sincronizarSolicitacoesProfessor();
+                  refresh();
+                } catch {
+                  setRequestsFeedback(
+                    "Não foi possível acessar a aba Confirmacoes. Verifique o Apps Script."
+                  );
+                } finally {
+                  setLoadingRequests(false);
+                }
               }}
               type="button"
             >
               {loadingRequests ? "Atualizando..." : "Atualizar solicitações"}
             </button>
           </div>
+
+          {requestsFeedback ? (
+            <p className="mb-4 rounded-lg bg-cris-pink/10 p-4 font-bold text-cris-pink ring-1 ring-cris-pink/20">
+              {requestsFeedback}
+            </p>
+          ) : null}
 
           {loadingRequests && !requests.length ? (
             <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
