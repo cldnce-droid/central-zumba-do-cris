@@ -165,6 +165,12 @@ a {
   z-index: 2;
   width: 100%;
   will-change: transform;
+  animation: brand-logo-float 8s ease-in-out infinite;
+}
+
+.brand-logo-intro {
+  animation: brand-logo-intro 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    brand-logo-float 8s 0.9s ease-in-out infinite;
 }
 
 .brand-logo-image {
@@ -203,6 +209,17 @@ a {
   overflow: visible;
 }
 
+.brand-paint-pulse {
+  opacity: 0.08;
+  transform-origin: 50% 50%;
+  animation: brand-paint-pulse 7s ease-in-out infinite;
+}
+
+.brand-heart-pulse {
+  transform-origin: 78px 66px;
+  animation: brand-heart-pulse 4s ease-out infinite;
+}
+
 .brand-shine {
   z-index: 4;
   width: 12%;
@@ -226,6 +243,30 @@ a {
     opacity: 0.68;
     transform: translate3d(var(--particle-drift), -9px, 0) scale(1.08);
   }
+}
+
+@keyframes brand-logo-intro {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.88);
+  }
+}
+
+@keyframes brand-logo-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  30% { transform: translate3d(0, -3px, 0) rotate(0.15deg); }
+  70% { transform: translate3d(0, 2px, 0) rotate(-0.12deg); }
+}
+
+@keyframes brand-paint-pulse {
+  0%, 100% { opacity: 0.03; transform: scale(0.98); }
+  50% { opacity: 0.12; transform: scale(1.03); }
+}
+
+@keyframes brand-heart-pulse {
+  0%, 68% { opacity: 0; transform: scale(0.75); }
+  78% { opacity: 0.5; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(1.8); }
 }
 
 @keyframes brand-letter-shine {
@@ -262,6 +303,9 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .brand-particle,
   .brand-shine,
+  .brand-logo-float,
+  .brand-paint-pulse,
+  .brand-heart-pulse,
   .group-picker-sheet {
     animation: none;
   }
