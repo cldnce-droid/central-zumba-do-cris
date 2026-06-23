@@ -10,7 +10,6 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "framer-motion": "12.23.24",
     "next": "15.5.18",
     "react": "19.1.2",
     "react-dom": "19.1.2"
