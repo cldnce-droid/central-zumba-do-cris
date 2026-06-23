@@ -13,11 +13,11 @@
 9. Autorize o acesso solicitado e copie a URL terminada em `/exec`.
 
 ```javascript
-const SCRIPT_SECRET = "1474674";
+const SCRIPT_SECRET = "COLOQUE_UM_SEGREDO_FORTE_AQUI";
 
 const ACTIONS = {
   getAlunos: () => readRows("Alunos"),
-  createAluno: (data) => createRow("Alunos", data),
+  createAluno: (data) => createAluno(data),
   updateAluno: (data) => updateRow("Alunos", data),
   getPlanos: () => readRows("Planos"),
   createPlano: (data) => createRow("Planos", data),
@@ -29,7 +29,7 @@ const ACTIONS = {
   createAula: (data) => createRow("Aulas", data),
   updateAula: (data) => updateRow("Aulas", data),
   getConfirmacoes: () => readRows("Confirmacoes"),
-  createConfirmacao: (data) => createRow("Confirmacoes", data),
+  createConfirmacao: (data) => upsertRow("Confirmacoes", data),
   updateConfirmacao: (data) => updateRow("Confirmacoes", data),
   getPresencas: () => readRows("Presencas"),
   upsertPresenca: (data) => upsertRow("Presencas", data),
@@ -37,7 +37,10 @@ const ACTIONS = {
   upsertPagamento: (data) => upsertRow("Pagamentos", data),
   getDesafios: () => readRows("Desafios"),
   createDesafio: (data) => createRow("Desafios", data),
-  updateDesafio: (data) => updateRow("Desafios", data)
+  updateDesafio: (data) => updateRow("Desafios", data),
+  getConquistas: () => readRows("Conquistas"),
+  createConquista: (data) => createRow("Conquistas", data),
+  updateConquista: (data) => updateRow("Conquistas", data)
 };
 
 function doGet() {
@@ -100,6 +103,24 @@ function createRow(name, data) {
   const headers = getHeaders(sheet);
   sheet.appendRow(headers.map((header) => normalizeValue(data[header])));
   return data;
+}
+
+function createAluno(data) {
+  const whatsapp = String(data.whatsapp || "").replace(/\D/g, "");
+  if (!whatsapp) throw new Error("WhatsApp obrigatório.");
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const duplicate = readRows("Alunos").some(
+      (row) => String(row.whatsapp || "").replace(/\D/g, "") === whatsapp
+    );
+    if (duplicate) throw new Error("Já existe um cadastro com este WhatsApp.");
+    return createRow("Alunos", Object.assign({}, data, { whatsapp: whatsapp }));
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function updateRow(name, data) {
