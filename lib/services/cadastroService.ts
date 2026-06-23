@@ -4,7 +4,7 @@ import type {
   PlanoCodigo
 } from "@/lib/student-data/types";
 import { alunoToSheetRow } from "@/lib/google-sheets/mappers";
-import { appendRow } from "@/lib/services/googleSheetsService";
+import { appendRow, readSheet } from "@/lib/services/googleSheetsService";
 
 export interface CadastroAlunoFormData {
   nome: string;
@@ -34,6 +34,18 @@ export interface AlunoPendente {
 }
 
 const ALUNOS_PENDENTES_KEY = "zdc_alunos_cadastrados";
+
+function readLocalStudents(): AlunoPendente[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    return JSON.parse(
+      localStorage.getItem(ALUNOS_PENDENTES_KEY) ?? "[]"
+    ) as AlunoPendente[];
+  } catch {
+    return [];
+  }
+}
 
 function formatLocalDate(date: Date) {
   const year = date.getFullYear();
@@ -75,14 +87,13 @@ export function createAlunoPendente(
   if (
     !formData.plano ||
     !formData.formaPagamento ||
-    turmasSelecionadas.length === 0 ||
-    turmasSelecionadas.length > limiteDeTurmas
+    turmasSelecionadas.length !== limiteDeTurmas
   ) {
     throw new Error("Dados obrigatórios do cadastro não foram informados.");
   }
 
   return {
-    id: `ALU_${now.getTime()}`,
+    id: `ALU_${formData.whatsapp.replace(/\D/g, "")}`,
     nome: formData.nome.trim(),
     whatsapp: formData.whatsapp.replace(/\D/g, ""),
     email: formData.email.trim(),
@@ -103,14 +114,31 @@ export async function salvarAlunoPendente(
   formData: CadastroAlunoFormData
 ): Promise<AlunoPendente> {
   const aluno = createAlunoPendente(formData);
+  const localStudents = readLocalStudents();
+  if (localStudents.some((item) => item.whatsapp === aluno.whatsapp)) {
+    throw new Error("Já existe um cadastro com este WhatsApp.");
+  }
+
+  const existing = await readSheet("Alunos", {
+    field: "whatsapp",
+    value: aluno.whatsapp
+  });
+  if (!existing || existing.fallback || !existing.configured) {
+    throw new Error("Não foi possível conectar à base de dados agora. Tente novamente.");
+  }
+  if (existing.data.length > 0) {
+    throw new Error("Já existe um cadastro com este WhatsApp.");
+  }
+
   const salvoNaPlanilha = await appendRow("Alunos", alunoToSheetRow(aluno));
+  if (!salvoNaPlanilha) {
+    throw new Error("Não foi possível conectar à base de dados agora. Tente novamente.");
+  }
 
   // Mantém uma cópia local para o painel deste dispositivo e como fallback.
   if (typeof window !== "undefined") {
     try {
-      const atuais = JSON.parse(
-        localStorage.getItem(ALUNOS_PENDENTES_KEY) ?? "[]"
-      ) as AlunoPendente[];
+      const atuais = readLocalStudents();
       const semDuplicidade = atuais.filter((item) => item.id !== aluno.id);
       localStorage.setItem(
         ALUNOS_PENDENTES_KEY,
@@ -119,10 +147,6 @@ export async function salvarAlunoPendente(
     } catch {
       localStorage.setItem(ALUNOS_PENDENTES_KEY, JSON.stringify([aluno]));
     }
-  }
-
-  if (!salvoNaPlanilha) {
-    console.warn("Cadastro salvo apenas no fallback local:", aluno.id);
   }
 
   return aluno;
