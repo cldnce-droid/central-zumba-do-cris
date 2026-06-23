@@ -27,6 +27,7 @@ declare global {
 
 const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const WORKER_RELOAD_KEY = "zdc-onesignal-worker-reload";
+const WELCOME_KEY = "zdc-notification-welcome-seen";
 
 const messages: Partial<Record<NotificationStatus, string>> = {
   success: "💖 Notificações ativadas com sucesso!",
@@ -37,6 +38,7 @@ const messages: Partial<Record<NotificationStatus, string>> = {
 };
 
 export function NotificationOptIn() {
+  const [isVisible, setIsVisible] = useState(false);
   const [status, setStatus] = useState<NotificationStatus>("idle");
   const [oneSignal, setOneSignal] = useState<OneSignalClient | null>(null);
   const [errorDetail, setErrorDetail] = useState("");
@@ -44,17 +46,26 @@ export function NotificationOptIn() {
   useEffect(() => {
     sessionStorage.removeItem(WORKER_RELOAD_KEY);
 
+    const iosNavigator = navigator as Navigator & { standalone?: boolean };
+    const installed =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      iosNavigator.standalone === true;
+
+    if (!installed || localStorage.getItem(WELCOME_KEY) === "true") return;
+    const showTimer = window.setTimeout(() => setIsVisible(true), 900);
+
     if (!appId) {
       setStatus("not-configured");
-      return;
+      return () => window.clearTimeout(showTimer);
     }
 
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
       setStatus("unsupported");
-      return;
+      return () => window.clearTimeout(showTimer);
     }
 
     setStatus(Notification.permission === "granted" ? "success" : "idle");
+    return () => window.clearTimeout(showTimer);
   }, []);
 
   const loadOneSignal = () =>
@@ -95,6 +106,8 @@ export function NotificationOptIn() {
         setStatus("denied");
         return;
       }
+
+      localStorage.setItem(WELCOME_KEY, "true");
 
       // Inicializa o provedor somente depois que o pop-up nativo foi concluído.
       if (!oneSignal) {
@@ -139,14 +152,29 @@ export function NotificationOptIn() {
 
   const buttonDisabled = status === "loading" || status === "success";
 
+  const dismiss = () => {
+    localStorage.setItem(WELCOME_KEY, "true");
+    setIsVisible(false);
+  };
+
+  if (!isVisible) return null;
+
   return (
-      <section className="relative overflow-hidden rounded-lg bg-cris-navy p-5 text-white shadow-[0_20px_55px_rgba(7,16,70,0.22)] sm:p-6">
+    <div className="fixed inset-0 z-[70] flex items-end bg-cris-navy/70 p-3 backdrop-blur-sm sm:items-center">
+      <section
+        aria-modal="true"
+        className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg bg-cris-navy p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] text-white shadow-[0_24px_80px_rgba(7,16,70,0.5)] sm:p-6"
+        role="dialog"
+      >
         <div
           aria-hidden="true"
           className="paint-stroke absolute -right-10 top-6 h-9 w-44 bg-cris-pink"
         />
         <div className="relative max-w-2xl">
-          <p className="text-sm font-black uppercase text-cris-yellow">
+          <h2 className="text-3xl font-black uppercase leading-tight text-white">
+            Bem-vinda ao Zumba do Cris! 💖
+          </h2>
+          <p className="mt-4 text-sm font-black uppercase text-cris-yellow">
             🔔 Ative as notificações
           </p>
           <p className="mt-3 text-base font-bold leading-relaxed text-white/80">
@@ -185,7 +213,16 @@ export function NotificationOptIn() {
               </p>
             ) : null}
           </div>
+
+          <button
+            className="mt-3 min-h-11 w-full rounded-lg px-4 py-2 text-sm font-black uppercase text-white/75"
+            onClick={dismiss}
+            type="button"
+          >
+            Agora não
+          </button>
         </div>
       </section>
+    </div>
   );
 }
