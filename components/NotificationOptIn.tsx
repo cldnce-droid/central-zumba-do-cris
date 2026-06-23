@@ -86,9 +86,16 @@ export function NotificationOptIn() {
     try {
       setStatus("loading");
       setErrorDetail("");
-      const client = oneSignal ?? await loadOneSignal();
-      await client.Notifications.requestPermission();
-      setStatus(client.Notifications.permission ? "success" : "denied");
+      const permission = await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        setStatus("denied");
+        return;
+      }
+
+      // Inicializa o provedor somente depois que o pop-up nativo foi concluído.
+      if (!oneSignal) await loadOneSignal();
+      setStatus("success");
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error("Falha ao solicitar notificações:", detail);
