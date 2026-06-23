@@ -118,7 +118,10 @@ export function getAlunoByWhatsapp(whatsapp: string) {
 
 export async function getAlunoByWhatsappRemoto(whatsapp: string) {
   const normalizedWhatsapp = whatsapp.replace(/\D/g, "");
-  const response = await readSheet("Alunos");
+  const response = await readSheet("Alunos", {
+    field: "whatsapp",
+    value: normalizedWhatsapp
+  });
   const alunoRemoto = response?.data
     .map(sheetRowToAluno)
     .find(
@@ -134,7 +137,7 @@ export async function getAlunoByWhatsappRemoto(whatsapp: string) {
       ALUNOS_REMOTOS_KEY,
       JSON.stringify([...existentes, alunoRemoto])
     );
-    await syncGoogleSheetsData();
+    void syncGoogleSheetsData(["Alunos"]);
     return alunoRemoto;
   }
 
