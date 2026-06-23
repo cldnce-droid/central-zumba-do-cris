@@ -27,6 +27,7 @@ import {
   recusarSolicitacaoPresenca,
   sincronizarDashboardProfessor
 } from "@/lib/services/professorService";
+import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
 type DashboardTab = "alunos" | "presencas";
@@ -130,6 +131,7 @@ export function ProfessorDashboard() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [paymentFeedback, setPaymentFeedback] = useState("");
   const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   const data = useMemo(() => {
     const students = getAlunosProfessor();
@@ -147,6 +149,14 @@ export function ProfessorDashboard() {
   useEffect(() => {
     void sincronizarDashboardProfessor().then(refresh);
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "presencas") return;
+    setLoadingRequests(true);
+    void syncGoogleSheetsData(["Alunos", "Aulas", "Confirmacoes", "Presencas"])
+      .then(refresh)
+      .finally(() => setLoadingRequests(false));
+  }, [activeTab]);
 
   const filteredStudents = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -484,11 +494,35 @@ export function ProfessorDashboard() {
           icon={<CalendarIcon className="size-6" />}
           title="Solicitações de Presença"
         >
-          <p className="mb-5 font-bold leading-relaxed text-cris-navy/60">
-            Valide as solicitações de presença das alunas.
-          </p>
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-bold leading-relaxed text-cris-navy/60">
+              Valide as solicitações de presença das alunas.
+            </p>
+            <button
+              className="min-h-11 shrink-0 rounded-lg border-2 border-cris-purple px-4 py-2 text-xs font-black uppercase text-cris-purple disabled:opacity-50"
+              disabled={loadingRequests}
+              onClick={async () => {
+                setLoadingRequests(true);
+                await syncGoogleSheetsData([
+                  "Alunos",
+                  "Aulas",
+                  "Confirmacoes",
+                  "Presencas"
+                ]);
+                refresh();
+                setLoadingRequests(false);
+              }}
+              type="button"
+            >
+              {loadingRequests ? "Atualizando..." : "Atualizar solicitações"}
+            </button>
+          </div>
 
-          {!requests.length ? (
+          {loadingRequests && !requests.length ? (
+            <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
+              Buscando solicitações...
+            </p>
+          ) : !requests.length ? (
             <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
               Nenhuma solicitação de presença no momento.
             </p>
