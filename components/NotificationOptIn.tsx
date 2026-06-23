@@ -98,25 +98,35 @@ export function NotificationOptIn() {
 
       // Inicializa o provedor somente depois que o pop-up nativo foi concluído.
       if (!oneSignal) {
-        const reloadAfterWorkerChange = () => {
-          if (sessionStorage.getItem(WORKER_RELOAD_KEY) === "pending") {
-            sessionStorage.setItem(WORKER_RELOAD_KEY, "done");
-            window.location.reload();
-          }
+        const finishSetupWithReload = (event?: Event | PromiseRejectionEvent) => {
+          event?.preventDefault();
+          if (sessionStorage.getItem(WORKER_RELOAD_KEY) !== "pending") return;
+          sessionStorage.setItem(WORKER_RELOAD_KEY, "done");
+          window.location.replace("/avisos?notifications=enabled");
         };
 
         sessionStorage.setItem(WORKER_RELOAD_KEY, "pending");
         navigator.serviceWorker.addEventListener(
           "controllerchange",
-          reloadAfterWorkerChange,
+          finishSetupWithReload,
           { once: true }
         );
+        window.addEventListener("error", finishSetupWithReload, {
+          capture: true,
+          once: true
+        });
+        window.addEventListener("unhandledrejection", finishSetupWithReload, {
+          once: true
+        });
+
+        const reloadFallback = window.setTimeout(
+          () => finishSetupWithReload(),
+          4000
+        );
         await loadOneSignal();
-        window.setTimeout(() => {
-          if (sessionStorage.getItem(WORKER_RELOAD_KEY) === "pending") {
-            sessionStorage.removeItem(WORKER_RELOAD_KEY);
-          }
-        }, 5000);
+        window.clearTimeout(reloadFallback);
+        finishSetupWithReload();
+        return;
       }
       setStatus("success");
     } catch (error) {
