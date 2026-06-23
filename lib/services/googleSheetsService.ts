@@ -79,6 +79,14 @@ export function replaceCachedSheet(sheetName: SheetName, rows: SheetRow[]) {
   }
 }
 
+export function appendCachedRow(sheetName: SheetName, row: SheetRow) {
+  if (typeof window === "undefined") return;
+  const rows = getCachedSheet(sheetName).filter(
+    (item) => String(item.id) !== String(row.id)
+  );
+  replaceCachedSheet(sheetName, [...rows, row]);
+}
+
 export async function syncGoogleSheetsData(
   sheetNames: SheetName[] = [
     "Alunos",
