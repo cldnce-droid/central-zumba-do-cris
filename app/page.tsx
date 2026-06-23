@@ -4,6 +4,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { AnimatedBrandLogo } from "@/components/AnimatedBrandLogo";
 import { GroupPicker } from "@/components/GroupPicker";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { NotificationOptIn } from "@/components/NotificationOptIn";
 import {
   CalendarIcon,
   HeartIcon,
@@ -18,6 +19,7 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-5 md:gap-8">
       <InstallPrompt />
+      <NotificationOptIn />
 
       <section className="grid gap-5 md:grid-cols-[0.92fr_1.08fr] md:items-stretch md:gap-7">
         <div className="ink-frame min-h-[25rem] overflow-hidden p-3">
