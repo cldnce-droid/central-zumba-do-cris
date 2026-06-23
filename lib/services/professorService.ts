@@ -7,6 +7,8 @@ import type {
 } from "@/lib/student-data";
 import {
   getCachedSheet,
+  readSheet,
+  replaceCachedSheet,
   syncGoogleSheetsData,
   updateCachedRow,
   updateRow,
@@ -113,6 +115,16 @@ export function getConfirmacoesProfessor() {
   return remote.length
     ? (remote as unknown as Confirmacao[])
     : readLocal<Confirmacao[]>(CONFIRMATIONS_KEY, []);
+}
+
+export async function sincronizarSolicitacoesProfessor() {
+  const response = await readSheet("Confirmacoes");
+  if (!response || response.fallback || !response.configured) {
+    throw new Error("Não foi possível acessar a aba Confirmacoes.");
+  }
+  replaceCachedSheet("Confirmacoes", response.data);
+  await syncGoogleSheetsData(["Alunos", "Aulas", "Presencas"]);
+  return response.data.length;
 }
 
 export function getPresencasProfessor() {
