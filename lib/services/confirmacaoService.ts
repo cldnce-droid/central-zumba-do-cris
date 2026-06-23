@@ -30,6 +30,21 @@ export function getConfirmacaoPorAlunoEAula(alunoId: string, aulaId: string) {
   );
 }
 
+export async function getConfirmacaoRemotaPorAlunoEAula(
+  alunoId: string,
+  aulaId: string
+) {
+  const response = await readSheet("Confirmacoes");
+  return response?.data.find(
+    (item) =>
+      String(item.alunoId) === alunoId &&
+      String(item.aulaId) === aulaId &&
+      ["solicitada", "confirmado", "aceita"].includes(
+        String(item.status || "solicitada").toLowerCase()
+      )
+  );
+}
+
 export function getConfirmacoesDoAluno(alunoId: string) {
   return readConfirmations().filter((item) => item.alunoId === alunoId);
 }
@@ -41,22 +56,13 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
     (item) => item.alunoId === alunoId && item.aulaId === aulaId
   );
 
-  let confirmation: Confirmacao;
-  if (existing) {
-    existing.status = "solicitada";
-    existing.dataConfirmacao = new Date().toISOString();
-    saveConfirmations(confirmations);
-    confirmation = existing;
-  } else {
-    confirmation = {
-      id: `CONF_TEMP_${Date.now()}`,
-      alunoId,
-      aulaId,
-      dataConfirmacao: new Date().toISOString(),
-      status: "solicitada"
-    };
-    saveConfirmations([...confirmations, confirmation]);
-  }
+  const confirmation: Confirmacao = {
+    id: existing?.id ?? `CONF_${alunoId}_${Date.now()}`,
+    alunoId,
+    aulaId,
+    dataConfirmacao: new Date().toISOString(),
+    status: "solicitada"
+  };
 
   const confirmationsResponse = await readSheet("Confirmacoes");
   const duplicate = confirmationsResponse?.data.some(
@@ -72,6 +78,11 @@ export async function confirmarPresenca(alunoId: string, aula: Aula) {
       throw new Error("Não foi possível registrar a solicitação.");
     }
   }
+
+  const nextLocal = confirmations.filter(
+    (item) => !(item.alunoId === alunoId && item.aulaId === aulaId)
+  );
+  saveConfirmations([...nextLocal, confirmation]);
   await syncGoogleSheetsData(["Confirmacoes"]);
   return confirmation;
 }
