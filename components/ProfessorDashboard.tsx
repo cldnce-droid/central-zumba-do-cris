@@ -181,7 +181,8 @@ export function ProfessorDashboard() {
       const matchesSearch =
         !query ||
         String(student.nome ?? "").toLowerCase().includes(query) ||
-        onlyNumbers(String(student.whatsapp ?? "")).includes(numericQuery) ||
+        (numericQuery.length > 0 &&
+          onlyNumbers(String(student.whatsapp ?? "")).includes(numericQuery)) ||
         classes.some((turma) => turma.toLowerCase().includes(query));
 
       return matchesClass && matchesSearch;
