@@ -1,5 +1,3 @@
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
-
 const CACHE_NAME = "central-zumba-do-cris-push-20260623";
 const APP_SHELL = [
   "/",
