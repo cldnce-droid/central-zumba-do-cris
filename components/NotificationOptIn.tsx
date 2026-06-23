@@ -56,8 +56,6 @@ export function NotificationOptIn() {
       try {
         await client.init({
           appId,
-          serviceWorkerPath: "OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/" },
           notifyButton: { enable: false }
         });
         setOneSignal(client);
