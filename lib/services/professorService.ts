@@ -7,6 +7,7 @@ import type {
 } from "@/lib/student-data";
 import {
   getCachedSheet,
+  appendCachedRow,
   readSheet,
   replaceCachedSheet,
   syncGoogleSheetsData,
@@ -100,14 +101,19 @@ export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus)
       )
     );
   }
-  await updateRow("Alunos", alunoId, {
+  const studentUpdates = {
     status,
     statusCadastro: status,
     ...(status === "ativo"
       ? { diaVencimento: 8, statusPagamento: "atrasado" }
       : {})
-  });
-  await syncGoogleSheetsData(["Alunos"]);
+  };
+  updateCachedRow("Alunos", alunoId, studentUpdates);
+  const updated = await updateRow("Alunos", alunoId, studentUpdates);
+  if (!updated) {
+    throw new Error("Não foi possível atualizar o cadastro.");
+  }
+  void syncGoogleSheetsData(["Alunos"]);
 }
 
 export function getConfirmacoesProfessor() {
@@ -123,7 +129,7 @@ export async function sincronizarSolicitacoesProfessor() {
     throw new Error("Não foi possível acessar a aba Confirmacoes.");
   }
   replaceCachedSheet("Confirmacoes", response.data);
-  await syncGoogleSheetsData(["Alunos", "Aulas", "Presencas"]);
+  void syncGoogleSheetsData(["Alunos", "Presencas"]);
   return response.data.length;
 }
 
@@ -172,9 +178,15 @@ export async function validarPresenca(
     : [...presences, presence];
   localStorage.setItem(PRESENCES_KEY, JSON.stringify(next));
   if (existing) {
-    await updateRow("Presencas", existing.id, { ...presence });
+    updateCachedRow("Presencas", existing.id, { ...presence });
   } else {
-    await appendRow("Presencas", { ...presence });
+    appendCachedRow("Presencas", { ...presence });
+  }
+  const saved = existing
+    ? await updateRow("Presencas", existing.id, { ...presence })
+    : await appendRow("Presencas", { ...presence });
+  if (!saved) {
+    throw new Error("Não foi possível validar a presença.");
   }
 }
 
@@ -193,9 +205,15 @@ export async function aceitarSolicitacaoPresenca(confirmacaoId: string) {
   saveConfirmations(
     confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
   );
-  await updateRow("Confirmacoes", confirmacaoId, { status: "aceita" });
-  await validarPresenca(updated.alunoId, updated.aulaId, true);
-  await syncGoogleSheetsData(["Confirmacoes", "Presencas"]);
+  const [confirmationUpdated] = await Promise.all([
+    updateRow("Confirmacoes", confirmacaoId, { status: "aceita" }),
+    validarPresenca(updated.alunoId, updated.aulaId, true)
+  ]);
+  if (!confirmationUpdated) {
+    throw new Error("Não foi possível aceitar a solicitação.");
+  }
+  updateCachedRow("Confirmacoes", confirmacaoId, { status: "aceita" });
+  void syncGoogleSheetsData(["Confirmacoes", "Presencas"]);
 }
 
 export async function recusarSolicitacaoPresenca(confirmacaoId: string) {
@@ -208,7 +226,8 @@ export async function recusarSolicitacaoPresenca(confirmacaoId: string) {
     confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
   );
   await updateRow("Confirmacoes", confirmacaoId, { status: "recusada" });
-  await syncGoogleSheetsData(["Confirmacoes"]);
+  updateCachedRow("Confirmacoes", confirmacaoId, { status: "recusada" });
+  void syncGoogleSheetsData(["Confirmacoes"]);
 }
 
 export function getPagamentosProfessor() {
@@ -251,13 +270,7 @@ export async function atualizarStatusPagamento(
   if (!updated) {
     throw new Error("Não foi possível atualizar o pagamento na planilha.");
   }
-  const synced = await syncGoogleSheetsData(["Alunos"]);
-  const savedStatus = getCachedSheet("Alunos").find(
-    (student) => String(student.id) === alunoId
-  )?.statusPagamento;
-  if (!synced || savedStatus !== normalizedStatus) {
-    throw new Error("A coluna statusPagamento não foi atualizada.");
-  }
+  void syncGoogleSheetsData(["Alunos"]);
 }
 
 export function getProximasAulasProfessor() {
@@ -286,11 +299,7 @@ export function limparDadosLocaisDeTeste() {
 export async function sincronizarDashboardProfessor() {
   return syncGoogleSheetsData([
     "Alunos",
-    "Planos",
-    "Aulas",
-    "Confirmacoes",
-    "Presencas",
-    "Conquistas"
+    "Presencas"
   ]);
 }
 
