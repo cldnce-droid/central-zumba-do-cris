@@ -21,20 +21,21 @@ interface OneSignalClient {
 
 declare global {
   interface Window {
-    OneSignalDeferred?: Array<(oneSignal: OneSignalClient) => void | Promise<void>>;
+    OneSignalDeferred?: Array<
+      (oneSignal: OneSignalClient) => void | Promise<void>
+    >;
   }
 }
 
 const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-const WORKER_RELOAD_KEY = "zdc-onesignal-worker-reload";
 const WELCOME_KEY = "zdc-notification-welcome-seen";
 
 const messages: Partial<Record<NotificationStatus, string>> = {
-  success: "💖 Notificações ativadas com sucesso!",
-  denied: "Tudo bem! Você ainda pode acompanhar os avisos por aqui.",
-  unsupported: "Seu navegador ainda não permite notificações.",
-  "not-configured": "As notificações ainda não foram configuradas.",
-  failed: "Não foi possível ativar agora. Tente novamente."
+  success: "Notificacoes ativadas com sucesso! Voce sera levada para o mural.",
+  denied: "Tudo bem! Voce ainda pode acompanhar os avisos por aqui.",
+  unsupported: "Seu navegador ainda nao permite notificacoes.",
+  "not-configured": "As notificacoes ainda nao foram configuradas.",
+  failed: "Nao foi possivel ativar agora. Tente novamente."
 };
 
 export function NotificationOptIn() {
@@ -44,14 +45,13 @@ export function NotificationOptIn() {
   const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
-    sessionStorage.removeItem(WORKER_RELOAD_KEY);
-
     const iosNavigator = navigator as Navigator & { standalone?: boolean };
     const installed =
       window.matchMedia("(display-mode: standalone)").matches ||
       iosNavigator.standalone === true;
 
     if (!installed || localStorage.getItem(WELCOME_KEY) === "true") return;
+
     const showTimer = window.setTimeout(() => setIsVisible(true), 900);
 
     if (!appId) {
@@ -64,12 +64,20 @@ export function NotificationOptIn() {
       return () => window.clearTimeout(showTimer);
     }
 
-    setStatus(Notification.permission === "granted" ? "success" : "idle");
+    if (Notification.permission === "granted") {
+      setStatus("success");
+    }
+
     return () => window.clearTimeout(showTimer);
   }, []);
 
   const loadOneSignal = () =>
     new Promise<OneSignalClient>((resolve, reject) => {
+      if (oneSignal) {
+        resolve(oneSignal);
+        return;
+      }
+
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async (client) => {
         try {
@@ -87,9 +95,16 @@ export function NotificationOptIn() {
       script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
       script.defer = true;
       script.dataset.onesignalSdk = "true";
-      script.onerror = () => reject(new Error("Não foi possível carregar o serviço de notificações."));
+      script.onerror = () =>
+        reject(new Error("Nao foi possivel carregar o servico de notificacoes."));
       document.head.appendChild(script);
     });
+
+  const goToAvisos = () => {
+    window.setTimeout(() => {
+      window.location.assign("/avisos?notifications=enabled");
+    }, 900);
+  };
 
   const requestNotifications = async () => {
     if (!appId) {
@@ -97,60 +112,33 @@ export function NotificationOptIn() {
       return;
     }
 
+    if (!("Notification" in window)) {
+      setStatus("unsupported");
+      return;
+    }
+
     try {
       setStatus("loading");
       setErrorDetail("");
-      const permission = await Notification.requestPermission();
 
-      if (permission !== "granted") {
+      const client = await loadOneSignal();
+      await client.Notifications.requestPermission();
+
+      if (Notification.permission !== "granted" && !client.Notifications.permission) {
         setStatus("denied");
         return;
       }
 
       localStorage.setItem(WELCOME_KEY, "true");
-
-      // Inicializa o provedor somente depois que o pop-up nativo foi concluído.
-      if (!oneSignal) {
-        const finishSetupWithReload = (event?: Event | PromiseRejectionEvent) => {
-          event?.preventDefault();
-          if (sessionStorage.getItem(WORKER_RELOAD_KEY) !== "pending") return;
-          sessionStorage.setItem(WORKER_RELOAD_KEY, "done");
-          window.location.replace("/avisos?notifications=enabled");
-        };
-
-        sessionStorage.setItem(WORKER_RELOAD_KEY, "pending");
-        navigator.serviceWorker.addEventListener(
-          "controllerchange",
-          finishSetupWithReload,
-          { once: true }
-        );
-        window.addEventListener("error", finishSetupWithReload, {
-          capture: true,
-          once: true
-        });
-        window.addEventListener("unhandledrejection", finishSetupWithReload, {
-          once: true
-        });
-
-        const reloadFallback = window.setTimeout(
-          () => finishSetupWithReload(),
-          4000
-        );
-        await loadOneSignal();
-        window.clearTimeout(reloadFallback);
-        finishSetupWithReload();
-        return;
-      }
       setStatus("success");
+      goToAvisos();
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      console.error("Falha ao solicitar notificações:", detail);
+      console.error("Falha ao solicitar notificacoes:", detail);
       setErrorDetail(detail);
       setStatus("failed");
     }
   };
-
-  const buttonDisabled = status === "loading" || status === "success";
 
   const dismiss = () => {
     localStorage.setItem(WELCOME_KEY, "true");
@@ -158,6 +146,8 @@ export function NotificationOptIn() {
   };
 
   if (!isVisible) return null;
+
+  const buttonDisabled = status === "loading" || status === "success";
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end bg-cris-navy/70 p-3 backdrop-blur-sm sm:items-center">
@@ -172,10 +162,10 @@ export function NotificationOptIn() {
         />
         <div className="relative max-w-2xl">
           <h2 className="text-3xl font-black uppercase leading-tight text-white">
-            Bem-vinda ao Zumba do Cris! 💖
+            Bem-vinda ao Zumba do Cris!
           </h2>
           <p className="mt-4 text-sm font-black uppercase text-cris-yellow">
-            🔔 Ative as notificações
+            Ative as notificacoes
           </p>
           <p className="mt-3 text-base font-bold leading-relaxed text-white/80">
             Receba novidades, lembretes das aulas e avisos importantes do Zumba
@@ -189,10 +179,10 @@ export function NotificationOptIn() {
             type="button"
           >
             {status === "loading"
-              ? "Preparando notificações..."
+              ? "Preparando notificacoes..."
               : status === "success"
-                ? "Notificações ativadas"
-                : "Ativar notificações"}
+                ? "Notificacoes ativadas"
+                : "Ativar notificacoes"}
           </button>
 
           <div aria-live="polite">
@@ -219,7 +209,7 @@ export function NotificationOptIn() {
             onClick={dismiss}
             type="button"
           >
-            Agora não
+            Agora nao
           </button>
         </div>
       </section>
