@@ -28,7 +28,7 @@ declare global {
 }
 
 const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-const WELCOME_KEY = "zdc-notification-welcome-seen";
+const WELCOME_KEY = "zdc-notification-welcome-seen-v2";
 
 const messages: Partial<Record<NotificationStatus, string>> = {
   success: "Notificacoes ativadas com sucesso! Voce sera levada para o mural.",
