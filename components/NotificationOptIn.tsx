@@ -31,7 +31,7 @@ const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const WELCOME_KEY = "zdc-notification-welcome-seen-v2";
 
 const messages: Partial<Record<NotificationStatus, string>> = {
-  success: "Notificacoes ativadas com sucesso! Voce sera levada para o mural.",
+  success: "Notificacoes ativadas com sucesso!",
   denied: "Tudo bem! Voce ainda pode acompanhar os avisos por aqui.",
   unsupported: "Seu navegador ainda nao permite notificacoes.",
   "not-configured": "As notificacoes ainda nao foram configuradas.",
@@ -100,12 +100,6 @@ export function NotificationOptIn() {
       document.head.appendChild(script);
     });
 
-  const goToAvisos = () => {
-    window.setTimeout(() => {
-      window.location.assign("/avisos?notifications=enabled");
-    }, 900);
-  };
-
   const requestNotifications = async () => {
     if (!appId) {
       setStatus("not-configured");
@@ -131,7 +125,7 @@ export function NotificationOptIn() {
 
       localStorage.setItem(WELCOME_KEY, "true");
       setStatus("success");
-      goToAvisos();
+      window.setTimeout(() => setIsVisible(false), 1200);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error("Falha ao solicitar notificacoes:", detail);
