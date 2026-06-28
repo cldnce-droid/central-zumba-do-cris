@@ -79,6 +79,7 @@ export function InstallPrompt() {
 
     const handleAppInstalled = () => {
       localStorage.setItem(STORAGE_KEY, "true");
+      localStorage.removeItem("zdc-notification-welcome-seen-v2");
       setIsVisible(false);
       setDeferredPrompt(null);
     };
