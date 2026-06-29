@@ -1,169 +1,140 @@
-import type { SheetRow } from "@/lib/google-sheets/mappers";
+import type { SheetRow } from "./mappers";
 
-export type SheetName =
-  | "Alunos"
-  | "Planos"
-  | "Turmas"
-  | "Aulas"
-  | "Confirmacoes"
-  | "Presencas"
-  | "Pagamentos"
-  | "Mensalidades"
-  | "Desafios"
-  | "Conquistas";
+export const SHEET_NAMES = [
+  "Alunos",
+  "Planos",
+  "Turmas",
+  "Aulas",
+  "Confirmacoes",
+  "Presencas",
+  "Pagamentos",
+  "Mensalidades",
+  "Desafios",
+  "Conquistas"
+] as const;
 
-const CACHE_KEY = "zdc_google_sheets_cache";
-type SheetsCache = Partial<Record<SheetName, SheetRow[]>>;
+type SheetName = (typeof SHEET_NAMES)[number];
 
-export async function readSheet(sheetName: string, query?: {
-  field: string;
-  value: string;
-}) {
-  try {
-    const params = query
-      ? `?${new URLSearchParams(query).toString()}`
-      : "";
-    const response = await fetch(`/api/sheets/${sheetName}${params}`, {
-      cache: "no-store"
-    });
-    if (!response.ok) return null;
-    return await response.json() as {
-      configured: boolean;
-      data: SheetRow[];
-      fallback?: boolean;
-    };
-  } catch {
-    return null;
-  }
-}
+const readActions: Record<SheetName, string> = {
+  Alunos: "getAlunos",
+  Planos: "getPlanos",
+  Turmas: "getTurmas",
+  Aulas: "getAulas",
+  Confirmacoes: "getConfirmacoes",
+  Presencas: "getPresencas",
+  Pagamentos: "getPagamentos",
+  Mensalidades: "getMensalidades",
+  Desafios: "getDesafios",
+  Conquistas: "getConquistas"
+};
 
-export function getCachedSheet(sheetName: SheetName) {
-  if (typeof window === "undefined") return [];
-  try {
-    const cache = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}") as SheetsCache;
-    return cache[sheetName] ?? [];
-  } catch {
-    return [];
-  }
-}
+const createActions: Record<SheetName, string> = {
+  Alunos: "createAluno",
+  Planos: "createPlano",
+  Turmas: "createTurma",
+  Aulas: "createAula",
+  Confirmacoes: "createConfirmacao",
+  Presencas: "upsertPresenca",
+  Pagamentos: "upsertPagamento",
+  Mensalidades: "upsertMensalidade",
+  Desafios: "createDesafio",
+  Conquistas: "createConquista"
+};
 
-export function updateCachedRow(
-  sheetName: SheetName,
-  id: string,
-  updates: SheetRow
-) {
-  if (typeof window === "undefined") return;
-  try {
-    const cache = JSON.parse(
-      localStorage.getItem(CACHE_KEY) ?? "{}"
-    ) as SheetsCache;
-    const rows = cache[sheetName] ?? [];
-    cache[sheetName] = rows.map((row) =>
-      String(row.id) === id ? { ...row, ...updates } : row
-    );
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    // A próxima sincronização remota recompõe o cache.
-  }
-}
+const updateActions: Record<SheetName, string> = {
+  Alunos: "updateAluno",
+  Planos: "updatePlano",
+  Turmas: "updateTurma",
+  Aulas: "updateAula",
+  Confirmacoes: "updateConfirmacao",
+  Presencas: "upsertPresenca",
+  Pagamentos: "upsertPagamento",
+  Mensalidades: "upsertMensalidade",
+  Desafios: "updateDesafio",
+  Conquistas: "updateConquista"
+};
 
-export function replaceCachedSheet(sheetName: SheetName, rows: SheetRow[]) {
-  if (typeof window === "undefined") return;
-  try {
-    const cache = JSON.parse(
-      localStorage.getItem(CACHE_KEY) ?? "{}"
-    ) as SheetsCache;
-    cache[sheetName] = rows;
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ [sheetName]: rows }));
-  }
-}
-
-export function appendCachedRow(sheetName: SheetName, row: SheetRow) {
-  if (typeof window === "undefined") return;
-  const rows = getCachedSheet(sheetName).filter(
-    (item) => String(item.id) !== String(row.id)
+export function isGoogleSheetsConfigured() {
+  return Boolean(
+    process.env.GOOGLE_APPS_SCRIPT_URL &&
+      process.env.GOOGLE_APPS_SCRIPT_SECRET
   );
-  replaceCachedSheet(sheetName, [...rows, row]);
 }
 
-export async function syncGoogleSheetsData(
-  sheetNames: SheetName[] = [
-    "Alunos",
-    "Planos",
-    "Turmas",
-    "Aulas",
-    "Confirmacoes",
-    "Presencas",
-    "Conquistas"
-  ]
-) {
-  const results = await Promise.all(
-    sheetNames.map(async (sheetName) => {
-      const response = await readSheet(sheetName);
-      return { sheetName, response };
-    })
-  );
+function assertSheetName(sheetName: string): SheetName {
+  if (!SHEET_NAMES.includes(sheetName as SheetName)) {
+    throw new Error("Aba inválida.");
+  }
+  return sheetName as SheetName;
+}
 
-  if (typeof window !== "undefined") {
-    let currentCache: SheetsCache = {};
-    try {
-      currentCache = JSON.parse(
-        localStorage.getItem(CACHE_KEY) ?? "{}"
-      ) as SheetsCache;
-    } catch {
-      currentCache = {};
-    }
+async function appsScriptRequest(
+  action: string,
+  data: SheetRow = {}
+): Promise<unknown> {
+  const url = process.env.GOOGLE_APPS_SCRIPT_URL;
+  const secret = process.env.GOOGLE_APPS_SCRIPT_SECRET;
 
-    const successfulResults = results.filter(
-      ({ response }) => response && !response.fallback
-    );
-
-    if (!successfulResults.length) return false;
-
-    const nextCache = { ...currentCache };
-    successfulResults.forEach(({ sheetName, response }) => {
-      nextCache[sheetName] = response?.data ?? [];
-    });
-
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify(nextCache)
-    );
-
-    return true;
+  if (!url || !secret) {
+    console.info("Google Apps Script não configurado. Usando fallback.");
+    throw new Error("Google Apps Script não configurado.");
   }
 
-  return false;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ secret, action, data }),
+    cache: "no-store",
+    redirect: "follow"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google Apps Script respondeu ${response.status}.`);
+  }
+
+  const result = await response.json() as {
+    ok?: boolean;
+    data?: unknown;
+    error?: string;
+  };
+
+  if (!result.ok) {
+    throw new Error(result.error || "Falha no Google Apps Script.");
+  }
+
+  return result.data;
+}
+
+export async function readSheet(sheetName: string): Promise<SheetRow[]> {
+  const sheet = assertSheetName(sheetName);
+  const data = await appsScriptRequest(readActions[sheet]);
+  return Array.isArray(data) ? data as SheetRow[] : [];
 }
 
 export async function appendRow(sheetName: string, data: SheetRow) {
-  try {
-    const response = await fetch(`/api/sheets/${sheetName}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+  const sheet = assertSheetName(sheetName);
+  return appsScriptRequest(createActions[sheet], data);
 }
 
 export async function updateRow(
   sheetName: string,
-  id: string,
-  data: SheetRow
+  rowId: string,
+  updates: SheetRow
 ) {
-  try {
-    const response = await fetch(`/api/sheets/${sheetName}/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+  const sheet = assertSheetName(sheetName);
+  return appsScriptRequest(updateActions[sheet], { ...updates, id: rowId });
+}
+
+export async function findRowById(sheetName: string, id: string) {
+  return (await readSheet(sheetName)).find((row) => String(row.id) === id);
+}
+
+export async function findRowsByField(
+  sheetName: string,
+  field: string,
+  value: string
+) {
+  return (await readSheet(sheetName)).filter(
+    (row) => String(row[field] ?? "") === value
+  );
 }
