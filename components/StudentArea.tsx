@@ -233,9 +233,13 @@ export function StudentArea() {
     setPaymentActionLoading(true);
     setPaymentMessage("");
     try {
-      await copiarPixMensalidade(studentId);
+      const mensalidade = await copiarPixMensalidade(studentId);
       setPaymentMessage(
-        "Chave PIX copiada com sucesso! Envie o comprovante e aguarde a baixa no sistema."
+        mensalidade?.status === "pago"
+          ? "Pagamento deste mês já confirmado. A próxima mensalidade abre no dia 1 do próximo mês."
+          : mensalidade?.status === "comprovante_enviado"
+            ? "Solicitação já enviada. Aguarde a baixa no sistema."
+            : "Chave PIX copiada com sucesso! Envie o comprovante e aguarde a baixa no sistema."
       );
       setRevision((current) => current + 1);
     } catch (error) {
@@ -250,9 +254,13 @@ export function StudentArea() {
     setPaymentActionLoading(true);
     setPaymentMessage("");
     try {
-      await registrarPagamentoDinheiro(studentId);
+      const mensalidade = await registrarPagamentoDinheiro(studentId);
       setPaymentMessage(
-        "Pagamento em dinheiro sinalizado. Aguarde a baixa no sistema."
+        mensalidade?.status === "pago"
+          ? "Pagamento deste mês já confirmado. A próxima mensalidade abre no dia 1 do próximo mês."
+          : mensalidade?.status === "comprovante_enviado"
+            ? "Solicitação já enviada. Aguarde a baixa no sistema."
+            : "Pagamento em dinheiro sinalizado. Aguarde a baixa no sistema."
       );
       setRevision((current) => current + 1);
     } catch (error) {
