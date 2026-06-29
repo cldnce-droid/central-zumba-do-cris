@@ -5,7 +5,6 @@ import {
   appendRow,
   getCachedSheet,
   syncGoogleSheetsData,
-  updateCachedRow,
   updateRow
 } from "@/lib/services/googleSheetsService";
 import { getAlunoById, getPlanoByAluno } from "@/lib/services/alunoService";
@@ -100,16 +99,13 @@ function getMensalidadeDoMes(alunoId: string, mesReferencia: string) {
     )[0];
 }
 
-export function criarMensalidadeDoMes(alunoId: string, date = new Date()) {
+function montarMensalidadeDoMes(alunoId: string, date = new Date()) {
   const aluno = getAlunoById(alunoId);
   const plano = getPlanoByAluno(alunoId);
   if (!aluno) return null;
 
   const mesReferencia = getMesReferencia(date);
-  const existing = getMensalidadeDoMes(alunoId, mesReferencia);
-  if (existing) return normalizeStatus(existing);
-
-  const mensalidade: Mensalidade = {
+  return {
     id: `MEN_${mesReferencia.replace("-", "_")}_${alunoId}`,
     alunoId,
     nome: aluno.nome,
@@ -124,8 +120,14 @@ export function criarMensalidadeDoMes(alunoId: string, date = new Date()) {
     metodo: aluno.formaPagamento ?? "pix",
     observacao: ""
   };
+}
 
-  return mensalidade;
+export function criarMensalidadeDoMes(alunoId: string, date = new Date()) {
+  const mesReferencia = getMesReferencia(date);
+  const existing = getMensalidadeDoMes(alunoId, mesReferencia);
+  if (existing) return normalizeStatus(existing);
+
+  return montarMensalidadeDoMes(alunoId, date);
 }
 
 export function getMensalidadeAtualDoAluno(alunoId: string) {
@@ -137,12 +139,15 @@ export function getProximaMensalidadeDoAluno(alunoId: string) {
 }
 
 export async function copiarPixMensalidade(alunoId: string) {
-  const mensalidade = criarMensalidadeDoMes(alunoId);
-  if (!mensalidade) return null;
+  const mensalidadeAtual = criarMensalidadeDoMes(alunoId);
+  if (!mensalidadeAtual) return null;
 
-  if (mensalidade.status === "pago" || mensalidade.status === "comprovante_enviado") {
-    return mensalidade;
+  if (mensalidadeAtual.status === "pago" || mensalidadeAtual.status === "comprovante_enviado") {
+    return mensalidadeAtual;
   }
+
+  const mensalidade = montarMensalidadeDoMes(alunoId);
+  if (!mensalidade) return null;
 
   await navigator.clipboard.writeText(pixKey);
 
@@ -154,32 +159,28 @@ export async function copiarPixMensalidade(alunoId: string) {
     observacao: "PIX copiado pela aluna. Aguardando comprovante e baixa."
   };
 
-  const alreadyExists = getMensalidades().some((item) => item.id === updated.id);
-  const saved = alreadyExists
-    ? await updateRow("Mensalidades", updated.id, { ...updated })
-    : await appendRow("Mensalidades", { ...updated });
+  const saved = await appendRow("Mensalidades", { ...updated });
   if (!saved) {
     throw new Error("Nao foi possivel registrar a mensalidade na planilha.");
   }
 
   saveLocalMensalidade(updated);
-  if (alreadyExists) {
-    updateCachedRow("Mensalidades", updated.id, { ...updated });
-  } else {
-    appendCachedRow("Mensalidades", { ...updated });
-  }
+  appendCachedRow("Mensalidades", { ...updated });
   void syncGoogleSheetsData(["Mensalidades"]);
 
   return updated;
 }
 
 export async function registrarPagamentoDinheiro(alunoId: string) {
-  const mensalidade = criarMensalidadeDoMes(alunoId);
-  if (!mensalidade) return null;
+  const mensalidadeAtual = criarMensalidadeDoMes(alunoId);
+  if (!mensalidadeAtual) return null;
 
-  if (mensalidade.status === "pago" || mensalidade.status === "comprovante_enviado") {
-    return mensalidade;
+  if (mensalidadeAtual.status === "pago" || mensalidadeAtual.status === "comprovante_enviado") {
+    return mensalidadeAtual;
   }
+
+  const mensalidade = montarMensalidadeDoMes(alunoId);
+  if (!mensalidade) return null;
 
   const updated: Mensalidade = {
     ...mensalidade,
@@ -189,20 +190,13 @@ export async function registrarPagamentoDinheiro(alunoId: string) {
     observacao: "Aluna informou que pagara em dinheiro."
   };
 
-  const alreadyExists = getMensalidades().some((item) => item.id === updated.id);
-  const saved = alreadyExists
-    ? await updateRow("Mensalidades", updated.id, { ...updated })
-    : await appendRow("Mensalidades", { ...updated });
+  const saved = await appendRow("Mensalidades", { ...updated });
   if (!saved) {
     throw new Error("Nao foi possivel registrar o pagamento em dinheiro.");
   }
 
   saveLocalMensalidade(updated);
-  if (alreadyExists) {
-    updateCachedRow("Mensalidades", updated.id, { ...updated });
-  } else {
-    appendCachedRow("Mensalidades", { ...updated });
-  }
+  appendCachedRow("Mensalidades", { ...updated });
   void syncGoogleSheetsData(["Mensalidades"]);
 
   return updated;
@@ -223,7 +217,7 @@ export async function atualizarMensalidadeStatus(
   };
 
   saveLocalMensalidade(updated);
-  updateCachedRow("Mensalidades", mensalidadeId, { ...updated });
+  appendCachedRow("Mensalidades", { ...updated });
   const saved = await updateRow("Mensalidades", mensalidadeId, { ...updated });
   if (!saved) throw new Error("Nao foi possivel atualizar a mensalidade.");
   void syncGoogleSheetsData(["Mensalidades"]);
