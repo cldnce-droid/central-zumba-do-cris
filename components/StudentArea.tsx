@@ -319,7 +319,7 @@ export function StudentArea() {
         </aside>
       ) : null}
 
-      {mensalidadeAtual ? (
+      {mensalidadeAtual && mensalidadeAtual.status !== "pago" ? (
         <section className="rounded-lg bg-white p-5 shadow-pop ring-1 ring-cris-navy/10 sm:p-6">
           <div className="flex items-start gap-4">
             <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
