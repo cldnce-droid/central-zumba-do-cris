@@ -49,7 +49,7 @@ export async function POST(
     return NextResponse.json({ error: "Aba inválida." }, { status: 400 });
   }
 
-  const publicWriteSheets = new Set(["Alunos", "Confirmacoes"]);
+  const publicWriteSheets = new Set(["Alunos", "Confirmacoes", "Mensalidades"]);
   if (
     !publicWriteSheets.has(sheet) &&
     !isProfessorRequestAuthenticated(request)
