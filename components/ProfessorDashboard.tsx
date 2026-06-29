@@ -10,7 +10,6 @@ import {
 } from "@/components/Icons";
 import type {
   AlunoStatus,
-  Aluno,
   Confirmacao,
   Mensalidade,
   Pagamento,
@@ -36,6 +35,7 @@ import {
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
 type DashboardTab = "alunos" | "presencas" | "financeiro";
+type ProfessorStudent = ReturnType<typeof getAlunosProfessor>[number];
 
 const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Calheiros"];
 
@@ -695,7 +695,7 @@ function FinanceiroDashboard({
   feedback: string;
   loading: boolean;
   mensalidades: Mensalidade[];
-  students: Aluno[];
+  students: ProfessorStudent[];
   onApprove: (mensalidadeId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
 }) {
