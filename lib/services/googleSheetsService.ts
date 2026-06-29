@@ -145,9 +145,18 @@ export async function appendRow(sheetName: string, data: SheetRow) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    return response.ok;
-  } catch {
-    return false;
+    if (!response.ok) {
+      const result = await response.json().catch(() => null) as {
+        error?: string;
+        detail?: string;
+      } | null;
+      throw new Error(result?.detail || result?.error || "Falha ao salvar.");
+    }
+    return true;
+  } catch (error) {
+    throw error instanceof Error
+      ? error
+      : new Error("Falha ao conectar com a planilha.");
   }
 }
 
@@ -162,8 +171,17 @@ export async function updateRow(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    return response.ok;
-  } catch {
-    return false;
+    if (!response.ok) {
+      const result = await response.json().catch(() => null) as {
+        error?: string;
+        detail?: string;
+      } | null;
+      throw new Error(result?.detail || result?.error || "Falha ao atualizar.");
+    }
+    return true;
+  } catch (error) {
+    throw error instanceof Error
+      ? error
+      : new Error("Falha ao conectar com a planilha.");
   }
 }
