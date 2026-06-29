@@ -8,41 +8,20 @@ type NotificationStatus =
   | "success"
   | "denied"
   | "unsupported"
-  | "not-configured"
   | "failed";
 
-interface OneSignalClient {
-  init(options: Record<string, unknown>): Promise<void>;
-  Notifications: {
-    permission: boolean;
-    requestPermission(): Promise<void>;
-  };
-}
-
-declare global {
-  interface Window {
-    OneSignalDeferred?: Array<
-      (oneSignal: OneSignalClient) => void | Promise<void>
-    >;
-  }
-}
-
-const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-const WELCOME_KEY = "zdc-notification-welcome-seen-v2";
-const SYNC_KEY = "zdc-onesignal-sync-pending";
+const WELCOME_KEY = "zdc-notification-welcome-seen-v3";
 
 const messages: Partial<Record<NotificationStatus, string>> = {
   success: "Notificacoes ativadas com sucesso!",
   denied: "Tudo bem! Voce ainda pode acompanhar os avisos por aqui.",
   unsupported: "Seu navegador ainda nao permite notificacoes.",
-  "not-configured": "As notificacoes ainda nao foram configuradas.",
   failed: "Nao foi possivel ativar agora. Tente novamente."
 };
 
 export function NotificationOptIn() {
   const [isVisible, setIsVisible] = useState(false);
   const [status, setStatus] = useState<NotificationStatus>("idle");
-  const [oneSignal, setOneSignal] = useState<OneSignalClient | null>(null);
   const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
@@ -51,78 +30,24 @@ export function NotificationOptIn() {
       window.matchMedia("(display-mode: standalone)").matches ||
       iosNavigator.standalone === true;
 
-    if (
-      installed &&
-      appId &&
-      "Notification" in window &&
-      Notification.permission === "granted" &&
-      localStorage.getItem(SYNC_KEY) === "true"
-    ) {
-      window.setTimeout(() => {
-        loadOneSignal()
-          .then(() => localStorage.removeItem(SYNC_KEY))
-          .catch((error) => {
-            console.error("Falha ao sincronizar notificacoes:", error);
-          });
-      }, 1800);
-    }
-
     if (!installed || localStorage.getItem(WELCOME_KEY) === "true") return;
 
     const showTimer = window.setTimeout(() => setIsVisible(true), 900);
 
-    if (!appId) {
-      setStatus("not-configured");
-      return () => window.clearTimeout(showTimer);
-    }
-
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+    if (!("Notification" in window)) {
       setStatus("unsupported");
       return () => window.clearTimeout(showTimer);
     }
 
     if (Notification.permission === "granted") {
-      setStatus("success");
+      localStorage.setItem(WELCOME_KEY, "true");
+      return () => window.clearTimeout(showTimer);
     }
 
     return () => window.clearTimeout(showTimer);
   }, []);
 
-  const loadOneSignal = () =>
-    new Promise<OneSignalClient>((resolve, reject) => {
-      if (oneSignal) {
-        resolve(oneSignal);
-        return;
-      }
-
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async (client) => {
-        try {
-          await client.init({ appId, notifyButton: { enable: false } });
-          setOneSignal(client);
-          resolve(client);
-        } catch (error) {
-          reject(error);
-        }
-      });
-
-      if (document.querySelector("script[data-onesignal-sdk]")) return;
-
-      const script = document.createElement("script");
-      script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
-      script.defer = true;
-      script.dataset.onesignalSdk = "true";
-      script.onerror = () =>
-        reject(new Error("Nao foi possivel carregar o servico de notificacoes."));
-      document.head.appendChild(script);
-    });
-
   const requestNotifications = async () => {
-    if (!appId) {
-      setStatus("not-configured");
-      return;
-    }
-
     if (!("Notification" in window)) {
       setStatus("unsupported");
       return;
@@ -136,20 +61,13 @@ export function NotificationOptIn() {
 
       if (permission !== "granted") {
         setStatus("denied");
+        localStorage.setItem(WELCOME_KEY, "true");
         return;
       }
 
       localStorage.setItem(WELCOME_KEY, "true");
-      localStorage.setItem(SYNC_KEY, "true");
       setStatus("success");
       window.setTimeout(() => setIsVisible(false), 1200);
-      window.setTimeout(() => {
-        loadOneSignal()
-          .then(() => localStorage.removeItem(SYNC_KEY))
-          .catch((error) => {
-            console.error("Falha ao finalizar notificacoes:", error);
-          });
-      }, 2200);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error("Falha ao solicitar notificacoes:", detail);
