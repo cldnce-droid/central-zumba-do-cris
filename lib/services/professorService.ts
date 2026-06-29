@@ -145,7 +145,7 @@ export async function sincronizarFinanceiroProfessor() {
     throw new Error("Nao foi possivel acessar a aba Mensalidades.");
   }
   replaceCachedSheet("Mensalidades", response.data);
-  return response.data.length;
+  return response.data.map(sheetRowToMensalidade);
 }
 
 export function getPresencasProfessor() {
