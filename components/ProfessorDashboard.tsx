@@ -619,8 +619,8 @@ export function ProfessorDashboard() {
           mensalidades={visibleMensalidades}
           onApprove={async (mensalidadeId) => {
             await aprovarMensalidade(mensalidadeId);
-            setFinanceRows((rows) =>
-              rows.map((row) =>
+            setFinanceRows(
+              visibleMensalidades.map((row) =>
                 row.id === mensalidadeId
                   ? {
                       ...row,
