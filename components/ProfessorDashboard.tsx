@@ -11,16 +11,19 @@ import {
 import type {
   AlunoStatus,
   Confirmacao,
+  Mensalidade,
   Pagamento,
   PagamentoStatus,
   Presenca
 } from "@/lib/student-data";
 import {
   aceitarSolicitacaoPresenca,
+  aprovarMensalidade,
   atualizarStatusAluno,
   atualizarStatusPagamento,
   getAlunosProfessor,
   getConfirmacoesProfessor,
+  getMensalidadesProfessor,
   getPagamentosProfessor,
   getPresencasProfessor,
   getProximasAulasProfessor,
@@ -30,7 +33,7 @@ import {
 } from "@/lib/services/professorService";
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
-type DashboardTab = "alunos" | "presencas";
+type DashboardTab = "alunos" | "presencas" | "financeiro";
 
 const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Calheiros"];
 
@@ -141,6 +144,7 @@ export function ProfessorDashboard() {
       confirmations: getConfirmacoesProfessor(),
       presences: getPresencasProfessor(),
       payments: getPagamentosProfessor(),
+      mensalidades: getMensalidadesProfessor(),
       classes: getProximasAulasProfessor()
     };
   }, [revision]);
@@ -261,7 +265,7 @@ export function ProfessorDashboard() {
         </button>
       </header>
 
-      <nav className="grid gap-3 rounded-lg bg-white p-2 shadow-pop ring-1 ring-cris-navy/10 sm:grid-cols-2">
+      <nav className="grid gap-3 rounded-lg bg-white p-2 shadow-pop ring-1 ring-cris-navy/10 sm:grid-cols-3">
         <TabButton
           active={activeTab === "alunos"}
           icon={<UsersIcon className="size-5" />}
@@ -275,6 +279,13 @@ export function ProfessorDashboard() {
           onClick={() => setActiveTab("presencas")}
         >
           Presenças
+        </TabButton>
+        <TabButton
+          active={activeTab === "financeiro"}
+          icon={<MoneyIcon className="size-5" />}
+          onClick={() => setActiveTab("financeiro")}
+        >
+          Financeiro
         </TabButton>
       </nav>
 
@@ -497,7 +508,7 @@ export function ProfessorDashboard() {
             )}
           </DashboardSection>
         </section>
-      ) : (
+      ) : activeTab === "presencas" ? (
         <DashboardSection
           icon={<CalendarIcon className="size-6" />}
           title="Solicitações de Presença"
@@ -565,8 +576,113 @@ export function ProfessorDashboard() {
             </div>
           )}
         </DashboardSection>
+      ) : (
+        <FinanceiroDashboard
+          mensalidades={data.mensalidades}
+          onApprove={async (mensalidadeId) => {
+            await aprovarMensalidade(mensalidadeId);
+            refresh();
+          }}
+        />
       )}
     </div>
+  );
+}
+
+function FinanceiroDashboard({
+  mensalidades,
+  onApprove
+}: {
+  mensalidades: Mensalidade[];
+  onApprove: (mensalidadeId: string) => Promise<void>;
+}) {
+  const [updatingId, setUpdatingId] = useState("");
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentRows = mensalidades.filter(
+    (item) => item.mesReferencia === currentMonth
+  );
+  const aguardando = currentRows.filter(
+    (item) => item.status === "comprovante_enviado"
+  );
+  const pagos = currentRows.filter((item) => item.status === "pago");
+  const totalPrevisto = currentRows.reduce((sum, item) => sum + item.valor, 0);
+  const totalPago = pagos.reduce((sum, item) => sum + item.valor, 0);
+
+  const approve = async (id: string) => {
+    setUpdatingId(id);
+    try {
+      await onApprove(id);
+    } finally {
+      setUpdatingId("");
+    }
+  };
+
+  return (
+    <DashboardSection
+      icon={<MoneyIcon className="size-6" />}
+      title="Financeiro"
+    >
+      <p className="mb-5 font-bold leading-relaxed text-cris-navy/60">
+        Aprove comprovantes enviados e acompanhe o faturamento do mes.
+      </p>
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <Info label="Previsto no mes">R${totalPrevisto}</Info>
+        <Info label="Recebido">R${totalPago}</Info>
+        <Info label="Comprovantes">{aguardando.length}</Info>
+      </div>
+
+      {aguardando.length ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {aguardando.map((mensalidade) => (
+            <article
+              className="rounded-lg bg-cris-paper p-4 ring-1 ring-cris-navy/10"
+              key={mensalidade.id}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-xl font-black text-cris-navy">
+                    {mensalidade.nome || mensalidade.alunoId}
+                  </h3>
+                  <p className="text-sm font-bold text-cris-navy/55">
+                    {mensalidade.whatsapp}
+                  </p>
+                </div>
+                <StatusBadge>Comprovante</StatusBadge>
+              </div>
+
+              <dl className="mt-4 grid grid-cols-2 gap-2">
+                <RequestInfo label="Mes" value={mensalidade.mesReferencia} />
+                <RequestInfo label="Valor" value={`R$${mensalidade.valor}`} />
+                <RequestInfo
+                  label="Vencimento"
+                  value={formatDate(mensalidade.vencimento)}
+                />
+                <RequestInfo
+                  label="Enviado em"
+                  value={formatDateTime(mensalidade.dataComprovante ?? "")}
+                />
+              </dl>
+
+              <button
+                className="mt-4 min-h-11 w-full rounded-lg bg-emerald-500 px-4 py-2 text-xs font-black uppercase text-white disabled:opacity-60"
+                disabled={updatingId === mensalidade.id}
+                onClick={() => approve(mensalidade.id)}
+                type="button"
+              >
+                {updatingId === mensalidade.id
+                  ? "Aprovando..."
+                  : "Aprovar recebimento"}
+              </button>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
+          Nenhum comprovante aguardando aprovaÃ§Ã£o no momento.
+        </p>
+      )}
+    </DashboardSection>
   );
 }
 
