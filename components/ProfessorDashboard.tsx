@@ -99,6 +99,35 @@ function statusLabel(status: string) {
   return labels[status] ?? status;
 }
 
+function mensalidadePriority(status: string) {
+  const priorities: Record<string, number> = {
+    pago: 4,
+    comprovante_enviado: 3,
+    atrasado: 2,
+    em_aberto: 1
+  };
+  return priorities[String(status ?? "").trim()] ?? 0;
+}
+
+function dedupeMensalidades(rows: Mensalidade[]) {
+  return Array.from(
+    new Map(
+      [...rows]
+        .sort(
+          (first, second) =>
+            mensalidadePriority(second.status) -
+              mensalidadePriority(first.status) ||
+            String(
+              second.dataPagamento ?? second.dataComprovante ?? ""
+            ).localeCompare(
+              String(first.dataPagamento ?? first.dataComprovante ?? "")
+            )
+        )
+        .map((row) => [row.id, row])
+    ).values()
+  );
+}
+
 type RawProfessorPayment = Omit<Pagamento, "status"> & {
   status: string;
 };
@@ -667,17 +696,15 @@ function FinanceiroDashboard({
   onRefresh: () => Promise<void>;
 }) {
   const [updatingId, setUpdatingId] = useState("");
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const currentRows = mensalidades.filter(
-    (item) => item.mesReferencia === currentMonth
-  );
-  const aguardando = mensalidades.filter(
+  const mensalidadesUnicas = dedupeMensalidades(mensalidades);
+  const aguardando = mensalidadesUnicas.filter(
     (item) => String(item.status ?? "").trim() === "comprovante_enviado"
   );
-  const pagos = currentRows.filter(
+  const summaryRows = mensalidadesUnicas;
+  const pagos = summaryRows.filter(
     (item) => String(item.status ?? "").trim() === "pago"
   );
-  const totalPrevisto = currentRows.reduce((sum, item) => sum + item.valor, 0);
+  const totalPrevisto = summaryRows.reduce((sum, item) => sum + item.valor, 0);
   const totalPago = pagos.reduce((sum, item) => sum + item.valor, 0);
 
   const approve = async (id: string) => {
@@ -778,7 +805,7 @@ function FinanceiroDashboard({
         </div>
       ) : (
         <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
-          Nenhum comprovante aguardando aprovaÃ§Ã£o no momento.
+          Nenhum comprovante aguardando aprovação no momento.
         </p>
       )}
     </DashboardSection>
