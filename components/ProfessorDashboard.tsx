@@ -10,6 +10,7 @@ import {
 } from "@/components/Icons";
 import type {
   AlunoStatus,
+  Aluno,
   Confirmacao,
   Mensalidade,
   Pagamento,
@@ -646,6 +647,7 @@ export function ProfessorDashboard() {
           feedback={financeFeedback}
           loading={loadingFinance}
           mensalidades={visibleMensalidades}
+          students={data.students}
           onApprove={async (mensalidadeId) => {
             await aprovarMensalidade(mensalidadeId);
             setFinanceRows(
@@ -686,25 +688,47 @@ function FinanceiroDashboard({
   feedback,
   loading,
   mensalidades,
+  students,
   onApprove,
   onRefresh
 }: {
   feedback: string;
   loading: boolean;
   mensalidades: Mensalidade[];
+  students: Aluno[];
   onApprove: (mensalidadeId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
 }) {
   const [updatingId, setUpdatingId] = useState("");
+  const currentMonth = new Date().toISOString().slice(0, 7);
   const mensalidadesUnicas = dedupeMensalidades(mensalidades);
-  const aguardando = mensalidadesUnicas.filter(
+  const mensalidadesDoMes = mensalidadesUnicas.filter(
+    (item) => item.mesReferencia === currentMonth
+  );
+  const aguardando = mensalidadesDoMes.filter(
     (item) => String(item.status ?? "").trim() === "comprovante_enviado"
   );
-  const summaryRows = mensalidadesUnicas;
-  const pagos = summaryRows.filter(
+  const alunosComSolicitacaoOuPagamento = new Set(
+    mensalidadesDoMes
+      .filter((item) =>
+        ["comprovante_enviado", "pago"].includes(
+          String(item.status ?? "").trim()
+        )
+      )
+      .map((item) => item.alunoId)
+  );
+  const alunosAtivosEmAberto = students.filter(
+    (student) =>
+      student.status === "ativo" &&
+      !alunosComSolicitacaoOuPagamento.has(student.id)
+  );
+  const pagos = mensalidadesDoMes.filter(
     (item) => String(item.status ?? "").trim() === "pago"
   );
-  const totalPrevisto = summaryRows.reduce((sum, item) => sum + item.valor, 0);
+  const totalPrevisto = alunosAtivosEmAberto.reduce(
+    (sum, student) => sum + (student.planoDetalhes?.valor ?? 0),
+    0
+  );
   const totalPago = pagos.reduce((sum, item) => sum + item.valor, 0);
 
   const approve = async (id: string) => {
