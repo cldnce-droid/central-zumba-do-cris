@@ -136,9 +136,20 @@ function dedupeMensalidades(rows: Mensalidade[]) {
 }
 
 function isPagamentoAprovado(row: Mensalidade) {
-  return String(row.observacao ?? "")
-    .toLowerCase()
-    .includes("pagamento aprovado pelo professor");
+  const status = String(row.status ?? "").trim().toLowerCase();
+  const observacao = String(row.observacao ?? "").toLowerCase();
+
+  return (
+    status === "pago" ||
+    observacao.includes("pagamento aprovado pelo professor")
+  );
+}
+
+function isMensalidadeDoMes(row: Mensalidade, currentMonth: string) {
+  return (
+    String(row.mesReferencia ?? "").startsWith(currentMonth) ||
+    String(row.vencimento ?? "").startsWith(currentMonth)
+  );
 }
 
 type RawProfessorPayment = Omit<Pagamento, "status"> & {
@@ -716,12 +727,10 @@ function FinanceiroDashboard({
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthStarted = new Date().getDate() >= 1;
   const mensalidadesUnicas = dedupeMensalidades(mensalidades);
-  const mensalidadesDoMes = mensalidadesUnicas.filter(
-    (item) =>
-      item.mesReferencia === currentMonth ||
-      String(item.vencimento ?? "").startsWith(currentMonth)
+  const mensalidadesDoMes = mensalidadesUnicas.filter((item) =>
+    isMensalidadeDoMes(item, currentMonth)
   );
-  const aguardando = mensalidadesDoMes.filter(
+  const aguardando = mensalidadesUnicas.filter(
     (item) => String(item.status ?? "").trim() === "comprovante_enviado"
   );
   const alunosComPagamentoAprovado = new Set(
