@@ -8,6 +8,7 @@ export type SheetName =
   | "Confirmacoes"
   | "Presencas"
   | "Pagamentos"
+  | "Mensalidades"
   | "Desafios"
   | "Conquistas";
 
