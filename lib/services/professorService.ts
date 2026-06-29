@@ -139,6 +139,15 @@ export async function sincronizarSolicitacoesProfessor() {
   return response.data.length;
 }
 
+export async function sincronizarFinanceiroProfessor() {
+  const response = await readSheet("Mensalidades");
+  if (!response || response.fallback || !response.configured) {
+    throw new Error("Nao foi possivel acessar a aba Mensalidades.");
+  }
+  replaceCachedSheet("Mensalidades", response.data);
+  return response.data.length;
+}
+
 export function getPresencasProfessor() {
   const remote = getCachedSheet("Presencas").map(sheetRowToPresenca);
   return remote.length
