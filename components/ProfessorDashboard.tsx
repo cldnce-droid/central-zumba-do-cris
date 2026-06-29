@@ -57,6 +57,16 @@ function formatDateTime(value: string) {
     : parsedDate.toLocaleString("pt-BR");
 }
 
+function formatMonthReference(value: string) {
+  const [year, month] = value.split("-");
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
 function selectedClasses(value: unknown, fallback: unknown) {
   const classes = Array.isArray(value)
     ? value.map(String)
@@ -81,7 +91,9 @@ function statusLabel(status: string) {
     pago: "Pago",
     solicitada: "Solicitada",
     aceita: "Aceita",
-    recusada: "Recusada"
+    recusada: "Recusada",
+    comprovante_enviado: "Aguardando baixa",
+    em_aberto: "Em aberto"
   };
   return labels[status] ?? status;
 }
@@ -652,8 +664,15 @@ function FinanceiroDashboard({
               </div>
 
               <dl className="mt-4 grid grid-cols-2 gap-2">
-                <RequestInfo label="Mes" value={mensalidade.mesReferencia} />
+                <RequestInfo
+                  label="Mes"
+                  value={formatMonthReference(mensalidade.mesReferencia)}
+                />
                 <RequestInfo label="Valor" value={`R$${mensalidade.valor}`} />
+                <RequestInfo
+                  label="Metodo"
+                  value={mensalidade.metodo === "dinheiro" ? "Dinheiro" : "PIX"}
+                />
                 <RequestInfo
                   label="Vencimento"
                   value={formatDate(mensalidade.vencimento)}
