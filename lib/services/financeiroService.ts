@@ -101,9 +101,13 @@ export async function copiarPixMensalidade(alunoId: string) {
 
   await navigator.clipboard.writeText(pixKey);
 
+  const saved = await appendRow("Mensalidades", { ...mensalidade });
+  if (!saved) {
+    throw new Error("Nao foi possivel registrar a mensalidade na planilha.");
+  }
+
   saveLocalMensalidade(mensalidade);
   appendCachedRow("Mensalidades", { ...mensalidade });
-  await appendRow("Mensalidades", { ...mensalidade });
   void syncGoogleSheetsData(["Mensalidades"]);
 
   return mensalidade;
@@ -120,9 +124,13 @@ export async function enviarComprovanteMensalidade(alunoId: string) {
     observacao: "Comprovante enviado pela aluna"
   };
 
+  const saved = await appendRow("Mensalidades", { ...updated });
+  if (!saved) {
+    throw new Error("Nao foi possivel enviar o comprovante para a planilha.");
+  }
+
   saveLocalMensalidade(updated);
   appendCachedRow("Mensalidades", { ...updated });
-  await appendRow("Mensalidades", { ...updated });
   void syncGoogleSheetsData(["Mensalidades"]);
 
   return updated;
