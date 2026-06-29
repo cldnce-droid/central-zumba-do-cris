@@ -151,6 +151,7 @@ export function ProfessorDashboard() {
   const [requestsFeedback, setRequestsFeedback] = useState("");
   const [loadingFinance, setLoadingFinance] = useState(false);
   const [financeFeedback, setFinanceFeedback] = useState("");
+  const [financeRows, setFinanceRows] = useState<Mensalidade[]>([]);
 
   const data = useMemo(() => {
     const students = getAlunosProfessor();
@@ -189,7 +190,10 @@ export function ProfessorDashboard() {
     setLoadingFinance(true);
     setFinanceFeedback("");
     void sincronizarFinanceiroProfessor()
-      .then(() => refresh())
+      .then((rows) => {
+        setFinanceRows(rows);
+        refresh();
+      })
       .catch(() =>
         setFinanceFeedback(
           "Nao foi possivel acessar a aba Mensalidades. Atualize a planilha e tente novamente."
@@ -228,6 +232,9 @@ export function ProfessorDashboard() {
   const selectedPayment = selectedStudent
     ? latestPayment(data.payments, selectedStudent.id)
     : undefined;
+  const visibleMensalidades = financeRows.length
+    ? financeRows
+    : data.mensalidades;
   const selectedFrequency = selectedStudent
     ? frequencySummary(data.presences, selectedStudent.id)
     : { total: 0, streak: 0 };
@@ -609,16 +616,28 @@ export function ProfessorDashboard() {
         <FinanceiroDashboard
           feedback={financeFeedback}
           loading={loadingFinance}
-          mensalidades={data.mensalidades}
+          mensalidades={visibleMensalidades}
           onApprove={async (mensalidadeId) => {
             await aprovarMensalidade(mensalidadeId);
+            setFinanceRows((rows) =>
+              rows.map((row) =>
+                row.id === mensalidadeId
+                  ? {
+                      ...row,
+                      status: "pago",
+                      dataPagamento: new Date().toISOString().slice(0, 10)
+                    }
+                  : row
+              )
+            );
             refresh();
           }}
           onRefresh={async () => {
             setLoadingFinance(true);
             setFinanceFeedback("");
             try {
-              await sincronizarFinanceiroProfessor();
+              const rows = await sincronizarFinanceiroProfessor();
+              setFinanceRows(rows);
               refresh();
             } catch {
               setFinanceFeedback(
@@ -652,10 +671,12 @@ function FinanceiroDashboard({
   const currentRows = mensalidades.filter(
     (item) => item.mesReferencia === currentMonth
   );
-  const aguardando = currentRows.filter(
-    (item) => item.status === "comprovante_enviado"
+  const aguardando = mensalidades.filter(
+    (item) => String(item.status ?? "").trim() === "comprovante_enviado"
   );
-  const pagos = currentRows.filter((item) => item.status === "pago");
+  const pagos = currentRows.filter(
+    (item) => String(item.status ?? "").trim() === "pago"
+  );
   const totalPrevisto = currentRows.reduce((sum, item) => sum + item.valor, 0);
   const totalPago = pagos.reduce((sum, item) => sum + item.valor, 0);
 
