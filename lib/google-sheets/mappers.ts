@@ -3,6 +3,7 @@ import type {
   Aula,
   Confirmacao,
   Desafio,
+  Mensalidade,
   Pagamento,
   Plano,
   Presenca,
@@ -187,6 +188,37 @@ export function sheetRowToPagamento(row: SheetRow): Pagamento {
     status,
     metodo: String(row.metodo ?? "outro")
   } as unknown as Pagamento;
+}
+
+export function sheetRowToMensalidade(row: SheetRow): Mensalidade {
+  const rawStatus = String(row.status ?? "em_aberto").trim().toLowerCase();
+  const status = ([
+    "em_aberto",
+    "comprovante_enviado",
+    "pago",
+    "atrasado"
+  ].includes(rawStatus)
+    ? rawStatus
+    : "em_aberto") as Mensalidade["status"];
+
+  return {
+    ...row,
+    id: String(row.id ?? ""),
+    alunoId: String(row.alunoId ?? ""),
+    nome: String(row.nome ?? ""),
+    whatsapp: String(row.whatsapp ?? ""),
+    mesReferencia: String(row.mesReferencia ?? ""),
+    plano: parsePlanoCodigo(row.plano),
+    valor: Number(row.valor) || 0,
+    vencimento: parseSheetDate(row.vencimento),
+    status,
+    dataPagamento: row.dataPagamento ? parseSheetDate(row.dataPagamento) : null,
+    dataComprovante: row.dataComprovante
+      ? String(row.dataComprovante)
+      : null,
+    metodo: String(row.metodo ?? "pix"),
+    observacao: String(row.observacao ?? "")
+  } as unknown as Mensalidade;
 }
 
 export function sheetRowToDesafio(row: SheetRow): Desafio {
