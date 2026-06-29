@@ -238,8 +238,9 @@ export function StudentArea() {
         "Chave PIX copiada com sucesso! Envie o comprovante e aguarde a baixa no sistema."
       );
       setRevision((current) => current + 1);
-    } catch {
-      setPaymentMessage("PIX copiado, mas nao consegui registrar na planilha. Tente novamente.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Tente novamente.";
+      setPaymentMessage(`PIX copiado, mas nao consegui registrar na planilha. Detalhe: ${detail}`);
     } finally {
       setPaymentActionLoading(false);
     }
@@ -254,8 +255,9 @@ export function StudentArea() {
         "Pagamento em dinheiro sinalizado. Aguarde a baixa no sistema."
       );
       setRevision((current) => current + 1);
-    } catch {
-      setPaymentMessage("Nao consegui registrar na planilha. Tente novamente.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Tente novamente.";
+      setPaymentMessage(`Nao consegui registrar na planilha. Detalhe: ${detail}`);
     } finally {
       setPaymentActionLoading(false);
     }
