@@ -28,6 +28,16 @@ export function getMesReferencia(date = new Date()) {
   ].join("-");
 }
 
+export function formatMesReferencia(value: string) {
+  const [year, month] = value.split("-");
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
 function readLocalMensalidades() {
   if (typeof window === "undefined") return [];
   try {
@@ -101,19 +111,27 @@ export async function copiarPixMensalidade(alunoId: string) {
 
   await navigator.clipboard.writeText(pixKey);
 
-  const saved = await appendRow("Mensalidades", { ...mensalidade });
+  const updated: Mensalidade = {
+    ...mensalidade,
+    status: "comprovante_enviado",
+    dataComprovante: new Date().toISOString(),
+    metodo: "pix",
+    observacao: "PIX copiado pela aluna. Aguardando comprovante e baixa."
+  };
+
+  const saved = await appendRow("Mensalidades", { ...updated });
   if (!saved) {
     throw new Error("Nao foi possivel registrar a mensalidade na planilha.");
   }
 
-  saveLocalMensalidade(mensalidade);
-  appendCachedRow("Mensalidades", { ...mensalidade });
+  saveLocalMensalidade(updated);
+  appendCachedRow("Mensalidades", { ...updated });
   void syncGoogleSheetsData(["Mensalidades"]);
 
-  return mensalidade;
+  return updated;
 }
 
-export async function enviarComprovanteMensalidade(alunoId: string) {
+export async function registrarPagamentoDinheiro(alunoId: string) {
   const mensalidade = criarMensalidadeDoMes(alunoId);
   if (!mensalidade) return null;
 
@@ -121,12 +139,13 @@ export async function enviarComprovanteMensalidade(alunoId: string) {
     ...mensalidade,
     status: "comprovante_enviado",
     dataComprovante: new Date().toISOString(),
-    observacao: "Comprovante enviado pela aluna"
+    metodo: "dinheiro",
+    observacao: "Aluna informou que pagara em dinheiro."
   };
 
   const saved = await appendRow("Mensalidades", { ...updated });
   if (!saved) {
-    throw new Error("Nao foi possivel enviar o comprovante para a planilha.");
+    throw new Error("Nao foi possivel registrar o pagamento em dinheiro.");
   }
 
   saveLocalMensalidade(updated);
