@@ -28,8 +28,9 @@ import {
 import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
 import {
   copiarPixMensalidade,
-  enviarComprovanteMensalidade,
-  getMensalidadeAtualDoAluno
+  formatMesReferencia,
+  getMensalidadeAtualDoAluno,
+  registrarPagamentoDinheiro
 } from "@/lib/services/financeiroService";
 import type { AlunoStatus, Aula, PagamentoStatus } from "@/lib/student-data";
 import { createGoogleCalendarUrl } from "@/lib/utils/calendar";
@@ -101,7 +102,6 @@ export function StudentArea() {
   const [presenceRequested, setPresenceRequested] = useState(false);
   const [requestingPresence, setRequestingPresence] = useState(false);
   const [requestError, setRequestError] = useState("");
-  const [pixCopied, setPixCopied] = useState(false);
   const [paymentActionLoading, setPaymentActionLoading] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
 
@@ -234,8 +234,9 @@ export function StudentArea() {
     setPaymentMessage("");
     try {
       await copiarPixMensalidade(studentId);
-      setPixCopied(true);
-      setPaymentMessage("Chave PIX copiada. Agora envie seu comprovante.");
+      setPaymentMessage(
+        "Chave PIX copiada com sucesso! Envie o comprovante e aguarde a baixa no sistema."
+      );
       setRevision((current) => current + 1);
     } catch {
       setPaymentMessage("PIX copiado, mas nao consegui registrar na planilha. Tente novamente.");
@@ -244,15 +245,17 @@ export function StudentArea() {
     }
   };
 
-  const sendPaymentReceipt = async () => {
+  const markCashPayment = async () => {
     setPaymentActionLoading(true);
     setPaymentMessage("");
     try {
-      await enviarComprovanteMensalidade(studentId);
-      setPaymentMessage("Comprovante enviado! Agora aguarde a confirmacao.");
+      await registrarPagamentoDinheiro(studentId);
+      setPaymentMessage(
+        "Pagamento em dinheiro sinalizado. Aguarde a baixa no sistema."
+      );
       setRevision((current) => current + 1);
     } catch {
-      setPaymentMessage("Nao consegui registrar o comprovante na planilha. Tente novamente.");
+      setPaymentMessage("Nao consegui registrar na planilha. Tente novamente.");
     } finally {
       setPaymentActionLoading(false);
     }
@@ -317,7 +320,7 @@ export function StudentArea() {
                 Mensalidade do mes
               </p>
               <h2 className="mt-1 text-2xl font-black uppercase text-cris-navy">
-                {mensalidadeAtual.mesReferencia} - R${mensalidadeAtual.valor}
+                {formatMesReferencia(mensalidadeAtual.mesReferencia)} - R${mensalidadeAtual.valor}
               </h2>
               <p className="mt-2 font-bold text-cris-navy/65">
                 Vencimento dia 8. Status:{" "}
@@ -330,7 +333,7 @@ export function StudentArea() {
                 </p>
               ) : mensalidadeAtual.status === "comprovante_enviado" ? (
                 <p className="mt-4 rounded-lg bg-cris-yellow/25 p-4 font-black text-cris-navy">
-                  Comprovante enviado. Aguarde a confirmacao do professor.
+                  Solicitação enviada. Aguarde a baixa do professor no sistema.
                 </p>
               ) : (
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -343,12 +346,12 @@ export function StudentArea() {
                     Copiar chave PIX
                   </button>
                   <button
-                    className="min-h-12 rounded-lg bg-cris-pink px-5 py-3 text-sm font-black uppercase text-white shadow-pop disabled:opacity-50"
-                    disabled={!pixCopied || paymentActionLoading}
-                    onClick={sendPaymentReceipt}
+                    className="min-h-12 rounded-lg bg-cris-blue px-5 py-3 text-sm font-black uppercase text-white shadow-pop disabled:opacity-50"
+                    disabled={paymentActionLoading}
+                    onClick={markCashPayment}
                     type="button"
                   >
-                    Comprovante enviado
+                    Pagamento em dinheiro
                   </button>
                 </div>
               )}
