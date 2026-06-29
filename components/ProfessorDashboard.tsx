@@ -28,6 +28,7 @@ import {
   getPresencasProfessor,
   getProximasAulasProfessor,
   recusarSolicitacaoPresenca,
+  sincronizarFinanceiroProfessor,
   sincronizarSolicitacoesProfessor,
   sincronizarDashboardProfessor
 } from "@/lib/services/professorService";
@@ -148,6 +149,8 @@ export function ProfessorDashboard() {
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [requestsFeedback, setRequestsFeedback] = useState("");
+  const [loadingFinance, setLoadingFinance] = useState(false);
+  const [financeFeedback, setFinanceFeedback] = useState("");
 
   const data = useMemo(() => {
     const students = getAlunosProfessor();
@@ -179,6 +182,20 @@ export function ProfessorDashboard() {
         )
       )
       .finally(() => setLoadingRequests(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "financeiro") return;
+    setLoadingFinance(true);
+    setFinanceFeedback("");
+    void sincronizarFinanceiroProfessor()
+      .then(() => refresh())
+      .catch(() =>
+        setFinanceFeedback(
+          "Nao foi possivel acessar a aba Mensalidades. Atualize a planilha e tente novamente."
+        )
+      )
+      .finally(() => setLoadingFinance(false));
   }, [activeTab]);
 
   const filteredStudents = useMemo(() => {
@@ -590,10 +607,26 @@ export function ProfessorDashboard() {
         </DashboardSection>
       ) : (
         <FinanceiroDashboard
+          feedback={financeFeedback}
+          loading={loadingFinance}
           mensalidades={data.mensalidades}
           onApprove={async (mensalidadeId) => {
             await aprovarMensalidade(mensalidadeId);
             refresh();
+          }}
+          onRefresh={async () => {
+            setLoadingFinance(true);
+            setFinanceFeedback("");
+            try {
+              await sincronizarFinanceiroProfessor();
+              refresh();
+            } catch {
+              setFinanceFeedback(
+                "Nao foi possivel acessar a aba Mensalidades. Atualize a planilha e tente novamente."
+              );
+            } finally {
+              setLoadingFinance(false);
+            }
           }}
         />
       )}
@@ -602,11 +635,17 @@ export function ProfessorDashboard() {
 }
 
 function FinanceiroDashboard({
+  feedback,
+  loading,
   mensalidades,
-  onApprove
+  onApprove,
+  onRefresh
 }: {
+  feedback: string;
+  loading: boolean;
   mensalidades: Mensalidade[];
   onApprove: (mensalidadeId: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
 }) {
   const [updatingId, setUpdatingId] = useState("");
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -634,9 +673,25 @@ function FinanceiroDashboard({
       icon={<MoneyIcon className="size-6" />}
       title="Financeiro"
     >
-      <p className="mb-5 font-bold leading-relaxed text-cris-navy/60">
-        Aprove comprovantes enviados e acompanhe o faturamento do mes.
-      </p>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="font-bold leading-relaxed text-cris-navy/60">
+          Aprove comprovantes enviados e acompanhe o faturamento do mes.
+        </p>
+        <button
+          className="min-h-11 shrink-0 rounded-lg border-2 border-cris-purple px-4 py-2 text-xs font-black uppercase text-cris-purple disabled:opacity-50"
+          disabled={loading}
+          onClick={onRefresh}
+          type="button"
+        >
+          {loading ? "Atualizando..." : "Atualizar financeiro"}
+        </button>
+      </div>
+
+      {feedback ? (
+        <p className="mb-4 rounded-lg bg-cris-pink/10 p-4 font-bold text-cris-pink ring-1 ring-cris-pink/20">
+          {feedback}
+        </p>
+      ) : null}
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <Info label="Previsto no mes">R${totalPrevisto}</Info>
@@ -644,7 +699,11 @@ function FinanceiroDashboard({
         <Info label="Comprovantes">{aguardando.length}</Info>
       </div>
 
-      {aguardando.length ? (
+      {loading && !aguardando.length ? (
+        <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
+          Buscando solicitações financeiras...
+        </p>
+      ) : aguardando.length ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {aguardando.map((mensalidade) => (
             <article
