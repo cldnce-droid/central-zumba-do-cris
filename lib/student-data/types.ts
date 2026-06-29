@@ -16,6 +16,11 @@ export type ConfirmacaoStatus =
   | "confirmado"
   | "cancelado";
 export type PagamentoStatus = "pago" | "atrasado";
+export type MensalidadeStatus =
+  | "em_aberto"
+  | "comprovante_enviado"
+  | "pago"
+  | "atrasado";
 export type MetodoPagamento = "pix" | "dinheiro" | "outro";
 export type StatusVisualDesafio = "em_breve" | "bloqueado" | "disponivel";
 
@@ -102,6 +107,22 @@ export interface Pagamento {
   dataPagamento: string | null;
   status: PagamentoStatus;
   metodo: MetodoPagamento;
+}
+
+export interface Mensalidade {
+  id: string;
+  alunoId: string;
+  nome: string;
+  whatsapp: string;
+  mesReferencia: string;
+  plano: PlanoCodigo;
+  valor: number;
+  vencimento: string;
+  status: MensalidadeStatus;
+  dataPagamento: string | null;
+  dataComprovante: string | null;
+  metodo: MetodoPagamento;
+  observacao: string;
 }
 
 export interface Desafio {
