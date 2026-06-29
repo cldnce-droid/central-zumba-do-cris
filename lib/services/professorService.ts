@@ -19,6 +19,7 @@ import {
   sheetRowToAluno,
   sheetRowToAula,
   sheetRowToConfirmacao,
+  sheetRowToMensalidade,
   sheetRowToPlano,
   sheetRowToPresenca
 } from "@/lib/google-sheets/mappers";
@@ -257,6 +258,25 @@ export function getPagamentosProfessor() {
   }));
 }
 
+export function getMensalidadesProfessor() {
+  return getCachedSheet("Mensalidades").map(sheetRowToMensalidade);
+}
+
+export async function aprovarMensalidade(mensalidadeId: string) {
+  const updates = {
+    status: "pago",
+    dataPagamento: new Date().toISOString().slice(0, 10),
+    observacao: "Pagamento aprovado pelo professor"
+  };
+  updateCachedRow("Mensalidades", mensalidadeId, updates);
+  const updated = await updateRow("Mensalidades", mensalidadeId, updates);
+  if (!updated) {
+    throw new Error("NÃ£o foi possÃ­vel aprovar a mensalidade.");
+  }
+  void syncGoogleSheetsData(["Mensalidades"]);
+  return true;
+}
+
 export async function atualizarStatusPagamento(
   alunoId: string,
   status: PagamentoStatus
@@ -313,7 +333,8 @@ export function limparDadosLocaisDeTeste() {
 export async function sincronizarDashboardProfessor() {
   return syncGoogleSheetsData([
     "Alunos",
-    "Presencas"
+    "Presencas",
+    "Mensalidades"
   ]);
 }
 
