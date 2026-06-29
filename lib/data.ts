@@ -101,7 +101,7 @@ export const notices = [
   {
     category: "Lembrete",
     title: "Dia de pagamento",
-    description: "As mensalidades vencem todo dia 05.",
+    description: "As mensalidades vencem todo dia 08.",
     accent: "yellow"
   }
 ] as const;
