@@ -66,6 +66,10 @@ export async function POST(
       console.info("Cadastro recebido:", Boolean(data));
       console.info("Tentativa de salvar em Alunos:", true);
     }
+    if (sheet === "Mensalidades") {
+      console.info("Tentativa de salvar em Mensalidades:", true);
+      console.info("Mensalidade recebida com id:", String(data.id ?? "sem-id"));
+    }
     await appendRow(sheet, data);
     if (sheet === "Alunos") {
       console.info("Aluno salvo com id:", String(data.id ?? "sem-id"));
@@ -74,6 +78,9 @@ export async function POST(
   } catch (error) {
     if (sheet === "Alunos") {
       console.error("Falha ao salvar cadastro em Alunos:", error);
+    }
+    if (sheet === "Mensalidades") {
+      console.error("Falha ao salvar em Mensalidades:", error);
     }
     return NextResponse.json(
       { error: "Não foi possível salvar na planilha." },
