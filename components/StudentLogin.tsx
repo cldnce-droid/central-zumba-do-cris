@@ -12,6 +12,7 @@ export function StudentLogin() {
   const router = useRouter();
   const [whatsapp, setWhatsapp] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [pendingStudent, setPendingStudent] = useState<Aluno | null>(null);
   const [pixFeedback, setPixFeedback] = useState("");
 
@@ -24,23 +25,38 @@ export function StudentLogin() {
       return;
     }
 
-    const student = await getAlunoByWhatsappRemoto(normalized);
+    setIsLoading(true);
+    setError("");
+    setPendingStudent(null);
+
+    let student: Aluno | null = null;
+
+    try {
+      student = await getAlunoByWhatsappRemoto(normalized);
+    } catch {
+      setError("Nao foi possivel acessar agora. Tente novamente.");
+      setIsLoading(false);
+      return;
+    }
 
     if (!student) {
       setError("Cadastro não encontrado. Confira o número ou faça seu cadastro.");
       setPendingStudent(null);
+      setIsLoading(false);
       return;
     }
 
     if (student.status === "pendente") {
       setPendingStudent(student);
       setError("");
+      setIsLoading(false);
       return;
     }
 
     if (student.status === "inativo") {
       setError("Seu cadastro está inativo. Fale com o Cris para regularizar.");
       setPendingStudent(null);
+      setIsLoading(false);
       return;
     }
 
@@ -101,6 +117,25 @@ export function StudentLogin() {
 
   return (
     <section className="premium-panel mx-auto max-w-xl p-6 sm:p-8">
+      {isLoading ? (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-cris-navy/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 text-center shadow-[0_24px_80px_rgba(7,16,70,0.45)]">
+            <div className="mx-auto grid size-16 place-items-center rounded-full bg-cris-pink text-white shadow-pop">
+              <HeartIcon className="size-8 animate-pulse" />
+            </div>
+            <h2 className="mt-5 text-2xl font-black uppercase text-cris-navy">
+              Buscando sua area...
+            </h2>
+            <p className="mt-3 font-bold leading-relaxed text-cris-navy/65">
+              Estamos localizando seu cadastro e preparando sua Area do Aluno.
+            </p>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-cris-navy/10">
+              <div className="h-full w-2/3 animate-pulse rounded-full bg-cris-yellow" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <p className="text-sm font-black uppercase text-cris-pink">
         Central Zumba do Cris
       </p>
@@ -130,10 +165,11 @@ export function StudentLogin() {
           <p className="mt-3 font-bold text-cris-pink">{error}</p>
         ) : null}
         <button
-          className="mt-5 min-h-14 w-full rounded-lg bg-cris-pink px-5 py-3 font-black uppercase text-white shadow-pop"
+          className="mt-5 min-h-14 w-full rounded-lg bg-cris-pink px-5 py-3 font-black uppercase text-white shadow-pop disabled:cursor-wait disabled:opacity-70"
+          disabled={isLoading}
           type="submit"
         >
-          Entrar
+          {isLoading ? "Entrando..." : "Entrar"}
         </button>
       </form>
 
