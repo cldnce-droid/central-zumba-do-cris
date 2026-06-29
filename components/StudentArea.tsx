@@ -238,7 +238,7 @@ export function StudentArea() {
       setPaymentMessage("Chave PIX copiada. Agora envie seu comprovante.");
       setRevision((current) => current + 1);
     } catch {
-      setPaymentMessage("Nao foi possivel copiar agora. Tente novamente.");
+      setPaymentMessage("PIX copiado, mas nao consegui registrar na planilha. Tente novamente.");
     } finally {
       setPaymentActionLoading(false);
     }
@@ -252,7 +252,7 @@ export function StudentArea() {
       setPaymentMessage("Comprovante enviado! Agora aguarde a confirmacao.");
       setRevision((current) => current + 1);
     } catch {
-      setPaymentMessage("Nao foi possivel enviar o comprovante agora.");
+      setPaymentMessage("Nao consegui registrar o comprovante na planilha. Tente novamente.");
     } finally {
       setPaymentActionLoading(false);
     }
