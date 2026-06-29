@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarIcon,
   HeartIcon,
+  MoneyIcon,
   PinIcon,
   TrophyIcon,
   UsersIcon
@@ -25,6 +26,11 @@ import {
   getConfirmacaoRemotaPorAlunoEAula
 } from "@/lib/services/confirmacaoService";
 import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
+import {
+  copiarPixMensalidade,
+  enviarComprovanteMensalidade,
+  getMensalidadeAtualDoAluno
+} from "@/lib/services/financeiroService";
 import type { AlunoStatus, Aula, PagamentoStatus } from "@/lib/student-data";
 import { createGoogleCalendarUrl } from "@/lib/utils/calendar";
 
@@ -95,11 +101,19 @@ export function StudentArea() {
   const [presenceRequested, setPresenceRequested] = useState(false);
   const [requestingPresence, setRequestingPresence] = useState(false);
   const [requestError, setRequestError] = useState("");
+  const [pixCopied, setPixCopied] = useState(false);
+  const [paymentActionLoading, setPaymentActionLoading] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
 
   useEffect(() => {
     setStudentId(localStorage.getItem("alunoAtualId") ?? "");
     setAccessChecked(true);
-    void syncGoogleSheetsData(["Alunos", "Presencas", "Conquistas"]).then((synced) => {
+    void syncGoogleSheetsData([
+      "Alunos",
+      "Presencas",
+      "Conquistas",
+      "Mensalidades"
+    ]).then((synced) => {
       if (synced) setRevision((current) => current + 1);
     });
   }, []);
@@ -129,6 +143,12 @@ export function StudentArea() {
     () => getStatusPagamento(studentId),
     [studentId, revision]
   );
+  const mensalidadeAtual = useMemo(
+    () => getMensalidadeAtualDoAluno(studentId),
+    [studentId, revision]
+  );
+  const currentPaymentStatus: PagamentoStatus =
+    mensalidadeAtual?.status === "pago" ? "pago" : paymentStatus;
 
   useEffect(() => {
     if (!studentId) return;
@@ -209,6 +229,35 @@ export function StudentArea() {
     if (calendarWindow) calendarWindow.opener = null;
   };
 
+  const copyMonthlyPix = async () => {
+    setPaymentActionLoading(true);
+    setPaymentMessage("");
+    try {
+      await copiarPixMensalidade(studentId);
+      setPixCopied(true);
+      setPaymentMessage("Chave PIX copiada. Agora envie seu comprovante.");
+      setRevision((current) => current + 1);
+    } catch {
+      setPaymentMessage("Nao foi possivel copiar agora. Tente novamente.");
+    } finally {
+      setPaymentActionLoading(false);
+    }
+  };
+
+  const sendPaymentReceipt = async () => {
+    setPaymentActionLoading(true);
+    setPaymentMessage("");
+    try {
+      await enviarComprovanteMensalidade(studentId);
+      setPaymentMessage("Comprovante enviado! Agora aguarde a confirmacao.");
+      setRevision((current) => current + 1);
+    } catch {
+      setPaymentMessage("Nao foi possivel enviar o comprovante agora.");
+    } finally {
+      setPaymentActionLoading(false);
+    }
+  };
+
   if (!accessChecked) return null;
 
   if (!student || student.status === "pendente" || student.status === "inativo") {
@@ -251,10 +300,66 @@ export function StudentArea() {
         </p>
       </header>
 
-      {paymentStatus === "atrasado" ? (
+      {currentPaymentStatus === "atrasado" ? (
         <aside className="rounded-lg bg-cris-yellow p-4 font-black text-cris-navy shadow-pop">
           Seu plano está em atraso. Regularize para manter seu acesso.
         </aside>
+      ) : null}
+
+      {mensalidadeAtual ? (
+        <section className="rounded-lg bg-white p-5 shadow-pop ring-1 ring-cris-navy/10 sm:p-6">
+          <div className="flex items-start gap-4">
+            <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
+              <MoneyIcon className="size-7" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black uppercase text-cris-pink">
+                Mensalidade do mes
+              </p>
+              <h2 className="mt-1 text-2xl font-black uppercase text-cris-navy">
+                {mensalidadeAtual.mesReferencia} - R${mensalidadeAtual.valor}
+              </h2>
+              <p className="mt-2 font-bold text-cris-navy/65">
+                Vencimento dia 8. Status:{" "}
+                {mensalidadeAtual.status.replace("_", " ")}
+              </p>
+
+              {mensalidadeAtual.status === "pago" ? (
+                <p className="mt-4 rounded-lg bg-emerald-100 p-4 font-black text-emerald-700">
+                  Pagamento confirmado. Obrigado!
+                </p>
+              ) : mensalidadeAtual.status === "comprovante_enviado" ? (
+                <p className="mt-4 rounded-lg bg-cris-yellow/25 p-4 font-black text-cris-navy">
+                  Comprovante enviado. Aguarde a confirmacao do professor.
+                </p>
+              ) : (
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <button
+                    className="min-h-12 rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy shadow-pop disabled:opacity-60"
+                    disabled={paymentActionLoading}
+                    onClick={copyMonthlyPix}
+                    type="button"
+                  >
+                    Copiar chave PIX
+                  </button>
+                  <button
+                    className="min-h-12 rounded-lg bg-cris-pink px-5 py-3 text-sm font-black uppercase text-white shadow-pop disabled:opacity-50"
+                    disabled={!pixCopied || paymentActionLoading}
+                    onClick={sendPaymentReceipt}
+                    type="button"
+                  >
+                    Comprovante enviado
+                  </button>
+                </div>
+              )}
+              {paymentMessage ? (
+                <p className="mt-3 font-black text-cris-pink" aria-live="polite">
+                  {paymentMessage}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -278,8 +383,8 @@ export function StudentArea() {
               </span>
             </ProfileItem>
             <ProfileItem label="Pagamento">
-              <span className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase ${getPaymentStyle(paymentStatus)}`}>
-                {capitalize(paymentStatus)}
+              <span className={`rounded-lg px-3 py-1.5 text-xs font-black uppercase ${getPaymentStyle(currentPaymentStatus)}`}>
+                {capitalize(currentPaymentStatus)}
               </span>
             </ProfileItem>
             <ProfileItem label="Data de entrada">{formatDate(student.dataEntrada)}</ProfileItem>
