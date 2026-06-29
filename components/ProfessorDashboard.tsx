@@ -135,6 +135,12 @@ function dedupeMensalidades(rows: Mensalidade[]) {
   return Array.from(byId.values());
 }
 
+function isPagamentoAprovado(row: Mensalidade) {
+  return String(row.observacao ?? "")
+    .toLowerCase()
+    .includes("pagamento aprovado pelo professor");
+}
+
 type RawProfessorPayment = Omit<Pagamento, "status"> & {
   status: string;
 };
@@ -662,7 +668,8 @@ export function ProfessorDashboard() {
                   ? {
                       ...row,
                       status: "pago",
-                      dataPagamento: new Date().toISOString().slice(0, 10)
+                      dataPagamento: new Date().toISOString().slice(0, 10),
+                      observacao: "Pagamento aprovado pelo professor"
                     }
                   : row
               )
@@ -707,34 +714,31 @@ function FinanceiroDashboard({
 }) {
   const [updatingId, setUpdatingId] = useState("");
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthStarted = new Date().getDate() >= 1;
   const mensalidadesUnicas = dedupeMensalidades(mensalidades);
   const mensalidadesDoMes = mensalidadesUnicas.filter(
-    (item) => item.mesReferencia === currentMonth
+    (item) =>
+      item.mesReferencia === currentMonth ||
+      String(item.vencimento ?? "").startsWith(currentMonth)
   );
-  const aguardando = mensalidadesUnicas.filter(
+  const aguardando = mensalidadesDoMes.filter(
     (item) => String(item.status ?? "").trim() === "comprovante_enviado"
   );
-  const alunosComSolicitacaoOuPagamento = new Set(
+  const alunosComPagamentoAprovado = new Set(
     mensalidadesDoMes
-      .filter((item) =>
-        ["comprovante_enviado", "pago"].includes(
-          String(item.status ?? "").trim()
-        )
-      )
+      .filter(isPagamentoAprovado)
       .map((item) => item.alunoId)
   );
   const alunosAtivosEmAberto = students.filter(
     (student) =>
-      student.status === "ativo" &&
-      !alunosComSolicitacaoOuPagamento.has(student.id)
+      (student.status === "ativo" || student.status === "atrasado") &&
+      !alunosComPagamentoAprovado.has(student.id)
   );
-  const pagos = mensalidadesDoMes.filter(
-    (item) => String(item.status ?? "").trim() === "pago"
-  );
+  const pagos = mensalidadesDoMes.filter(isPagamentoAprovado);
   const totalPrevisto = alunosAtivosEmAberto.reduce(
     (sum, student) => sum + (student.planoDetalhes?.valor ?? 0),
     0
-  );
+  ) * (monthStarted ? 1 : 0);
   const totalPago = pagos.reduce((sum, item) => sum + item.valor, 0);
 
   const approve = async (id: string) => {
