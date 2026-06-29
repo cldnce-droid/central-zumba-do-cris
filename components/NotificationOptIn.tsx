@@ -29,6 +29,7 @@ declare global {
 
 const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const WELCOME_KEY = "zdc-notification-welcome-seen-v2";
+const SYNC_KEY = "zdc-onesignal-sync-pending";
 
 const messages: Partial<Record<NotificationStatus, string>> = {
   success: "Notificacoes ativadas com sucesso!",
@@ -49,6 +50,22 @@ export function NotificationOptIn() {
     const installed =
       window.matchMedia("(display-mode: standalone)").matches ||
       iosNavigator.standalone === true;
+
+    if (
+      installed &&
+      appId &&
+      "Notification" in window &&
+      Notification.permission === "granted" &&
+      localStorage.getItem(SYNC_KEY) === "true"
+    ) {
+      window.setTimeout(() => {
+        loadOneSignal()
+          .then(() => localStorage.removeItem(SYNC_KEY))
+          .catch((error) => {
+            console.error("Falha ao sincronizar notificacoes:", error);
+          });
+      }, 1800);
+    }
 
     if (!installed || localStorage.getItem(WELCOME_KEY) === "true") return;
 
@@ -115,17 +132,24 @@ export function NotificationOptIn() {
       setStatus("loading");
       setErrorDetail("");
 
-      const client = await loadOneSignal();
-      await client.Notifications.requestPermission();
+      const permission = await Notification.requestPermission();
 
-      if (Notification.permission !== "granted" && !client.Notifications.permission) {
+      if (permission !== "granted") {
         setStatus("denied");
         return;
       }
 
       localStorage.setItem(WELCOME_KEY, "true");
+      localStorage.setItem(SYNC_KEY, "true");
       setStatus("success");
       window.setTimeout(() => setIsVisible(false), 1200);
+      window.setTimeout(() => {
+        loadOneSignal()
+          .then(() => localStorage.removeItem(SYNC_KEY))
+          .catch((error) => {
+            console.error("Falha ao finalizar notificacoes:", error);
+          });
+      }, 2200);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error("Falha ao solicitar notificacoes:", detail);
