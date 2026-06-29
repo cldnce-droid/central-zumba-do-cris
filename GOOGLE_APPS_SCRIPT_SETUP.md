@@ -35,6 +35,8 @@ const ACTIONS = {
   upsertPresenca: (data) => upsertRow("Presencas", data),
   getPagamentos: () => readRows("Pagamentos"),
   upsertPagamento: (data) => upsertRow("Pagamentos", data),
+  getMensalidades: () => readRows("Mensalidades"),
+  upsertMensalidade: (data) => upsertRow("Mensalidades", data),
   getDesafios: () => readRows("Desafios"),
   createDesafio: (data) => createRow("Desafios", data),
   updateDesafio: (data) => updateRow("Desafios", data),
@@ -203,3 +205,36 @@ Depois de salvar as variáveis, faça um novo deploy.
 
 Se a URL ou o segredo não estiverem configurados, o aplicativo mantém o
 fallback local e não deixa de funcionar.
+## 4. Aba Mensalidades
+
+Crie tambem uma aba chamada `Mensalidades` com estes cabecalhos, exatamente
+nesta ordem:
+
+```text
+id
+alunoId
+nome
+whatsapp
+mesReferencia
+plano
+valor
+vencimento
+status
+dataPagamento
+dataComprovante
+metodo
+observacao
+```
+
+Status usados pelo app:
+
+```text
+em_aberto
+comprovante_enviado
+pago
+atrasado
+```
+
+No dia 1 de cada mes, a Area do Aluno ja mostra a mensalidade do mes. Quando
+a aluna copia a chave PIX e toca em `Comprovante enviado`, o registro aparece
+na aba `Financeiro` do Dashboard do Professor para aprovacao.
