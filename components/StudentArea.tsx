@@ -29,7 +29,9 @@ import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
 import {
   copiarPixMensalidade,
   formatMesReferencia,
+  getMesReferencia,
   getMensalidadeAtualDoAluno,
+  getProximaMensalidadeDoAluno,
   registrarPagamentoDinheiro
 } from "@/lib/services/financeiroService";
 import type { AlunoStatus, Aula, PagamentoStatus } from "@/lib/student-data";
@@ -147,6 +149,16 @@ export function StudentArea() {
     () => getMensalidadeAtualDoAluno(studentId),
     [studentId, revision]
   );
+  const proximaMensalidade = useMemo(
+    () =>
+      mensalidadeAtual?.status === "pago"
+        ? getProximaMensalidadeDoAluno(studentId)
+        : null,
+    [mensalidadeAtual?.status, studentId, revision]
+  );
+  const mensalidadeVisivel = proximaMensalidade ?? mensalidadeAtual;
+  const mensalidadeDoMesAtual =
+    mensalidadeVisivel?.mesReferencia === getMesReferencia();
   const currentPaymentStatus: PagamentoStatus =
     mensalidadeAtual?.status === "pago" ? "pago" : paymentStatus;
 
@@ -319,7 +331,7 @@ export function StudentArea() {
         </aside>
       ) : null}
 
-      {mensalidadeAtual && mensalidadeAtual.status !== "pago" ? (
+      {mensalidadeVisivel ? (
         <section className="rounded-lg bg-white p-5 shadow-pop ring-1 ring-cris-navy/10 sm:p-6">
           <div className="flex items-start gap-4">
             <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
@@ -330,14 +342,22 @@ export function StudentArea() {
                 Mensalidade do mes
               </p>
               <h2 className="mt-1 text-2xl font-black uppercase text-cris-navy">
-                {formatMesReferencia(mensalidadeAtual.mesReferencia)} - R${mensalidadeAtual.valor}
+                {formatMesReferencia(mensalidadeVisivel.mesReferencia)} - R${mensalidadeVisivel.valor}
               </h2>
               <p className="mt-2 font-bold text-cris-navy/65">
                 Vencimento dia 8. Status:{" "}
-                {mensalidadeAtual.status.replace("_", " ")}
+                {mensalidadeVisivel.status.replace("_", " ")}
               </p>
 
-              {mensalidadeAtual.status === "comprovante_enviado" ? (
+              {!mensalidadeDoMesAtual ? (
+                <p className="mt-4 rounded-lg bg-cris-yellow/25 p-4 font-black text-cris-navy">
+                  Próxima mensalidade. O PIX e o pagamento em dinheiro ficam disponíveis no dia 1 deste mês.
+                </p>
+              ) : mensalidadeVisivel.status === "pago" ? (
+                <p className="mt-4 rounded-lg bg-emerald-100 p-4 font-black text-emerald-700">
+                  Pagamento confirmado. Obrigado!
+                </p>
+              ) : mensalidadeVisivel.status === "comprovante_enviado" ? (
                 <p className="mt-4 rounded-lg bg-cris-yellow/25 p-4 font-black text-cris-navy">
                   Solicitação enviada. Aguarde a baixa do professor no sistema.
                 </p>
