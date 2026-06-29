@@ -8,6 +8,7 @@ export const SHEET_NAMES = [
   "Confirmacoes",
   "Presencas",
   "Pagamentos",
+  "Mensalidades",
   "Desafios",
   "Conquistas"
 ] as const;
@@ -22,6 +23,7 @@ const readActions: Record<SheetName, string> = {
   Confirmacoes: "getConfirmacoes",
   Presencas: "getPresencas",
   Pagamentos: "getPagamentos",
+  Mensalidades: "getMensalidades",
   Desafios: "getDesafios",
   Conquistas: "getConquistas"
 };
@@ -34,6 +36,7 @@ const createActions: Record<SheetName, string> = {
   Confirmacoes: "createConfirmacao",
   Presencas: "upsertPresenca",
   Pagamentos: "upsertPagamento",
+  Mensalidades: "upsertMensalidade",
   Desafios: "createDesafio",
   Conquistas: "createConquista"
 };
@@ -46,6 +49,7 @@ const updateActions: Record<SheetName, string> = {
   Confirmacoes: "updateConfirmacao",
   Presencas: "upsertPresenca",
   Pagamentos: "upsertPagamento",
+  Mensalidades: "upsertMensalidade",
   Desafios: "updateDesafio",
   Conquistas: "updateConquista"
 };
