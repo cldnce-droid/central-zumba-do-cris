@@ -28,6 +28,10 @@ export function getMesReferencia(date = new Date()) {
   ].join("-");
 }
 
+function addMonths(date: Date, months: number) {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
 export function formatMesReferencia(value: string) {
   const [year, month] = value.split("-");
   const date = new Date(Number(year), Number(month) - 1, 1);
@@ -126,6 +130,10 @@ export function criarMensalidadeDoMes(alunoId: string, date = new Date()) {
 
 export function getMensalidadeAtualDoAluno(alunoId: string) {
   return criarMensalidadeDoMes(alunoId);
+}
+
+export function getProximaMensalidadeDoAluno(alunoId: string) {
+  return criarMensalidadeDoMes(alunoId, addMonths(new Date(), 1));
 }
 
 export async function copiarPixMensalidade(alunoId: string) {
