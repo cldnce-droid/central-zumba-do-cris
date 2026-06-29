@@ -29,10 +29,10 @@ export function StudentLogin() {
     setError("");
     setPendingStudent(null);
 
-    let student: Aluno | null = null;
+    let student: Aluno | null | undefined = null;
 
     try {
-      student = await getAlunoByWhatsappRemoto(normalized);
+      student = (await getAlunoByWhatsappRemoto(normalized)) ?? null;
     } catch {
       setError("Nao foi possivel acessar agora. Tente novamente.");
       setIsLoading(false);
