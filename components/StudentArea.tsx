@@ -337,11 +337,7 @@ export function StudentArea() {
                 {mensalidadeAtual.status.replace("_", " ")}
               </p>
 
-              {mensalidadeAtual.status === "pago" ? (
-                <p className="mt-4 rounded-lg bg-emerald-100 p-4 font-black text-emerald-700">
-                  Pagamento confirmado. Obrigado!
-                </p>
-              ) : mensalidadeAtual.status === "comprovante_enviado" ? (
+              {mensalidadeAtual.status === "comprovante_enviado" ? (
                 <p className="mt-4 rounded-lg bg-cris-yellow/25 p-4 font-black text-cris-navy">
                   Solicitação enviada. Aguarde a baixa do professor no sistema.
                 </p>
