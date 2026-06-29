@@ -111,22 +111,28 @@ function mensalidadePriority(status: string) {
 }
 
 function dedupeMensalidades(rows: Mensalidade[]) {
-  return Array.from(
-    new Map(
-      [...rows]
-        .sort(
-          (first, second) =>
-            mensalidadePriority(second.status) -
-              mensalidadePriority(first.status) ||
-            String(
-              second.dataPagamento ?? second.dataComprovante ?? ""
-            ).localeCompare(
-              String(first.dataPagamento ?? first.dataComprovante ?? "")
-            )
-        )
-        .map((row) => [row.id, row])
-    ).values()
-  );
+  const byId = new Map<string, Mensalidade>();
+
+  rows.forEach((row) => {
+    const current = byId.get(row.id);
+    if (!current) {
+      byId.set(row.id, row);
+      return;
+    }
+
+    const rowScore = mensalidadePriority(row.status);
+    const currentScore = mensalidadePriority(current.status);
+    const rowDate = String(row.dataPagamento ?? row.dataComprovante ?? "");
+    const currentDate = String(
+      current.dataPagamento ?? current.dataComprovante ?? ""
+    );
+
+    if (rowScore > currentScore || (rowScore === currentScore && rowDate > currentDate)) {
+      byId.set(row.id, row);
+    }
+  });
+
+  return Array.from(byId.values());
 }
 
 type RawProfessorPayment = Omit<Pagamento, "status"> & {
@@ -705,7 +711,7 @@ function FinanceiroDashboard({
   const mensalidadesDoMes = mensalidadesUnicas.filter(
     (item) => item.mesReferencia === currentMonth
   );
-  const aguardando = mensalidadesDoMes.filter(
+  const aguardando = mensalidadesUnicas.filter(
     (item) => String(item.status ?? "").trim() === "comprovante_enviado"
   );
   const alunosComSolicitacaoOuPagamento = new Set(
