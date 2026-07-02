@@ -72,6 +72,14 @@ export function isAppIdMismatch(error: unknown) {
   );
 }
 
+function isAlreadyInitialized(error: unknown) {
+  const detail = error instanceof Error ? error.message : String(error);
+  return (
+    detail.toLowerCase().includes("already") &&
+    detail.toLowerCase().includes("init")
+  );
+}
+
 function deleteDatabase(name: string) {
   return new Promise<void>((resolve) => {
     if (!("indexedDB" in window)) {
@@ -147,6 +155,10 @@ export async function getOneSignal() {
           });
           resolve(oneSignal);
         } catch (error) {
+          if (isAlreadyInitialized(error)) {
+            resolve(oneSignal);
+            return;
+          }
           reject(error);
         }
       });
