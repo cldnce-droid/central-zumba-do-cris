@@ -65,8 +65,33 @@ function loadOneSignalScript() {
   });
 }
 
+async function ensureOneSignalServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(
+    registrations
+      .filter((registration) =>
+        String(registration.active?.scriptURL ?? "").endsWith("/sw.js")
+      )
+      .map((registration) => registration.unregister())
+  );
+
+  const registration = await navigator.serviceWorker.register(
+    "/OneSignalSDKWorker.js",
+    {
+      scope: "/",
+      updateViaCache: "none"
+    }
+  );
+
+  await registration.update().catch(() => undefined);
+}
+
 async function initOneSignal(oneSignal: OneSignalSdk) {
   try {
+    await ensureOneSignalServiceWorker();
+
     await oneSignal.init({
       appId: ONESIGNAL_APP_ID,
       serviceWorkerPath: "/OneSignalSDKWorker.js",
@@ -221,4 +246,26 @@ export async function waitForOneSignalSubscription(oneSignal: OneSignalSdk) {
   }
 
   return false;
+}
+
+export async function getOneSignalDebugInfo() {
+  if (!("serviceWorker" in navigator)) {
+    return "Service worker indisponivel neste navegador.";
+  }
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  const workers = registrations
+    .map((registration) => {
+      const scriptURL =
+        registration.active?.scriptURL ??
+        registration.installing?.scriptURL ??
+        registration.waiting?.scriptURL ??
+        "sem script ativo";
+      return scriptURL.split("/").pop() ?? scriptURL;
+    })
+    .join(", ");
+
+  return workers
+    ? `Service worker atual: ${workers}.`
+    : "Nenhum service worker registrado.";
 }
