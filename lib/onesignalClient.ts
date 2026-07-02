@@ -68,10 +68,7 @@ function loadOneSignalScript() {
 async function initOneSignal(oneSignal: OneSignalSdk) {
   try {
     await oneSignal.init({
-      appId: ONESIGNAL_APP_ID,
-      serviceWorkerPath: "/OneSignalSDKWorker.js",
-      serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
-      serviceWorkerParam: { scope: "/" }
+      appId: ONESIGNAL_APP_ID
     });
   } catch (error) {
     if (!isAlreadyInitialized(error)) {
