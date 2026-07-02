@@ -47,17 +47,22 @@ async function subscribeWithOneSignal() {
 
   const permission =
     Notification.permission === "granted"
-      ? true
-      : await withTimeout(
-          oneSignal.Notifications?.requestPermission?.() ??
-            Notification.requestPermission().then(
-              (result) => result === "granted"
-            ),
-          12000,
-          "O celular nao concluiu a permissao de notificacao."
-        );
+      ? "granted"
+      : await Notification.requestPermission();
 
-  if (!permission || Notification.permission !== "granted") return false;
+  if (permission !== "granted") return false;
+
+  // Com a permissao ja liberada, essa chamada ajuda o OneSignal a sincronizar.
+  // Se o celular travar aqui, seguimos para o optIn sem bloquear a aluna.
+  try {
+    await withTimeout(
+      oneSignal.Notifications?.requestPermission?.() ?? Promise.resolve(true),
+      4000,
+      "OneSignal demorou para sincronizar a permissao."
+    );
+  } catch (error) {
+    console.warn("OneSignal requestPermission ainda esta pendente:", error);
+  }
 
   const optInPromise =
     oneSignal.User?.PushSubscription?.optIn?.() ?? Promise.resolve();
