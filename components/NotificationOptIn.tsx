@@ -35,9 +35,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string) {
 }
 
 async function subscribeWithOneSignal() {
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return false;
-
   const oneSignal = await withTimeout(
     getOneSignal(),
     10000,
@@ -48,13 +45,31 @@ async function subscribeWithOneSignal() {
     throw new Error("OneSignal nao inicializou neste dispositivo.");
   }
 
-  // Em alguns celulares o optIn do OneSignal demora ou nao resolve a Promise.
-  // Disparamos sem travar e confirmamos a inscricao lendo o status abaixo.
-  const optInPromise = oneSignal.User?.PushSubscription?.optIn?.();
-  if (optInPromise) {
-    void optInPromise.catch((error) => {
-      console.warn("OneSignal optIn nao concluiu:", error);
-    });
+  const permission =
+    Notification.permission === "granted"
+      ? true
+      : await withTimeout(
+          oneSignal.Notifications?.requestPermission?.() ??
+            Notification.requestPermission().then(
+              (result) => result === "granted"
+            ),
+          12000,
+          "O celular nao concluiu a permissao de notificacao."
+        );
+
+  if (!permission || Notification.permission !== "granted") return false;
+
+  const optInPromise =
+    oneSignal.User?.PushSubscription?.optIn?.() ?? Promise.resolve();
+
+  try {
+    await withTimeout(
+      optInPromise,
+      5000,
+      "OneSignal demorou para confirmar o cadastro inicial."
+    );
+  } catch (error) {
+    console.warn("OneSignal optIn ainda esta pendente:", error);
   }
 
   const subscribed = await withTimeout(
