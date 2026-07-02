@@ -87,7 +87,7 @@ export function NotificationOptIn() {
         ? await oneSignal.Notifications.requestPermission()
         : false;
 
-      if (permission !== true && permission !== "granted") {
+      if (!permission) {
         setStatus("denied");
         localStorage.setItem(WELCOME_KEY, "true");
         return;
