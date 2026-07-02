@@ -114,18 +114,17 @@ export async function resetOneSignalRegistration(welcomeKey?: string) {
       .forEach((key) => storage.removeItem(key));
   });
 
-  if ("caches" in window) {
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map((name) => caches.delete(name)));
-  }
-
   const databaseNames = await getOneSignalDatabaseNames();
   await Promise.all(databaseNames.map(deleteDatabase));
 
   if ("serviceWorker" in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
-      registrations.map((registration) => registration.unregister())
+      registrations
+        .filter((registration) =>
+          String(registration.active?.scriptURL ?? "").includes("OneSignal")
+        )
+        .map((registration) => registration.unregister())
     );
   }
 
