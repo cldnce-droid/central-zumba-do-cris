@@ -12,9 +12,6 @@ type OneSignalSdk = {
     isPushSupported?: () => boolean;
     permission?: boolean;
   };
-  Slidedown?: {
-    promptPush: (options?: { force?: boolean }) => Promise<void> | void;
-  };
   User?: {
     PushSubscription?: {
       id?: string | null;
