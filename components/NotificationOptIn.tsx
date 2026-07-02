@@ -2,6 +2,29 @@
 
 import { useEffect, useState } from "react";
 
+type OneSignalSdk = {
+  init: (options: {
+    appId: string;
+    serviceWorkerPath?: string;
+    serviceWorkerUpdaterPath?: string;
+    serviceWorkerParam?: { scope: string };
+  }) => Promise<void> | void;
+  Notifications?: {
+    requestPermission: () => Promise<boolean>;
+  };
+  User?: {
+    PushSubscription?: {
+      optIn?: () => Promise<void>;
+    };
+  };
+};
+
+declare global {
+  interface Window {
+    OneSignalDeferred?: Array<(oneSignal: OneSignalSdk) => void | Promise<void>>;
+  }
+}
+
 type NotificationStatus =
   | "loading"
   | "idle"
@@ -10,7 +33,9 @@ type NotificationStatus =
   | "unsupported"
   | "failed";
 
-const WELCOME_KEY = "zdc-notification-welcome-seen-v3";
+const WELCOME_KEY = "zdc-notification-welcome-seen-v4";
+const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+let oneSignalReady: Promise<OneSignalSdk> | null = null;
 
 const messages: Partial<Record<NotificationStatus, string>> = {
   success: "Notificacoes ativadas com sucesso!",
@@ -18,6 +43,54 @@ const messages: Partial<Record<NotificationStatus, string>> = {
   unsupported: "Seu navegador ainda nao permite notificacoes.",
   failed: "Nao foi possivel ativar agora. Tente novamente."
 };
+
+function loadOneSignalScript() {
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src*="OneSignalSDK.page.js"]'
+    );
+
+    if (existing) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.defer = true;
+    script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Falha ao carregar OneSignal."));
+    document.head.appendChild(script);
+  });
+}
+
+async function getOneSignal() {
+  if (!ONESIGNAL_APP_ID) return null;
+
+  if (!oneSignalReady) {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    oneSignalReady = new Promise<OneSignalSdk>((resolve, reject) => {
+      window.OneSignalDeferred?.push(async (oneSignal) => {
+        try {
+          await oneSignal.init({
+            appId: ONESIGNAL_APP_ID,
+            serviceWorkerPath: "OneSignalSDKWorker.js",
+            serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
+            serviceWorkerParam: { scope: "/" }
+          });
+          resolve(oneSignal);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      loadOneSignalScript().catch(reject);
+    });
+  }
+
+  return oneSignalReady;
+}
 
 export function NotificationOptIn() {
   const [isVisible, setIsVisible] = useState(false);
@@ -40,7 +113,14 @@ export function NotificationOptIn() {
     }
 
     if (Notification.permission === "granted") {
-      localStorage.setItem(WELCOME_KEY, "true");
+      if (ONESIGNAL_APP_ID) {
+        void getOneSignal()
+          .then((oneSignal) => oneSignal?.User?.PushSubscription?.optIn?.())
+          .then(() => localStorage.setItem(WELCOME_KEY, "true"))
+          .catch(() => setIsVisible(true));
+      } else {
+        localStorage.setItem(WELCOME_KEY, "true");
+      }
       return () => window.clearTimeout(showTimer);
     }
 
@@ -57,13 +137,18 @@ export function NotificationOptIn() {
       setStatus("loading");
       setErrorDetail("");
 
-      const permission = await Notification.requestPermission();
+      const oneSignal = await getOneSignal();
+      const permission = oneSignal?.Notifications
+        ? await oneSignal.Notifications.requestPermission()
+        : await Notification.requestPermission();
 
-      if (permission !== "granted") {
+      if (permission !== true && permission !== "granted") {
         setStatus("denied");
         localStorage.setItem(WELCOME_KEY, "true");
         return;
       }
+
+      await oneSignal?.User?.PushSubscription?.optIn?.();
 
       localStorage.setItem(WELCOME_KEY, "true");
       setStatus("success");
