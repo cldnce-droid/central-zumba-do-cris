@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   getOneSignal,
-  hasOneSignalAppId,
   isAppIdMismatch,
   resetOneSignalRegistration,
   waitForOneSignalSubscription
@@ -26,20 +25,39 @@ const messages: Partial<Record<NotificationStatus, string>> = {
   failed: "Nao foi possivel ativar agora. Tente novamente."
 };
 
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string) {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      window.setTimeout(() => reject(new Error(message)), ms)
+    )
+  ]);
+}
+
 async function subscribeWithOneSignal() {
-  const oneSignal = await getOneSignal();
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") return false;
+
+  const oneSignal = await withTimeout(
+    getOneSignal(),
+    10000,
+    "Tempo esgotado ao carregar o OneSignal."
+  );
+
   if (!oneSignal) {
     throw new Error("OneSignal nao inicializou neste dispositivo.");
   }
 
-  const permission = oneSignal.Notifications
-    ? await oneSignal.Notifications.requestPermission()
-    : false;
-
-  if (!permission) return false;
-
-  await oneSignal.User?.PushSubscription?.optIn?.();
-  const subscribed = await waitForOneSignalSubscription(oneSignal);
+  await withTimeout(
+    oneSignal.User?.PushSubscription?.optIn?.() ?? Promise.resolve(),
+    8000,
+    "Permissao liberada, mas o OneSignal nao concluiu a inscricao."
+  );
+  const subscribed = await withTimeout(
+    waitForOneSignalSubscription(oneSignal),
+    10000,
+    "Permissao liberada, mas o celular nao apareceu no OneSignal."
+  );
 
   if (!subscribed) {
     throw new Error(
@@ -67,20 +85,6 @@ export function NotificationOptIn() {
 
     if (!("Notification" in window)) {
       setStatus("unsupported");
-      return () => window.clearTimeout(showTimer);
-    }
-
-    if (Notification.permission === "granted") {
-      if (hasOneSignalAppId()) {
-        void getOneSignal()
-          .then((oneSignal) => oneSignal?.User?.PushSubscription?.optIn?.())
-          .then(() => localStorage.setItem(WELCOME_KEY, "true"))
-          .catch(() => {
-            setIsVisible(true);
-          });
-      } else {
-        localStorage.setItem(WELCOME_KEY, "true");
-      }
       return () => window.clearTimeout(showTimer);
     }
 
