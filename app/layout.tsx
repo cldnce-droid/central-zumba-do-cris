@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import type { ReactNode } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
@@ -58,6 +59,20 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
+        <Script
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+          strategy="afterInteractive"
+        />
+        <Script id="onesignal-init" strategy="afterInteractive">
+          {`
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            OneSignalDeferred.push(async function(OneSignal) {
+              await OneSignal.init({
+                appId: "846c2dc3-de65-4499-a5f1-299f6f10162"
+              });
+            });
+          `}
+        </Script>
         <PwaRegister />
         <NotificationOptIn />
         <div className="min-h-dvh overflow-hidden bg-cris-paper text-cris-navy">
