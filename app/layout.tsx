@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
-import { OneSignalInitializer } from "@/components/OneSignalInitializer";
 import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
 
@@ -60,7 +59,6 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body>
         <PwaRegister />
-        <OneSignalInitializer />
         <NotificationOptIn />
         <div className="min-h-dvh overflow-hidden bg-cris-paper text-cris-navy">
           <div className="app-bg" aria-hidden="true" />
