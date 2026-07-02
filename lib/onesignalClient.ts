@@ -23,6 +23,7 @@ type OneSignalSdk = {
 declare global {
   interface Window {
     OneSignalDeferred?: Array<(oneSignal: OneSignalSdk) => void | Promise<void>>;
+    OneSignal?: OneSignalSdk;
   }
 }
 
@@ -62,6 +63,23 @@ function loadOneSignalScript() {
     script.onerror = () => reject(new Error("Falha ao carregar OneSignal."));
     document.head.appendChild(script);
   });
+}
+
+async function initOneSignal(oneSignal: OneSignalSdk) {
+  try {
+    await oneSignal.init({
+      appId: ONESIGNAL_APP_ID,
+      serviceWorkerPath: "/OneSignalSDKWorker.js",
+      serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
+      serviceWorkerParam: { scope: "/" }
+    });
+  } catch (error) {
+    if (!isAlreadyInitialized(error)) {
+      throw error;
+    }
+  }
+
+  return oneSignal;
 }
 
 export function isAppIdMismatch(error: unknown) {
@@ -142,28 +160,39 @@ export async function resetOneSignalRegistration(welcomeKey?: string) {
 export async function getOneSignal() {
   if (!ONESIGNAL_APP_ID) return null;
 
+  if (window.OneSignal) {
+    return initOneSignal(window.OneSignal);
+  }
+
   if (!oneSignalReady) {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    oneSignalReady = new Promise<OneSignalSdk>((resolve, reject) => {
+    const deferredReady = new Promise<OneSignalSdk>((resolve, reject) => {
       window.OneSignalDeferred?.push(async (oneSignal) => {
         try {
-          await oneSignal.init({
-            appId: ONESIGNAL_APP_ID,
-            serviceWorkerPath: "/OneSignalSDKWorker.js",
-            serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
-            serviceWorkerParam: { scope: "/" }
-          });
-          resolve(oneSignal);
+          resolve(await initOneSignal(oneSignal));
         } catch (error) {
-          if (isAlreadyInitialized(error)) {
-            resolve(oneSignal);
-            return;
-          }
           reject(error);
         }
       });
+    });
 
-      loadOneSignalScript().catch(reject);
+    const globalReady = loadOneSignalScript().then(async () => {
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        if (window.OneSignal) {
+          return initOneSignal(window.OneSignal);
+        }
+        await wait(100);
+      }
+      throw new Error("OneSignal carregou, mas nao inicializou no navegador.");
+    });
+
+    oneSignalReady = Promise.race([
+      deferredReady,
+      globalReady,
+      timeout(10000, "Tempo esgotado ao carregar o OneSignal.")
+    ]).catch((error) => {
+      oneSignalReady = null;
+      throw error;
     });
   }
 
@@ -172,6 +201,12 @@ export async function getOneSignal() {
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function timeout(ms: number, message: string) {
+  return new Promise<never>((_, reject) => {
+    window.setTimeout(() => reject(new Error(message)), ms);
+  });
 }
 
 export async function waitForOneSignalSubscription(oneSignal: OneSignalSdk) {
