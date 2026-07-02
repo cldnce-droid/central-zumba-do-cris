@@ -50,21 +50,6 @@ async function subscribeWithOneSignal() {
     return true;
   }
 
-  // Primeiro tenta o fluxo proprio do OneSignal, que cria a inscricao no painel.
-  try {
-    await withTimeout(
-      Promise.resolve(oneSignal.Slidedown?.promptPush?.({ force: true })),
-      15000,
-      "OneSignal nao concluiu o prompt de inscricao."
-    );
-  } catch (error) {
-    console.warn("Prompt do OneSignal nao concluiu:", error);
-  }
-
-  if (await waitForOneSignalSubscription(oneSignal)) {
-    return true;
-  }
-
   const permission =
     Notification.permission === "granted"
       ? "granted"
@@ -72,29 +57,16 @@ async function subscribeWithOneSignal() {
 
   if (permission !== "granted") return false;
 
-  // Com a permissao ja liberada, essa chamada ajuda o OneSignal a sincronizar.
-  // Se o celular travar aqui, seguimos para o optIn sem bloquear a aluna.
+  // Quando o navegador ja esta liberado, o ponto critico e criar o token.
+  // O optIn e o metodo que deve gerar a assinatura no OneSignal.
   try {
     await withTimeout(
-      oneSignal.Notifications?.requestPermission?.() ?? Promise.resolve(true),
-      4000,
-      "OneSignal demorou para sincronizar a permissao."
+      oneSignal.User?.PushSubscription?.optIn?.() ?? Promise.resolve(),
+      15000,
+      "OneSignal nao conseguiu criar a inscricao push."
     );
   } catch (error) {
-    console.warn("OneSignal requestPermission ainda esta pendente:", error);
-  }
-
-  const optInPromise =
-    oneSignal.User?.PushSubscription?.optIn?.() ?? Promise.resolve();
-
-  try {
-    await withTimeout(
-      optInPromise,
-      5000,
-      "OneSignal demorou para confirmar o cadastro inicial."
-    );
-  } catch (error) {
-    console.warn("OneSignal optIn ainda esta pendente:", error);
+    console.warn("OneSignal optIn nao criou assinatura:", error);
   }
 
   const subscribed = await withTimeout(
