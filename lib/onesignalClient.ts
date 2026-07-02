@@ -207,7 +207,7 @@ function timeout(ms: number, message: string) {
 }
 
 export async function waitForOneSignalSubscription(oneSignal: OneSignalSdk) {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
     const subscription = oneSignal.User?.PushSubscription;
     if (subscription?.id || subscription?.token || subscription?.optedIn) {
       return true;
