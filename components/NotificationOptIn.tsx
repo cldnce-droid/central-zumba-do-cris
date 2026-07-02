@@ -46,6 +46,25 @@ async function subscribeWithOneSignal() {
     throw new Error("OneSignal nao inicializou neste dispositivo.");
   }
 
+  if (await waitForOneSignalSubscription(oneSignal)) {
+    return true;
+  }
+
+  // Primeiro tenta o fluxo proprio do OneSignal, que cria a inscricao no painel.
+  try {
+    await withTimeout(
+      Promise.resolve(oneSignal.Slidedown?.promptPush?.({ force: true })),
+      15000,
+      "OneSignal nao concluiu o prompt de inscricao."
+    );
+  } catch (error) {
+    console.warn("Prompt do OneSignal nao concluiu:", error);
+  }
+
+  if (await waitForOneSignalSubscription(oneSignal)) {
+    return true;
+  }
+
   const permission =
     Notification.permission === "granted"
       ? "granted"
