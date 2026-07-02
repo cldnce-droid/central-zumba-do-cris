@@ -26,6 +26,30 @@ const messages: Partial<Record<NotificationStatus, string>> = {
   failed: "Nao foi possivel ativar agora. Tente novamente."
 };
 
+async function subscribeWithOneSignal() {
+  const oneSignal = await getOneSignal();
+  if (!oneSignal) {
+    throw new Error("OneSignal nao inicializou neste dispositivo.");
+  }
+
+  const permission = oneSignal.Notifications
+    ? await oneSignal.Notifications.requestPermission()
+    : false;
+
+  if (!permission) return false;
+
+  await oneSignal.User?.PushSubscription?.optIn?.();
+  const subscribed = await waitForOneSignalSubscription(oneSignal);
+
+  if (!subscribed) {
+    throw new Error(
+      "Permissao liberada, mas o celular ainda nao entrou no OneSignal."
+    );
+  }
+
+  return true;
+}
+
 export function NotificationOptIn() {
   const [isVisible, setIsVisible] = useState(false);
   const [status, setStatus] = useState<NotificationStatus>("idle");
@@ -73,28 +97,11 @@ export function NotificationOptIn() {
       setStatus("loading");
       setErrorDetail("");
 
-      const oneSignal = await getOneSignal();
-      if (!oneSignal) {
-        throw new Error("OneSignal nao inicializou neste dispositivo.");
-      }
-
-      const permission = oneSignal?.Notifications
-        ? await oneSignal.Notifications.requestPermission()
-        : false;
-
-      if (!permission) {
+      const subscribed = await subscribeWithOneSignal();
+      if (!subscribed) {
         setStatus("denied");
         localStorage.setItem(WELCOME_KEY, "true");
         return;
-      }
-
-      await oneSignal?.User?.PushSubscription?.optIn?.();
-      const subscribed = await waitForOneSignalSubscription(oneSignal);
-
-      if (!subscribed) {
-        throw new Error(
-          "Permissao liberada, mas o celular ainda nao entrou no OneSignal."
-        );
       }
 
       localStorage.setItem(WELCOME_KEY, "true");
@@ -104,10 +111,25 @@ export function NotificationOptIn() {
       const detail = error instanceof Error ? error.message : String(error);
       if (isAppIdMismatch(error)) {
         await resetOneSignalRegistration(WELCOME_KEY);
-        setStatus("failed");
-        setErrorDetail(
-          "Registro antigo limpo. Feche o app, abra novamente e tente ativar."
-        );
+        try {
+          const subscribed = await subscribeWithOneSignal();
+          if (!subscribed) {
+            setStatus("denied");
+            localStorage.setItem(WELCOME_KEY, "true");
+            return;
+          }
+
+          localStorage.setItem(WELCOME_KEY, "true");
+          setStatus("success");
+          window.setTimeout(() => setIsVisible(false), 1200);
+        } catch (retryError) {
+          setStatus("failed");
+          setErrorDetail(
+            retryError instanceof Error
+              ? retryError.message
+              : "Registro antigo limpo, mas a nova inscrição falhou."
+          );
+        }
         return;
       }
       console.error("Falha ao solicitar notificacoes:", detail);
