@@ -79,9 +79,13 @@ export function NotificationOptIn() {
       setErrorDetail("");
 
       const oneSignal = await getOneSignal();
+      if (!oneSignal) {
+        throw new Error("OneSignal nao inicializou neste dispositivo.");
+      }
+
       const permission = oneSignal?.Notifications
         ? await oneSignal.Notifications.requestPermission()
-        : await Notification.requestPermission();
+        : false;
 
       if (permission !== true && permission !== "granted") {
         setStatus("denied");
@@ -90,9 +94,7 @@ export function NotificationOptIn() {
       }
 
       await oneSignal?.User?.PushSubscription?.optIn?.();
-      const subscribed = oneSignal
-        ? await waitForOneSignalSubscription(oneSignal)
-        : true;
+      const subscribed = await waitForOneSignalSubscription(oneSignal);
 
       if (!subscribed) {
         throw new Error(
