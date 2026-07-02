@@ -51,12 +51,7 @@ export function NotificationOptIn() {
         void getOneSignal()
           .then((oneSignal) => oneSignal?.User?.PushSubscription?.optIn?.())
           .then(() => localStorage.setItem(WELCOME_KEY, "true"))
-          .catch(async (error) => {
-            if (isAppIdMismatch(error)) {
-              await resetOneSignalRegistration(WELCOME_KEY);
-              window.location.reload();
-              return;
-            }
+          .catch(() => {
             setIsVisible(true);
           });
       } else {
@@ -109,8 +104,10 @@ export function NotificationOptIn() {
       const detail = error instanceof Error ? error.message : String(error);
       if (isAppIdMismatch(error)) {
         await resetOneSignalRegistration(WELCOME_KEY);
-        setErrorDetail("Limpando registro antigo do OneSignal...");
-        window.setTimeout(() => window.location.reload(), 700);
+        setStatus("failed");
+        setErrorDetail(
+          "Registro antigo limpo. Feche o app, abra novamente e tente ativar."
+        );
         return;
       }
       console.error("Falha ao solicitar notificacoes:", detail);
