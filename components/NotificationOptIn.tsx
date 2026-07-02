@@ -33,7 +33,8 @@ type NotificationStatus =
   | "unsupported"
   | "failed";
 
-const WELCOME_KEY = "zdc-notification-welcome-seen-v4";
+const WELCOME_KEY = "zdc-notification-welcome-seen-v5";
+const RECOVERY_KEY = "zdc-onesignal-recovery-tried";
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 let oneSignalReady: Promise<OneSignalSdk> | null = null;
 
@@ -63,6 +64,54 @@ function loadOneSignalScript() {
     script.onerror = () => reject(new Error("Falha ao carregar OneSignal."));
     document.head.appendChild(script);
   });
+}
+
+function isAppIdMismatch(error: unknown) {
+  const detail = error instanceof Error ? error.message : String(error);
+  return (
+    detail.toLowerCase().includes("appid") &&
+    detail.toLowerCase().includes("match")
+  );
+}
+
+function deleteDatabase(name: string) {
+  return new Promise<void>((resolve) => {
+    if (!("indexedDB" in window)) {
+      resolve();
+      return;
+    }
+
+    const request = indexedDB.deleteDatabase(name);
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+}
+
+async function resetOneSignalRegistration() {
+  localStorage.removeItem(WELCOME_KEY);
+  Object.keys(localStorage)
+    .filter((key) => key.toLowerCase().includes("onesignal"))
+    .forEach((key) => localStorage.removeItem(key));
+
+  await Promise.all([
+    deleteDatabase("ONE_SIGNAL_SDK_DB"),
+    deleteDatabase("OneSignalSDK")
+  ]);
+
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations
+        .filter((registration) => {
+          const url = registration.active?.scriptURL ?? "";
+          return url.includes("OneSignal") || url.endsWith("/sw.js");
+        })
+        .map((registration) => registration.unregister())
+    );
+  }
+
+  oneSignalReady = null;
 }
 
 async function getOneSignal() {
@@ -117,7 +166,18 @@ export function NotificationOptIn() {
         void getOneSignal()
           .then((oneSignal) => oneSignal?.User?.PushSubscription?.optIn?.())
           .then(() => localStorage.setItem(WELCOME_KEY, "true"))
-          .catch(() => setIsVisible(true));
+          .catch(async (error) => {
+            if (
+              isAppIdMismatch(error) &&
+              sessionStorage.getItem(RECOVERY_KEY) !== "true"
+            ) {
+              sessionStorage.setItem(RECOVERY_KEY, "true");
+              await resetOneSignalRegistration();
+              window.location.reload();
+              return;
+            }
+            setIsVisible(true);
+          });
       } else {
         localStorage.setItem(WELCOME_KEY, "true");
       }
@@ -155,6 +215,16 @@ export function NotificationOptIn() {
       window.setTimeout(() => setIsVisible(false), 1200);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
+      if (
+        isAppIdMismatch(error) &&
+        sessionStorage.getItem(RECOVERY_KEY) !== "true"
+      ) {
+        sessionStorage.setItem(RECOVERY_KEY, "true");
+        await resetOneSignalRegistration();
+        setErrorDetail("Limpando registro antigo do OneSignal...");
+        window.setTimeout(() => window.location.reload(), 700);
+        return;
+      }
       console.error("Falha ao solicitar notificacoes:", detail);
       setErrorDetail(detail);
       setStatus("failed");
