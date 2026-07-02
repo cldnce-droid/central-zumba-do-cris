@@ -5,8 +5,25 @@ import { hasOneSignalAppId } from "@/lib/onesignalClient";
 
 export function PwaRegister() {
   useEffect(() => {
-    // OneSignal owns the root service worker when push is enabled.
     if (hasOneSignalAppId()) {
+      if ("serviceWorker" in navigator) {
+        // OneSignal precisa controlar a raiz; remove apenas o worker antigo da PWA.
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) =>
+            Promise.all(
+              registrations
+                .filter((registration) =>
+                  String(registration.active?.scriptURL ?? "").endsWith(
+                    "/sw.js"
+                  )
+                )
+                .map((registration) => registration.unregister())
+            )
+          )
+          .catch(() => undefined);
+      }
+
       return;
     }
 
