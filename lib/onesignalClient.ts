@@ -9,6 +9,8 @@ type OneSignalSdk = {
   }) => Promise<void> | void;
   Notifications?: {
     requestPermission: () => Promise<boolean>;
+    isPushSupported?: () => boolean;
+    permission?: boolean;
   };
   Slidedown?: {
     promptPush: (options?: { force?: boolean }) => Promise<void> | void;
@@ -19,6 +21,26 @@ type OneSignalSdk = {
       token?: string | null;
       optedIn?: boolean;
       optIn?: () => Promise<void>;
+      addEventListener?: (
+        event: "change",
+        listener: (event: {
+          current?: {
+            id?: string | null;
+            token?: string | null;
+            optedIn?: boolean;
+          };
+        }) => void
+      ) => void;
+      removeEventListener?: (
+        event: "change",
+        listener: (event: {
+          current?: {
+            id?: string | null;
+            token?: string | null;
+            optedIn?: boolean;
+          };
+        }) => void
+      ) => void;
     };
   };
 };
@@ -240,15 +262,43 @@ function timeout(ms: number, message: string) {
 }
 
 export async function waitForOneSignalSubscription(oneSignal: OneSignalSdk) {
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  const hasSubscription = () => {
     const subscription = oneSignal.User?.PushSubscription;
-    if (subscription?.id || subscription?.token || subscription?.optedIn) {
-      return true;
-    }
-    await wait(400);
-  }
+    return Boolean(subscription?.id || subscription?.token || subscription?.optedIn);
+  };
 
-  return false;
+  if (hasSubscription()) return true;
+
+  const changed = new Promise<boolean>((resolve) => {
+    const listener = (event: {
+      current?: {
+        id?: string | null;
+        token?: string | null;
+        optedIn?: boolean;
+      };
+    }) => {
+      if (event.current?.id || event.current?.token || event.current?.optedIn) {
+        oneSignal.User?.PushSubscription?.removeEventListener?.(
+          "change",
+          listener
+        );
+        resolve(true);
+      }
+    };
+
+    oneSignal.User?.PushSubscription?.addEventListener?.("change", listener);
+  });
+
+  const polled = (async () => {
+    for (let attempt = 0; attempt < 75; attempt += 1) {
+      if (hasSubscription()) return true;
+      await wait(400);
+    }
+
+    return false;
+  })();
+
+  return Promise.race([changed, polled]);
 }
 
 export async function getOneSignalDebugInfo() {
@@ -268,7 +318,20 @@ export async function getOneSignalDebugInfo() {
     })
     .join(", ");
 
+  const subscription = window.OneSignal?.User?.PushSubscription;
+  const pushSupported = window.OneSignal?.Notifications?.isPushSupported?.();
+  const oneSignalPermission = window.OneSignal?.Notifications?.permission;
+  const browserPermission =
+    "Notification" in window ? Notification.permission : "indisponivel";
+  const subscriptionInfo = `Push suportado: ${
+    pushSupported ?? "desconhecido"
+  }. Permissao navegador: ${browserPermission}. Permissao OneSignal: ${
+    oneSignalPermission ?? "desconhecida"
+  }. ID: ${subscription?.id ?? "sem id"}. Token: ${
+    subscription?.token ? "existe" : "sem token"
+  }. OptedIn: ${subscription?.optedIn ?? "desconhecido"}.`;
+
   return workers
-    ? `Service worker atual: ${workers}.`
-    : "Nenhum service worker registrado.";
+    ? `Service worker atual: ${workers}. ${subscriptionInfo}`
+    : `Nenhum service worker registrado. ${subscriptionInfo}`;
 }
