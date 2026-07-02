@@ -10,6 +10,9 @@ type OneSignalSdk = {
   Notifications?: {
     requestPermission: () => Promise<boolean>;
   };
+  Slidedown?: {
+    promptPush: (options?: { force?: boolean }) => Promise<void> | void;
+  };
   User?: {
     PushSubscription?: {
       id?: string | null;
