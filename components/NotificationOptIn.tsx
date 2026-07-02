@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  getOneSignalDebugInfo,
   getOneSignal,
   isAppIdMismatch,
   resetOneSignalRegistration,
@@ -161,7 +162,8 @@ export function NotificationOptIn() {
         return;
       }
       console.error("Falha ao solicitar notificacoes:", detail);
-      setErrorDetail(detail);
+      const debugInfo = await getOneSignalDebugInfo().catch(() => "");
+      setErrorDetail(debugInfo ? `${detail} ${debugInfo}` : detail);
       setStatus("failed");
     }
   };
