@@ -28,7 +28,7 @@ declare global {
 
 const ONESIGNAL_APP_ID = normalizeAppId(
   process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
-);
+) || "846c2dc3-de65-4499-a5f1-299f6f10162";
 
 let oneSignalReady: Promise<OneSignalSdk> | null = null;
 
