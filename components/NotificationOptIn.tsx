@@ -48,14 +48,18 @@ async function subscribeWithOneSignal() {
     throw new Error("OneSignal nao inicializou neste dispositivo.");
   }
 
-  await withTimeout(
-    oneSignal.User?.PushSubscription?.optIn?.() ?? Promise.resolve(),
-    8000,
-    "Permissao liberada, mas o OneSignal nao concluiu a inscricao."
-  );
+  // Em alguns celulares o optIn do OneSignal demora ou nao resolve a Promise.
+  // Disparamos sem travar e confirmamos a inscricao lendo o status abaixo.
+  const optInPromise = oneSignal.User?.PushSubscription?.optIn?.();
+  if (optInPromise) {
+    void optInPromise.catch((error) => {
+      console.warn("OneSignal optIn nao concluiu:", error);
+    });
+  }
+
   const subscribed = await withTimeout(
     waitForOneSignalSubscription(oneSignal),
-    10000,
+    24000,
     "Permissao liberada, mas o celular nao apareceu no OneSignal."
   );
 
