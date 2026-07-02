@@ -33,9 +33,10 @@ type NotificationStatus =
   | "unsupported"
   | "failed";
 
-const WELCOME_KEY = "zdc-notification-welcome-seen-v5";
-const RECOVERY_KEY = "zdc-onesignal-recovery-tried";
-const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+const WELCOME_KEY = "zdc-notification-welcome-seen-v6";
+const ONESIGNAL_APP_ID = normalizeAppId(
+  process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
+);
 let oneSignalReady: Promise<OneSignalSdk> | null = null;
 
 const messages: Partial<Record<NotificationStatus, string>> = {
@@ -44,6 +45,13 @@ const messages: Partial<Record<NotificationStatus, string>> = {
   unsupported: "Seu navegador ainda nao permite notificacoes.",
   failed: "Nao foi possivel ativar agora. Tente novamente."
 };
+
+function normalizeAppId(value: string | undefined) {
+  const match = String(value ?? "").match(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+  );
+  return match?.[0] ?? "";
+}
 
 function loadOneSignalScript() {
   return new Promise<void>((resolve, reject) => {
@@ -88,26 +96,46 @@ function deleteDatabase(name: string) {
   });
 }
 
+async function getOneSignalDatabaseNames() {
+  const indexedDbWithList = indexedDB as IDBFactory & {
+    databases?: () => Promise<Array<{ name?: string }>>;
+  };
+
+  if (!indexedDbWithList.databases) {
+    return ["ONE_SIGNAL_SDK_DB", "OneSignalSDK"];
+  }
+
+  const databases = await indexedDbWithList.databases();
+  const discovered = databases
+    .map((database) => database.name)
+    .filter((name): name is string => Boolean(name))
+    .filter((name) => name.toLowerCase().includes("onesignal"));
+
+  return Array.from(
+    new Set([...discovered, "ONE_SIGNAL_SDK_DB", "OneSignalSDK"])
+  );
+}
+
 async function resetOneSignalRegistration() {
   localStorage.removeItem(WELCOME_KEY);
-  Object.keys(localStorage)
-    .filter((key) => key.toLowerCase().includes("onesignal"))
-    .forEach((key) => localStorage.removeItem(key));
+  [localStorage, sessionStorage].forEach((storage) => {
+    Object.keys(storage)
+      .filter((key) => key.toLowerCase().includes("onesignal"))
+      .forEach((key) => storage.removeItem(key));
+  });
 
-  await Promise.all([
-    deleteDatabase("ONE_SIGNAL_SDK_DB"),
-    deleteDatabase("OneSignalSDK")
-  ]);
+  if ("caches" in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
+  }
+
+  const databaseNames = await getOneSignalDatabaseNames();
+  await Promise.all(databaseNames.map(deleteDatabase));
 
   if ("serviceWorker" in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
-      registrations
-        .filter((registration) => {
-          const url = registration.active?.scriptURL ?? "";
-          return url.includes("OneSignal") || url.endsWith("/sw.js");
-        })
-        .map((registration) => registration.unregister())
+      registrations.map((registration) => registration.unregister())
     );
   }
 
@@ -124,8 +152,8 @@ async function getOneSignal() {
         try {
           await oneSignal.init({
             appId: ONESIGNAL_APP_ID,
-            serviceWorkerPath: "OneSignalSDKWorker.js",
-            serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
+            serviceWorkerPath: "/OneSignalSDKWorker.js",
+            serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
             serviceWorkerParam: { scope: "/" }
           });
           resolve(oneSignal);
@@ -167,11 +195,7 @@ export function NotificationOptIn() {
           .then((oneSignal) => oneSignal?.User?.PushSubscription?.optIn?.())
           .then(() => localStorage.setItem(WELCOME_KEY, "true"))
           .catch(async (error) => {
-            if (
-              isAppIdMismatch(error) &&
-              sessionStorage.getItem(RECOVERY_KEY) !== "true"
-            ) {
-              sessionStorage.setItem(RECOVERY_KEY, "true");
+            if (isAppIdMismatch(error)) {
               await resetOneSignalRegistration();
               window.location.reload();
               return;
@@ -215,11 +239,7 @@ export function NotificationOptIn() {
       window.setTimeout(() => setIsVisible(false), 1200);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      if (
-        isAppIdMismatch(error) &&
-        sessionStorage.getItem(RECOVERY_KEY) !== "true"
-      ) {
-        sessionStorage.setItem(RECOVERY_KEY, "true");
+      if (isAppIdMismatch(error)) {
         await resetOneSignalRegistration();
         setErrorDetail("Limpando registro antigo do OneSignal...");
         window.setTimeout(() => window.location.reload(), 700);
