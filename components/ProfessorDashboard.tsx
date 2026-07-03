@@ -21,6 +21,7 @@ import {
   aprovarMensalidade,
   atualizarStatusAluno,
   atualizarStatusPagamento,
+  excluirAluno,
   getAlunosProfessor,
   getConfirmacoesProfessor,
   getMensalidadesProfessor,
@@ -200,6 +201,7 @@ export function ProfessorDashboard() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [paymentFeedback, setPaymentFeedback] = useState("");
   const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [deletingStudent, setDeletingStudent] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [requestsFeedback, setRequestsFeedback] = useState("");
   const [loadingFinance, setLoadingFinance] = useState(false);
@@ -584,6 +586,33 @@ export function ProfessorDashboard() {
                       : "Marcar como pago"}
                   </button>
                 </div>
+                <button
+                  className="min-h-12 rounded-lg border-2 border-cris-pink bg-white px-4 py-3 text-sm font-black uppercase text-cris-pink disabled:opacity-50"
+                  disabled={deletingStudent}
+                  onClick={async () => {
+                    const confirmed = window.confirm(
+                      `Excluir ${selectedStudent.nome} da base de dados? Essa acao nao pode ser desfeita.`
+                    );
+                    if (!confirmed) return;
+                    setDeletingStudent(true);
+                    setPaymentFeedback("");
+                    try {
+                      await excluirAluno(selectedStudent.id);
+                      setSelectedStudentId("");
+                      setPaymentFeedback("Aluno excluido com sucesso.");
+                      refresh();
+                    } catch {
+                      setPaymentFeedback(
+                        "Nao foi possivel excluir. Confira o Apps Script e tente novamente."
+                      );
+                    } finally {
+                      setDeletingStudent(false);
+                    }
+                  }}
+                  type="button"
+                >
+                  {deletingStudent ? "Excluindo..." : "Excluir aluno"}
+                </button>
                 {paymentFeedback ? (
                   <p className="font-bold text-cris-pink" aria-live="polite">
                     {paymentFeedback}
