@@ -19,6 +19,7 @@ const ACTIONS = {
   getAlunos: () => readRows("Alunos"),
   createAluno: (data) => createAluno(data),
   updateAluno: (data) => updateRow("Alunos", data),
+  deleteAluno: (data) => deleteAluno(data),
   getPlanos: () => readRows("Planos"),
   createPlano: (data) => createRow("Planos", data),
   updatePlano: (data) => updateRow("Planos", data),
@@ -42,7 +43,8 @@ const ACTIONS = {
   updateDesafio: (data) => updateRow("Desafios", data),
   getConquistas: () => readRows("Conquistas"),
   createConquista: (data) => createRow("Conquistas", data),
-  updateConquista: (data) => updateRow("Conquistas", data)
+  updateConquista: (data) => updateRow("Conquistas", data),
+  deleteRow: (data) => deleteRow(data.sheetName, data.id)
 };
 
 function doGet() {
@@ -144,6 +146,58 @@ function updateRow(name, data) {
   );
   sheet.getRange(index + 2, 1, 1, headers.length).setValues([values]);
   return data;
+}
+
+function deleteRow(name, id) {
+  if (!id) throw new Error("ID obrigatório.");
+  const sheet = getSheet(name);
+  const headers = getHeaders(sheet);
+  const idColumn = headers.indexOf("id");
+  if (idColumn < 0) throw new Error("Coluna id não encontrada.");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { deleted: false };
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+  const index = rows.findIndex((row) => String(row[idColumn]) === String(id));
+  if (index < 0) return { deleted: false };
+
+  sheet.deleteRow(index + 2);
+  return { deleted: true };
+}
+
+function deleteRowsByField(name, field, value) {
+  const sheet = getSheet(name);
+  const headers = getHeaders(sheet);
+  const fieldColumn = headers.indexOf(field);
+  if (fieldColumn < 0) return 0;
+
+  let deleted = 0;
+  for (let row = sheet.getLastRow(); row >= 2; row--) {
+    const currentValue = sheet.getRange(row, fieldColumn + 1).getValue();
+    if (String(currentValue) === String(value)) {
+      sheet.deleteRow(row);
+      deleted++;
+    }
+  }
+  return deleted;
+}
+
+function deleteAluno(data) {
+  const alunoId = data && data.id;
+  if (!alunoId) throw new Error("ID do aluno obrigatório.");
+
+  const deletedAluno = deleteRow("Alunos", alunoId);
+  const relatedDeleted =
+    deleteRowsByField("Confirmacoes", "alunoId", alunoId) +
+    deleteRowsByField("Presencas", "alunoId", alunoId) +
+    deleteRowsByField("Pagamentos", "alunoId", alunoId) +
+    deleteRowsByField("Mensalidades", "alunoId", alunoId);
+
+  return {
+    deleted: Boolean(deletedAluno.deleted),
+    relatedDeleted
+  };
 }
 
 function upsertRow(name, data) {
