@@ -50,18 +50,6 @@ function formatPaymentMethod(method: string) {
   return "Outro";
 }
 
-function getClassWeeklyCount(classId: string) {
-  const selectedClass = getTurmaCadastro(classId);
-  return selectedClass?.dias.length ?? 0;
-}
-
-function getWeeklyClassesTotal(classIds: string[]) {
-  return classIds.reduce(
-    (total, classId) => total + getClassWeeklyCount(classId),
-    0
-  );
-}
-
 function validateForm(form: CadastroAlunoFormData) {
   const errors: FormErrors = {};
   const phoneDigits = form.whatsapp.replace(/\D/g, "");
@@ -89,11 +77,15 @@ function validateForm(form: CadastroAlunoFormData) {
   }
 
   if (form.plano) {
-    const requiredClasses = Number(form.plano.replace("x", ""));
-    const selectedWeeklyClasses = getWeeklyClassesTotal(form.turmaIds);
+    const limit = Number(form.plano.replace("x", ""));
+    const hasOnlyGanchos =
+      form.turmaIds.length === 1 && form.turmaIds[0] === "TURMA_GANCHOS";
 
-    if (selectedWeeklyClasses !== requiredClasses) {
-      errors.turmaIds = `Seu plano precisa fechar ${requiredClasses} ${requiredClasses === 1 ? "aula" : "aulas"} por semana. Ganchos de Fora conta como 2 aulas.`;
+    if (
+      form.turmaIds.length > limit ||
+      (form.plano === "2x" && !hasOnlyGanchos && form.turmaIds.length < 2)
+    ) {
+      errors.turmaIds = "No plano 2x, escolha dois locais ou somente Ganchos de Fora.";
     }
   }
 
@@ -141,10 +133,7 @@ export function StudentRegistrationForm() {
     setForm((current) => ({
       ...current,
       plano: plan,
-      turmaIds: current.turmaIds.reduce<string[]>((selected, classId) => {
-        const nextTotal = getWeeklyClassesTotal([...selected, classId]);
-        return nextTotal <= limit ? [...selected, classId] : selected;
-      }, [])
+      turmaIds: current.turmaIds.slice(0, limit)
     }));
     setErrors((current) => ({
       ...current,
@@ -167,12 +156,11 @@ export function StudentRegistrationForm() {
     const nextSelection = isSelected
       ? form.turmaIds.filter((id) => id !== classId)
       : [...form.turmaIds, classId];
-    const nextWeeklyClasses = getWeeklyClassesTotal(nextSelection);
 
-    if (!isSelected && nextWeeklyClasses > limit) {
+    if (!isSelected && nextSelection.length > limit) {
       setErrors((current) => ({
         ...current,
-        turmaIds: `Seu plano permite ate ${limit} ${limit === 1 ? "aula" : "aulas"} por semana. Ganchos de Fora conta como 2 aulas.`
+        turmaIds: `Seu plano permite escolher ate ${limit} ${limit === 1 ? "local" : "locais"}.`
       }));
       return;
     }
@@ -453,7 +441,9 @@ export function StudentRegistrationForm() {
 
         <p className="mt-4 font-bold text-cris-navy/65">
           {form.plano
-            ? `Escolha locais que fechem ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "aula" : "aulas"} por semana. Ganchos de Fora conta como 2 aulas.`
+            ? form.plano === "2x"
+              ? "Escolha ate 2 locais. Se quiser fazer as duas aulas em Ganchos de Fora, selecione somente Ganchos de Fora."
+              : `Escolha ate ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
             : "Escolha primeiro seu plano para liberar a seleção de locais."}
         </p>
 
@@ -483,9 +473,11 @@ export function StudentRegistrationForm() {
               <span className="mt-2 block text-sm font-bold text-cris-blue">
                 {formatDays(item.dias)} às {item.horario}
               </span>
-              <span className="mt-1 block text-xs font-black uppercase text-cris-pink">
-                {item.dias.length} {item.dias.length === 1 ? "aula" : "aulas"} por semana
-              </span>
+              {item.id === "TURMA_GANCHOS" ? (
+                <span className="mt-1 block text-xs font-black uppercase text-cris-pink">
+                  Pode ser escolhido sozinho no plano 1x ou 2x
+                </span>
+              ) : null}
               <span className="mt-1 block text-sm font-bold text-cris-navy/60">
                 {item.endereco}
               </span>
