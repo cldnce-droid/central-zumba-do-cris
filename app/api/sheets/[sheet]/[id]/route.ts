@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isProfessorRequestAuthenticated } from "@/lib/auth/professorAuth";
 import {
+  deleteRow,
   isGoogleSheetsConfigured,
   SHEET_NAMES,
   updateRow
@@ -28,6 +29,35 @@ export async function PATCH(
   } catch {
     return NextResponse.json(
       { error: "Não foi possível atualizar a planilha." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ sheet: string; id: string }> }
+) {
+  const { sheet, id } = await context.params;
+  if (!SHEET_NAMES.includes(sheet as (typeof SHEET_NAMES)[number])) {
+    return NextResponse.json({ error: "Aba invalida." }, { status: 400 });
+  }
+  if (!isProfessorRequestAuthenticated(request)) {
+    return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
+  }
+  if (!isGoogleSheetsConfigured()) {
+    return NextResponse.json({ configured: false }, { status: 503 });
+  }
+
+  try {
+    await deleteRow(sheet, id);
+    return NextResponse.json({ configured: true, id });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "Nao foi possivel excluir da planilha.",
+        detail: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
