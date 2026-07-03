@@ -280,7 +280,7 @@ export async function aprovarMensalidade(mensalidadeId: string) {
   updateCachedRow("Mensalidades", mensalidadeId, updates);
   const updated = await updateRow("Mensalidades", mensalidadeId, updates);
   if (!updated) {
-    throw new Error("NÃ£o foi possÃ­vel aprovar a mensalidade.");
+    throw new Error("Nao foi possivel aprovar a mensalidade.");
   }
   void syncGoogleSheetsData(["Mensalidades"]);
   return true;
@@ -333,6 +333,7 @@ export function limparDadosLocaisDeTeste() {
     PRESENCES_KEY,
     CONFIRMATIONS_KEY,
     REGISTERED_STUDENTS_KEY,
+    "zdc_mensalidades",
     "zdc_alunos_remotos",
     "zdc_google_sheets_cache",
     "alunoAtualId"
