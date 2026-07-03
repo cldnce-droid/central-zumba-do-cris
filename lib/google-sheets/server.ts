@@ -125,6 +125,12 @@ export async function updateRow(
   return appsScriptRequest(updateActions[sheet], { ...updates, id: rowId });
 }
 
+export async function deleteRow(sheetName: string, rowId: string) {
+  const sheet = assertSheetName(sheetName);
+  const action = sheet === "Alunos" ? "deleteAluno" : "deleteRow";
+  return appsScriptRequest(action, { sheetName: sheet, id: rowId });
+}
+
 export async function findRowById(sheetName: string, id: string) {
   return (await readSheet(sheetName)).find((row) => String(row.id) === id);
 }
