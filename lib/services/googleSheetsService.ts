@@ -185,3 +185,23 @@ export async function updateRow(
       : new Error("Falha ao conectar com a planilha.");
   }
 }
+
+export async function deleteRow(sheetName: string, id: string) {
+  try {
+    const response = await fetch(`/api/sheets/${sheetName}/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null) as {
+        error?: string;
+        detail?: string;
+      } | null;
+      throw new Error(result?.detail || result?.error || "Falha ao excluir.");
+    }
+    return true;
+  } catch (error) {
+    throw error instanceof Error
+      ? error
+      : new Error("Falha ao conectar com a planilha.");
+  }
+}
