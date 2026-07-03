@@ -397,7 +397,7 @@ export function ProfessorDashboard() {
                   setSearch(event.target.value);
                   setSelectedStudentId("");
                 }}
-                placeholder="Ex.: Cristiano ou 419..."
+                placeholder="Ex.: nome ou WhatsApp"
                 type="search"
                 value={search}
               />
