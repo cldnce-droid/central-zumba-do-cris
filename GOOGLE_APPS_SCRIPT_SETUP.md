@@ -167,7 +167,8 @@ function deleteRow(name, id) {
 }
 
 function deleteRowsByField(name, field, value) {
-  const sheet = getSheet(name);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sheet) return 0;
   const headers = getHeaders(sheet);
   const fieldColumn = headers.indexOf(field);
   if (fieldColumn < 0) return 0;
