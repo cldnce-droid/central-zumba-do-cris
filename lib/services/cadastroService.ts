@@ -72,13 +72,6 @@ export function getTurmaCadastro(turmaId: string) {
   return turmas.find((turma) => turma.id === turmaId);
 }
 
-function getAulasPorSemanaDasTurmas(turmaIds: string[]) {
-  return turmaIds
-    .map(getTurmaCadastro)
-    .filter((turma) => turma !== undefined)
-    .reduce((total, turma) => total + turma.dias.length, 0);
-}
-
 export function createAlunoPendente(
   formData: CadastroAlunoFormData,
   now = new Date()
@@ -86,16 +79,18 @@ export function createAlunoPendente(
   const turmasSelecionadas = formData.turmaIds
     .map(getTurmaCadastro)
     .filter((turma) => turma !== undefined);
-  const aulasDoPlano = formData.plano
+  const limiteDeLocais = formData.plano
     ? Number(formData.plano.replace("x", ""))
     : 0;
-  const aulasSelecionadas = getAulasPorSemanaDasTurmas(formData.turmaIds);
+  const escolheuSomenteGanchos =
+    formData.turmaIds.length === 1 && formData.turmaIds[0] === "TURMA_GANCHOS";
 
   if (
     !formData.plano ||
     !formData.formaPagamento ||
     !turmasSelecionadas.length ||
-    aulasSelecionadas !== aulasDoPlano
+    turmasSelecionadas.length > limiteDeLocais ||
+    (formData.plano === "2x" && !escolheuSomenteGanchos && turmasSelecionadas.length < 2)
   ) {
     throw new Error("Dados obrigatorios do cadastro nao foram informados.");
   }
