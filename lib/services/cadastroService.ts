@@ -72,7 +72,13 @@ export function getTurmaCadastro(turmaId: string) {
   return turmas.find((turma) => turma.id === turmaId);
 }
 
-// Futuramente esta função será o ponto de envio para a aba Alunos.
+function getAulasPorSemanaDasTurmas(turmaIds: string[]) {
+  return turmaIds
+    .map(getTurmaCadastro)
+    .filter((turma) => turma !== undefined)
+    .reduce((total, turma) => total + turma.dias.length, 0);
+}
+
 export function createAlunoPendente(
   formData: CadastroAlunoFormData,
   now = new Date()
@@ -80,16 +86,18 @@ export function createAlunoPendente(
   const turmasSelecionadas = formData.turmaIds
     .map(getTurmaCadastro)
     .filter((turma) => turma !== undefined);
-  const limiteDeTurmas = formData.plano
+  const aulasDoPlano = formData.plano
     ? Number(formData.plano.replace("x", ""))
     : 0;
+  const aulasSelecionadas = getAulasPorSemanaDasTurmas(formData.turmaIds);
 
   if (
     !formData.plano ||
     !formData.formaPagamento ||
-    turmasSelecionadas.length !== limiteDeTurmas
+    !turmasSelecionadas.length ||
+    aulasSelecionadas !== aulasDoPlano
   ) {
-    throw new Error("Dados obrigatórios do cadastro não foram informados.");
+    throw new Error("Dados obrigatorios do cadastro nao foram informados.");
   }
 
   return {
@@ -116,7 +124,7 @@ export async function salvarAlunoPendente(
   const aluno = createAlunoPendente(formData);
   const localStudents = readLocalStudents();
   if (localStudents.some((item) => item.whatsapp === aluno.whatsapp)) {
-    throw new Error("Já existe um cadastro com este WhatsApp.");
+    throw new Error("Ja existe um cadastro com este WhatsApp.");
   }
 
   const existing = await readSheet("Alunos", {
@@ -124,18 +132,17 @@ export async function salvarAlunoPendente(
     value: aluno.whatsapp
   });
   if (!existing || existing.fallback || !existing.configured) {
-    throw new Error("Não foi possível conectar à base de dados agora. Tente novamente.");
+    throw new Error("Nao foi possivel conectar a base de dados agora. Tente novamente.");
   }
   if (existing.data.length > 0) {
-    throw new Error("Já existe um cadastro com este WhatsApp.");
+    throw new Error("Ja existe um cadastro com este WhatsApp.");
   }
 
   const salvoNaPlanilha = await appendRow("Alunos", alunoToSheetRow(aluno));
   if (!salvoNaPlanilha) {
-    throw new Error("Não foi possível conectar à base de dados agora. Tente novamente.");
+    throw new Error("Nao foi possivel conectar a base de dados agora. Tente novamente.");
   }
 
-  // Mantém uma cópia local para o painel deste dispositivo e como fallback.
   if (typeof window !== "undefined") {
     try {
       const atuais = readLocalStudents();
