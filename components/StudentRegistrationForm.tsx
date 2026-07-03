@@ -50,6 +50,18 @@ function formatPaymentMethod(method: string) {
   return "Outro";
 }
 
+function getClassWeeklyCount(classId: string) {
+  const selectedClass = getTurmaCadastro(classId);
+  return selectedClass?.dias.length ?? 0;
+}
+
+function getWeeklyClassesTotal(classIds: string[]) {
+  return classIds.reduce(
+    (total, classId) => total + getClassWeeklyCount(classId),
+    0
+  );
+}
+
 function validateForm(form: CadastroAlunoFormData) {
   const errors: FormErrors = {};
   const phoneDigits = form.whatsapp.replace(/\D/g, "");
@@ -78,9 +90,10 @@ function validateForm(form: CadastroAlunoFormData) {
 
   if (form.plano) {
     const requiredClasses = Number(form.plano.replace("x", ""));
+    const selectedWeeklyClasses = getWeeklyClassesTotal(form.turmaIds);
 
-    if (form.turmaIds.length !== requiredClasses) {
-      errors.turmaIds = `Escolha exatamente ${requiredClasses} ${requiredClasses === 1 ? "local" : "locais"} para este plano.`;
+    if (selectedWeeklyClasses !== requiredClasses) {
+      errors.turmaIds = `Seu plano precisa fechar ${requiredClasses} ${requiredClasses === 1 ? "aula" : "aulas"} por semana. Ganchos de Fora conta como 2 aulas.`;
     }
   }
 
@@ -128,7 +141,10 @@ export function StudentRegistrationForm() {
     setForm((current) => ({
       ...current,
       plano: plan,
-      turmaIds: current.turmaIds.slice(0, limit)
+      turmaIds: current.turmaIds.reduce<string[]>((selected, classId) => {
+        const nextTotal = getWeeklyClassesTotal([...selected, classId]);
+        return nextTotal <= limit ? [...selected, classId] : selected;
+      }, [])
     }));
     setErrors((current) => ({
       ...current,
@@ -141,28 +157,27 @@ export function StudentRegistrationForm() {
     if (!form.plano) {
       setErrors((current) => ({
         ...current,
-        turmaIds: "Escolha primeiro o plano para definir quantos locais pode selecionar."
+        turmaIds: "Escolha primeiro o plano para definir quantas aulas pode selecionar."
       }));
       return;
     }
 
     const limit = Number(form.plano.replace("x", ""));
     const isSelected = form.turmaIds.includes(classId);
+    const nextSelection = isSelected
+      ? form.turmaIds.filter((id) => id !== classId)
+      : [...form.turmaIds, classId];
+    const nextWeeklyClasses = getWeeklyClassesTotal(nextSelection);
 
-    if (!isSelected && form.turmaIds.length >= limit) {
+    if (!isSelected && nextWeeklyClasses > limit) {
       setErrors((current) => ({
         ...current,
-        turmaIds: `Seu plano permite escolher até ${limit} ${limit === 1 ? "local" : "locais"}.`
+        turmaIds: `Seu plano permite ate ${limit} ${limit === 1 ? "aula" : "aulas"} por semana. Ganchos de Fora conta como 2 aulas.`
       }));
       return;
     }
 
-    updateField(
-      "turmaIds",
-      isSelected
-        ? form.turmaIds.filter((id) => id !== classId)
-        : [...form.turmaIds, classId]
-    );
+    updateField("turmaIds", nextSelection);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -438,7 +453,7 @@ export function StudentRegistrationForm() {
 
         <p className="mt-4 font-bold text-cris-navy/65">
           {form.plano
-            ? `Escolha exatamente ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
+            ? `Escolha locais que fechem ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "aula" : "aulas"} por semana. Ganchos de Fora conta como 2 aulas.`
             : "Escolha primeiro seu plano para liberar a seleção de locais."}
         </p>
 
@@ -467,6 +482,9 @@ export function StudentRegistrationForm() {
               </span>
               <span className="mt-2 block text-sm font-bold text-cris-blue">
                 {formatDays(item.dias)} às {item.horario}
+              </span>
+              <span className="mt-1 block text-xs font-black uppercase text-cris-pink">
+                {item.dias.length} {item.dias.length === 1 ? "aula" : "aulas"} por semana
               </span>
               <span className="mt-1 block text-sm font-bold text-cris-navy/60">
                 {item.endereco}
