@@ -13,7 +13,8 @@ import {
   syncGoogleSheetsData,
   updateCachedRow,
   updateRow,
-  appendRow
+  appendRow,
+  deleteRow
 } from "@/lib/services/googleSheetsService";
 import {
   sheetRowToAluno,
@@ -115,6 +116,42 @@ export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus)
     throw new Error("Não foi possível atualizar o cadastro.");
   }
   void syncGoogleSheetsData(["Alunos"]);
+}
+
+export async function excluirAluno(alunoId: string) {
+  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+  localStorage.setItem(
+    REGISTERED_STUDENTS_KEY,
+    JSON.stringify(localStudents.filter((student) => student.id !== alunoId))
+  );
+
+  const overrides = readLocal<Record<string, AlunoStatus>>(
+    STUDENT_STATUS_KEY,
+    {}
+  );
+  delete overrides[alunoId];
+  localStorage.setItem(STUDENT_STATUS_KEY, JSON.stringify(overrides));
+
+  replaceCachedSheet(
+    "Alunos",
+    getCachedSheet("Alunos").filter((row) => String(row.id) !== alunoId)
+  );
+  (["Confirmacoes", "Presencas", "Pagamentos", "Mensalidades"] as const).forEach(
+    (sheetName) => {
+      replaceCachedSheet(
+        sheetName,
+        getCachedSheet(sheetName).filter(
+          (row) => String(row.alunoId ?? "") !== alunoId
+        )
+      );
+    }
+  );
+
+  const deleted = await deleteRow("Alunos", alunoId);
+  if (!deleted) {
+    throw new Error("Nao foi possivel excluir o aluno.");
+  }
+  void syncGoogleSheetsData(["Alunos", "Confirmacoes", "Presencas", "Mensalidades"]);
 }
 
 export function getConfirmacoesProfessor() {
