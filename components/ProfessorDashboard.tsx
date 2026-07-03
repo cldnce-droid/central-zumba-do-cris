@@ -601,9 +601,13 @@ export function ProfessorDashboard() {
                       setSelectedStudentId("");
                       setPaymentFeedback("Aluno excluido com sucesso.");
                       refresh();
-                    } catch {
+                    } catch (error) {
                       setPaymentFeedback(
-                        "Nao foi possivel excluir. Confira o Apps Script e tente novamente."
+                        `Nao foi possivel excluir. Detalhe: ${
+                          error instanceof Error
+                            ? error.message
+                            : "Confira o Apps Script e tente novamente."
+                        }`
                       );
                     } finally {
                       setDeletingStudent(false);
