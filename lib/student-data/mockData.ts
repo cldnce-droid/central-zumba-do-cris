@@ -9,7 +9,7 @@ import type {
   Turma
 } from "./types";
 
-// Produção começa sem pessoas ou movimentações fictícias.
+// Producao comeca sem pessoas ou movimentacoes ficticias.
 export const alunos: Aluno[] = [];
 export const aulas: Aula[] = [];
 export const confirmacoes: Confirmacao[] = [];
@@ -17,7 +17,7 @@ export const presencas: Presenca[] = [];
 export const pagamentos: Pagamento[] = [];
 export const desafios: Desafio[] = [];
 
-// Planos e turmas são dados estruturais oficiais usados quando a base está vazia.
+// Planos e turmas sao dados estruturais oficiais usados quando a base esta vazia.
 export const planos: Plano[] = [
   {
     id: "PLANO_1X",
