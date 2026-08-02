@@ -1,4 +1,9 @@
 import { planos, turmas } from "@/lib/student-data/mockData";
+import {
+  getOfficialPlan,
+  getPlanSelectionLimit,
+  isPremiumPlan
+} from "@/lib/student-data/catalog";
 import type {
   MetodoPagamento,
   PlanoCodigo
@@ -24,7 +29,7 @@ export interface AlunoPendente {
   plano: PlanoCodigo;
   status: "pendente";
   statusCadastro: "pendente";
-  statusPagamento: "atrasado";
+  statusPagamento?: "pago" | "atrasado";
   dataEntrada: string;
   diaVencimento: null;
   turmasEscolhidas: string[];
@@ -63,9 +68,7 @@ export function getPlanosParaCadastro() {
 }
 
 export function getPlanoCadastro(planoCodigo: PlanoCodigo) {
-  return planos.find(
-    (plano) => plano.aulasPorSemana === Number(planoCodigo.replace("x", ""))
-  );
+  return getOfficialPlan(planoCodigo);
 }
 
 export function getTurmaCadastro(turmaId: string) {
@@ -80,17 +83,19 @@ export function createAlunoPendente(
     .map(getTurmaCadastro)
     .filter((turma) => turma !== undefined);
   const limiteDeLocais = formData.plano
-    ? Number(formData.plano.replace("x", ""))
+    ? getPlanSelectionLimit(formData.plano)
     : 0;
-  const escolheuSomenteGanchos =
-    formData.turmaIds.length === 1 && formData.turmaIds[0] === "TURMA_GANCHOS";
+  const quantidadeValida =
+    formData.plano &&
+    (isPremiumPlan(formData.plano)
+      ? turmasSelecionadas.length === turmas.filter((turma) => turma.ativa).length
+      : turmasSelecionadas.length === limiteDeLocais);
 
   if (
     !formData.plano ||
     !formData.formaPagamento ||
     !turmasSelecionadas.length ||
-    turmasSelecionadas.length > limiteDeLocais ||
-    (formData.plano === "2x" && !escolheuSomenteGanchos && turmasSelecionadas.length < 2)
+    !quantidadeValida
   ) {
     throw new Error("Dados obrigatorios do cadastro nao foram informados.");
   }
@@ -103,7 +108,6 @@ export function createAlunoPendente(
     plano: formData.plano,
     status: "pendente",
     statusCadastro: "pendente",
-    statusPagamento: "atrasado",
     dataEntrada: formatLocalDate(now),
     diaVencimento: null,
     turmasEscolhidas: turmasSelecionadas.map((turma) => turma.nome),
