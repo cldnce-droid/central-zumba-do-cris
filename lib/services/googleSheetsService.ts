@@ -117,7 +117,8 @@ export async function syncGoogleSheetsData(
     }
 
     const successfulResults = results.filter(
-      ({ response }) => response && !response.fallback
+      ({ response }) =>
+        response && response.configured !== false && !response.fallback
     );
 
     if (!successfulResults.length) return false;
