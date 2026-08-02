@@ -82,14 +82,14 @@ test("Premium libera automaticamente todos os locais no cadastro", async ({
   await expect(page.locator('input[name="turma"]:checked')).toHaveCount(3);
 });
 
-test("desafio Frozen conta somente presenças aceitas", async ({ page }) => {
+test("desafio Agosto Sem Sofá conta somente presenças aceitas", async ({ page }) => {
   await page.evaluate(() => {
-    localStorage.setItem("alunoAtualId", "ALU_TESTE_FROZEN");
+    localStorage.setItem("alunoAtualId", "ALU_TESTE_SOFA");
     localStorage.setItem(
       "zdc_alunos_remotos",
       JSON.stringify([
         {
-          id: "ALU_TESTE_FROZEN",
+          id: "ALU_TESTE_SOFA",
           nome: "Aluna Teste",
           whatsapp: "48999999999",
           email: "",
@@ -97,7 +97,7 @@ test("desafio Frozen conta somente presenças aceitas", async ({ page }) => {
           status: "ativo",
           statusCadastro: "ativo",
           statusPagamento: "pago",
-          dataEntrada: "2026-07-01",
+          dataEntrada: "2026-08-01",
           diaVencimento: 8,
           turmaPrincipal: "Palmas",
           turmasEscolhidas: ["Palmas"],
@@ -111,33 +111,25 @@ test("desafio Frozen conta somente presenças aceitas", async ({ page }) => {
         Presencas: [
           {
             id: "P1",
-            alunoId: "ALU_TESTE_FROZEN",
+            alunoId: "ALU_TESTE_SOFA",
             aulaId: "A1",
-            dataAula: "2026-07-06",
+            dataAula: "2026-08-03",
             status: "aceita",
             compareceu: true
           },
           {
             id: "P2",
-            alunoId: "ALU_TESTE_FROZEN",
+            alunoId: "ALU_TESTE_SOFA",
             aulaId: "A2",
-            dataAula: "2026-07-13",
+            dataAula: "2026-08-10",
             status: "aceita",
             compareceu: true
           },
           {
             id: "P3",
-            alunoId: "ALU_TESTE_FROZEN",
+            alunoId: "ALU_TESTE_SOFA",
             aulaId: "A3",
-            dataAula: "2026-07-20",
-            status: "aceita",
-            compareceu: true
-          },
-          {
-            id: "RECUSADA",
-            alunoId: "ALU_TESTE_FROZEN",
-            aulaId: "A4",
-            dataAula: "2026-07-27",
+            dataAula: "2026-08-17",
             status: "recusada",
             compareceu: false
           }
@@ -147,8 +139,8 @@ test("desafio Frozen conta somente presenças aceitas", async ({ page }) => {
   });
 
   await page.goto("/minha-area");
-  await expect(page.getByText(/desafio dançarina frozen/i)).toBeVisible();
-  await expect(page.getByText("3/4")).toBeVisible();
+  await expect(page.getByText(/desafio agosto sem sofá/i)).toBeVisible();
+  await expect(page.getByText("2/3")).toBeVisible();
 });
 
 test("WhatsApp de informações possui número e mensagem", async ({ page }) => {
