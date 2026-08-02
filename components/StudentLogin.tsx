@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { HeartIcon, MessageIcon, MoneyIcon } from "@/components/Icons";
-import { pixKey } from "@/lib/data";
+import { HeartIcon } from "@/components/Icons";
 import { getAlunoByWhatsappRemoto } from "@/lib/services/alunoService";
 import type { Aluno } from "@/lib/student-data";
 
@@ -14,7 +13,6 @@ export function StudentLogin() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pendingStudent, setPendingStudent] = useState<Aluno | null>(null);
-  const [pixFeedback, setPixFeedback] = useState("");
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,20 +62,7 @@ export function StudentLogin() {
     router.push("/minha-area");
   };
 
-  const copyPix = async () => {
-    try {
-      await navigator.clipboard.writeText(pixKey);
-      setPixFeedback("Chave PIX copiada!");
-    } catch {
-      setPixFeedback(`Copie a chave PIX: ${pixKey}`);
-    }
-  };
-
   if (pendingStudent) {
-    const message = encodeURIComponent(
-      `Olá, Cris! Meu cadastro está pendente. Sou ${pendingStudent.nome} e quero enviar meu comprovante. 💖`
-    );
-
     return (
       <section className="premium-panel mx-auto max-w-2xl p-6 text-center sm:p-8">
         <span className="mx-auto grid size-14 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
@@ -87,30 +72,17 @@ export function StudentLogin() {
           Seu cadastro está pendente de confirmação.
         </h1>
         <p className="mt-4 font-bold leading-relaxed text-cris-navy/65">
-          Após a confirmação do pagamento, sua Área do Aluno será liberada.
+          Seu cadastro está em análise e aguardando confirmação.
         </p>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button
-            className="flex min-h-14 items-center justify-center gap-3 rounded-lg bg-cris-yellow px-5 py-3 font-black uppercase text-cris-navy shadow-pop"
-            onClick={copyPix}
-            type="button"
-          >
-            <MoneyIcon className="size-6" />
-            Copiar chave PIX
-          </button>
-          <a
-            className="flex min-h-14 items-center justify-center gap-3 rounded-lg bg-cris-blue px-5 py-3 font-black uppercase text-white shadow-pop"
-            href={`https://wa.me/5541984723756?text=${message}`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <MessageIcon className="size-6" />
-            Falar com o Cris
-          </a>
-        </div>
-        <p aria-live="polite" className="mt-4 font-black text-cris-pink">
-          {pixFeedback}
+        <p className="mt-2 font-bold leading-relaxed text-cris-navy/65">
+          Assim que for liberado, sua Área do Aluno ficará disponível.
         </p>
+        <Link
+          className="mt-6 inline-flex min-h-12 items-center justify-center rounded-lg border-2 border-cris-purple px-5 py-3 font-black uppercase text-cris-purple"
+          href="/"
+        >
+          Voltar ao início
+        </Link>
       </section>
     );
   }
