@@ -7,9 +7,13 @@ import {
 } from "@/lib/services/googleSheetsService";
 import type { Aluno, Desafio } from "@/lib/student-data/types";
 
-const FROZEN_START = "2026-07-01";
-const FROZEN_END = "2026-07-31";
-const FROZEN_TITLE = "Dançarina Frozen";
+const CHALLENGE_START = "2026-08-01";
+const CHALLENGE_END = "2026-08-31";
+const CHALLENGE_TITLE = "Venci o Sofá";
+
+function getAugustGoal(plan: Aluno["plano"]) {
+  return Math.max(1, getPlanChallengeGoal(plan) - 1);
+}
 
 function uniqueAcceptedPresences(alunoId: string) {
   const rows = getCachedSheet("Presencas")
@@ -20,8 +24,8 @@ function uniqueAcceptedPresences(alunoId: string) {
         presence.alunoId === alunoId &&
         presence.compareceu === true &&
         presence.status === "aceita" &&
-        date >= FROZEN_START &&
-        date <= FROZEN_END
+        date >= CHALLENGE_START &&
+        date <= CHALLENGE_END
       );
     });
 
@@ -33,11 +37,11 @@ function uniqueAcceptedPresences(alunoId: string) {
   ).size;
 }
 
-export function getDesafioDancarinaFrozen(
+export function getDesafioAgostoSemSofa(
   aluno: Aluno,
   reference = new Date()
 ): Desafio {
-  const goal = getPlanChallengeGoal(aluno.plano);
+  const goal = getAugustGoal(aluno.plano);
   const progress = Math.min(uniqueAcceptedPresences(aluno.id), goal);
   const referenceKey = [
     reference.getFullYear(),
@@ -45,7 +49,8 @@ export function getDesafioDancarinaFrozen(
     String(reference.getDate()).padStart(2, "0")
   ].join("-");
   const completed = progress >= goal;
-  const inPeriod = referenceKey >= FROZEN_START && referenceKey <= FROZEN_END;
+  const inPeriod =
+    referenceKey >= CHALLENGE_START && referenceKey <= CHALLENGE_END;
   const statusExecucao = completed
     ? "concluido"
     : inPeriod
@@ -53,40 +58,40 @@ export function getDesafioDancarinaFrozen(
       : "fora_periodo";
 
   return {
-    id: "DESAFIO_DANCARINA_FROZEN_2026_07",
-    titulo: "Desafio Dançarina Frozen ❄️",
+    id: "DESAFIO_AGOSTO_SEM_SOFA_2026_08",
+    titulo: "Desafio Agosto Sem Sofá 🛋️",
     descricao:
-      "Complete as presenças do seu plano durante julho e ganhe R$10 de desconto em agosto.",
-    chamada: "Julho é frio, mas quem dança não congela.",
+      "Complete a meta especial do seu plano durante agosto e conquiste o selo Venci o Sofá.",
+    chamada: "O sofá tentou. Mas a dança venceu.",
     tipo: "frequencia",
     meta: goal,
     progresso: progress,
-    recompensa: "R$10 de desconto",
-    periodo: "Julho de 2026",
+    recompensa: "Selo Venci o Sofá",
+    periodo: "Agosto de 2026",
     ativo: inPeriod,
     statusVisual: completed ? "disponivel" : inPeriod ? "disponivel" : "bloqueado",
     statusExecucao,
     mensagem: completed
-      ? "Desafio concluído! Você desbloqueou R$10 de desconto na próxima mensalidade."
+      ? "Desafio concluído! Você desbloqueou o selo Venci o Sofá."
       : progress === 0
-        ? "Você ainda não tem presenças validadas em julho."
+        ? "Você ainda não tem presenças validadas em agosto. Bora levantar do sofá?"
         : inPeriod
-          ? "Continue firme! Cada presença validada te aproxima da recompensa."
+          ? "Continue firme! Cada presença validada é uma vitória contra o sofá."
           : "O período deste desafio foi encerrado."
   };
 }
 
-export async function registrarConquistaFrozenSeNecessario(aluno: Aluno) {
-  const challenge = getDesafioDancarinaFrozen(aluno);
+export async function registrarConquistaAgostoSemSofaSeNecessario(aluno: Aluno) {
+  const challenge = getDesafioAgostoSemSofa(aluno);
   if (challenge.statusExecucao !== "concluido") return false;
 
-  const id = `CONQ_${aluno.id}_DANCARINA_FROZEN_2026_07`;
+  const id = `CONQ_${aluno.id}_AGOSTO_SEM_SOFA_2026_08`;
   if (
     getCachedSheet("Conquistas").some(
       (row) =>
         String(row.id) === id ||
         (String(row.alunoId) === aluno.id &&
-          String(row.titulo).toLowerCase() === FROZEN_TITLE.toLowerCase())
+          String(row.titulo).toLowerCase() === CHALLENGE_TITLE.toLowerCase())
     )
   ) {
     return false;
@@ -97,11 +102,11 @@ export async function registrarConquistaFrozenSeNecessario(aluno: Aluno) {
     alunoId: aluno.id,
     nomeAluno: aluno.nome,
     tipo: "desafio",
-    titulo: FROZEN_TITLE,
+    titulo: CHALLENGE_TITLE,
     coreografia: "",
     dataConquista: new Date().toISOString().slice(0, 10),
     observacao:
-      "Desafio de frequência de julho concluído. R$10 de desconto em agosto."
+      "Desafio Agosto Sem Sofá concluído com a meta especial de presenças."
   };
 
   const saved = await appendRow("Conquistas", conquest);
