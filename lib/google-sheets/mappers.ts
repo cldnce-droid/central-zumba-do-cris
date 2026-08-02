@@ -9,6 +9,11 @@ import type {
   Presenca,
   Turma
 } from "@/lib/student-data/types";
+import {
+  getOfficialClass,
+  getOfficialPlan,
+  normalizePlano
+} from "@/lib/student-data/catalog";
 
 export type SheetRow = Record<string, string | number | boolean | null>;
 
@@ -23,22 +28,18 @@ export function parseList(value: unknown) {
     .filter(Boolean);
 }
 
-function parsePlanoCodigo(value: unknown) {
-  const match = String(value ?? "").toLowerCase().match(/[123]\s*x/);
-  return (match?.[0].replace(/\s/g, "") || "1x") as Aluno["plano"];
-}
-
 function parseAlunoStatus(value: unknown) {
   const status = String(value ?? "").trim().toLowerCase();
-  return ["ativo", "pendente", "atrasado", "inativo"].includes(status)
+  if (status === "atrasado") return "ativo";
+  return ["ativo", "pendente", "inativo"].includes(status)
     ? status as Aluno["status"]
     : "pendente";
 }
 
 function parsePagamentoStatus(value: unknown) {
-  return String(value ?? "").trim().toLowerCase() === "pago"
-    ? "pago"
-    : "atrasado";
+  const status = String(value ?? "").trim().toLowerCase();
+  if (!status) return undefined;
+  return status === "pago" ? "pago" : "atrasado";
 }
 
 function parseSheetDate(value: unknown) {
@@ -66,7 +67,7 @@ export function sheetRowToAluno(row: SheetRow): Aluno {
     nome: String(row.nome ?? ""),
     whatsapp: String(row.whatsapp ?? "").replace(/\D/g, ""),
     email: String(row.email ?? ""),
-    plano: parsePlanoCodigo(row.plano),
+    plano: normalizePlano(row.plano),
     status: statusCadastro,
     statusCadastro,
     statusPagamento,
@@ -89,12 +90,16 @@ export function alunoToSheetRow<T extends object>(aluno: T): SheetRow {
   ).statusCadastro ?? status;
   const statusPagamento = (
     aluno as T & { statusPagamento?: unknown }
-  ).statusPagamento ?? "atrasado";
+  ).statusPagamento;
 
   return {
     ...aluno,
     statusCadastro,
-    statusPagamento,
+    statusPagamento:
+      statusPagamento ??
+      (String(statusCadastro ?? "").toLowerCase() === "ativo"
+        ? "atrasado"
+        : ""),
     turmasEscolhidas: Array.isArray(turmasEscolhidas)
       ? turmasEscolhidas.join(", ")
       : turmasEscolhidas
@@ -102,6 +107,9 @@ export function alunoToSheetRow<T extends object>(aluno: T): SheetRow {
 }
 
 export function sheetRowToPlano(row: SheetRow): Plano {
+  const official = getOfficialPlan(row);
+  if (official) return { ...official };
+
   return {
     ...row,
     valor: Number(row.valor),
@@ -111,6 +119,17 @@ export function sheetRowToPlano(row: SheetRow): Plano {
 }
 
 export function sheetRowToTurma(row: SheetRow): Turma {
+  const official = getOfficialClass(row);
+  if (official) {
+    return {
+      ...official,
+      capacidade: row.capacidade
+        ? Number(row.capacidade)
+        : official.capacidade,
+      ativa: row.ativa === undefined ? true : parseBoolean(row.ativa)
+    };
+  }
+
   return {
     ...row,
     dias: parseList(row.dias),
@@ -179,7 +198,7 @@ export function sheetRowToPagamento(row: SheetRow): Pagamento {
     ...row,
     id: String(row.id ?? ""),
     alunoId: String(row.alunoId ?? ""),
-    plano: parsePlanoCodigo(row.plano),
+    plano: normalizePlano(row.plano),
     valor: Number(row.valor),
     vencimento: parseSheetDate(row.vencimento),
     dataPagamento: row.dataPagamento
@@ -208,7 +227,7 @@ export function sheetRowToMensalidade(row: SheetRow): Mensalidade {
     nome: String(row.nome ?? ""),
     whatsapp: String(row.whatsapp ?? ""),
     mesReferencia: String(row.mesReferencia ?? ""),
-    plano: parsePlanoCodigo(row.plano),
+    plano: normalizePlano(row.plano),
     valor: Number(row.valor) || 0,
     vencimento: parseSheetDate(row.vencimento),
     status,
