@@ -1,4 +1,4 @@
-import { alunos, planos } from "@/lib/student-data/mockData";
+import { alunos } from "@/lib/student-data/mockData";
 import type {
   AlunoStatus,
   Confirmacao,
@@ -21,10 +21,11 @@ import {
   sheetRowToAula,
   sheetRowToConfirmacao,
   sheetRowToMensalidade,
-  sheetRowToPlano,
   sheetRowToPresenca
 } from "@/lib/google-sheets/mappers";
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
+import { getOfficialPlan } from "@/lib/student-data/catalog";
+import { registrarConquistaFrozenSeNecessario } from "@/lib/services/desafioService";
 
 const STUDENT_STATUS_KEY = "zdc_alunos_status";
 const PRESENCES_KEY = "zdc_presencas";
@@ -59,18 +60,15 @@ export function getAlunosProfessor() {
     [...localStudents, ...baseStudents].map((aluno) => [aluno.id, aluno])
   );
   const sourceStudents = Array.from(studentsById.values());
-  const remotePlans = getCachedSheet("Planos").map(sheetRowToPlano);
-  const sourcePlans = remotePlans.length ? remotePlans : planos;
   return sourceStudents.map((aluno) => ({
     ...aluno,
     status: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
     statusCadastro: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
-    statusPagamento: aluno.statusPagamento ?? "atrasado",
-    planoDetalhes: sourcePlans.find(
-      (plano) =>
-        plano.aulasPorSemana ===
-        Number(String(aluno.plano).replace("x", ""))
-    )
+    statusPagamento:
+      (aluno.statusCadastro ?? aluno.status) === "pendente"
+        ? aluno.statusPagamento
+        : aluno.statusPagamento ?? "atrasado",
+    planoDetalhes: getOfficialPlan(aluno.plano)
   }));
 }
 
@@ -95,7 +93,10 @@ export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus)
                 status,
                 statusCadastro: status,
                 ...(status === "ativo"
-                  ? { diaVencimento: 8, statusPagamento: "atrasado" }
+                  ? {
+                      diaVencimento: 8,
+                      statusPagamento: student.statusPagamento ?? "atrasado"
+                    }
                   : {})
               }
             : student
@@ -107,7 +108,12 @@ export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus)
     status,
     statusCadastro: status,
     ...(status === "ativo"
-      ? { diaVencimento: 8, statusPagamento: "atrasado" }
+      ? {
+          diaVencimento: 8,
+          statusPagamento:
+            getAlunosProfessor().find((student) => student.id === alunoId)
+              ?.statusPagamento ?? "atrasado"
+        }
       : {})
   };
   updateCachedRow("Alunos", alunoId, studentUpdates);
@@ -239,6 +245,14 @@ export async function validarPresenca(
     : await appendRow("Presencas", { ...presence });
   if (!saved) {
     throw new Error("Não foi possível validar a presença.");
+  }
+
+  if (compareceu && aluno) {
+    try {
+      await registrarConquistaFrozenSeNecessario(aluno);
+    } catch {
+      // A presença continua válida mesmo se a aba Conquistas estiver indisponível.
+    }
   }
 }
 
@@ -378,11 +392,24 @@ export function limparDadosLocaisDeTeste() {
 }
 
 export async function sincronizarDashboardProfessor() {
-  return syncGoogleSheetsData([
+  const synced = await syncGoogleSheetsData([
     "Alunos",
     "Presencas",
-    "Mensalidades"
+    "Mensalidades",
+    "Conquistas"
   ]);
+
+  if (synced) {
+    for (const aluno of getAlunosProfessor()) {
+      try {
+        await registrarConquistaFrozenSeNecessario(aluno);
+      } catch {
+        // A sincronização principal do dashboard não depende das conquistas.
+      }
+    }
+  }
+
+  return synced;
 }
 
 export function getResumoDashboard() {
@@ -391,7 +418,10 @@ export function getResumoDashboard() {
     total: students.length,
     ativos: students.filter((item) => item.status === "ativo").length,
     pendentes: students.filter((item) => item.status === "pendente").length,
-    atrasados: students.filter((item) => item.status === "atrasado").length,
+    atrasados: students.filter(
+      (item) =>
+        item.status === "ativo" && item.statusPagamento === "atrasado"
+    ).length,
     confirmacoes: getConfirmacoesProfessor().filter(
       (item) => item.status === "solicitada" || item.status === "confirmado"
     ).length
