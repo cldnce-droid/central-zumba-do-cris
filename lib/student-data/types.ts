@@ -152,5 +152,5 @@ export interface ConquistaVisual {
   titulo: string;
   descricao: string;
   desbloqueada: boolean;
-  accent: "pink" | "blue" | "purple" | "yellow" | "ice";
+  accent: "pink" | "blue" | "purple" | "yellow" | "ice" | "sofa";
 }
