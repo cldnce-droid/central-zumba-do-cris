@@ -1,4 +1,4 @@
-const CACHE_NAME = "central-zumba-do-cris-app-20260728";
+const CACHE_NAME = "central-zumba-do-cris-app-20260802";
 const APP_SHELL = [
   "/",
   "/turmas",
