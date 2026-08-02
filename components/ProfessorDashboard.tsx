@@ -771,9 +771,19 @@ function FinanceiroDashboard({
       .filter(isPagamentoAprovado)
       .map((item) => item.alunoId)
   );
+  const alunosPagosNoCadastro = students.filter(
+    (student) =>
+      student.status === "ativo" &&
+      student.statusPagamento === "pago" &&
+      String(student.dataEntrada ?? "").startsWith(currentMonth) &&
+      !alunosComPagamentoAprovado.has(student.id)
+  );
+  alunosPagosNoCadastro.forEach((student) =>
+    alunosComPagamentoAprovado.add(student.id)
+  );
   const alunosAtivosEmAberto = students.filter(
     (student) =>
-      (student.status === "ativo" || student.status === "atrasado") &&
+      student.status === "ativo" &&
       !alunosComPagamentoAprovado.has(student.id)
   );
   const pagos = mensalidadesDoMes.filter(isPagamentoAprovado);
@@ -781,7 +791,12 @@ function FinanceiroDashboard({
     (sum, student) => sum + (student.planoDetalhes?.valor ?? 0),
     0
   ) * (monthStarted ? 1 : 0);
-  const totalPago = pagos.reduce((sum, item) => sum + item.valor, 0);
+  const totalPago =
+    pagos.reduce((sum, item) => sum + item.valor, 0) +
+    alunosPagosNoCadastro.reduce(
+      (sum, student) => sum + (student.planoDetalhes?.valor ?? 0),
+      0
+    );
 
   const approve = async (id: string) => {
     setUpdatingId(id);
