@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarIcon,
   HeartIcon,
-  MoneyIcon,
   PinIcon,
   TrophyIcon,
   UsersIcon
@@ -26,21 +25,12 @@ import {
   getConfirmacaoRemotaPorAlunoEAula
 } from "@/lib/services/confirmacaoService";
 import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
-import {
-  copiarPixMensalidade,
-  formatMesReferencia,
-  getMesReferencia,
-  getMensalidadeAtualDoAluno,
-  getProximaMensalidadeDoAluno,
-  registrarPagamentoDinheiro
-} from "@/lib/services/financeiroService";
 import type { AlunoStatus, Aula, PagamentoStatus } from "@/lib/student-data";
 import { createGoogleCalendarUrl } from "@/lib/utils/calendar";
 
 const studentStatusStyles: Record<AlunoStatus, string> = {
   ativo: "bg-emerald-100 text-emerald-700",
   pendente: "bg-cris-yellow/25 text-cris-navy",
-  atrasado: "bg-cris-pink/20 text-cris-pink",
   inativo: "bg-cris-navy/10 text-cris-navy/60"
 };
 
@@ -104,8 +94,6 @@ export function StudentArea() {
   const [presenceRequested, setPresenceRequested] = useState(false);
   const [requestingPresence, setRequestingPresence] = useState(false);
   const [requestError, setRequestError] = useState("");
-  const [paymentActionLoading, setPaymentActionLoading] = useState(false);
-  const [paymentMessage, setPaymentMessage] = useState("");
 
   useEffect(() => {
     setStudentId(localStorage.getItem("alunoAtualId") ?? "");
@@ -113,8 +101,7 @@ export function StudentArea() {
     void syncGoogleSheetsData([
       "Alunos",
       "Presencas",
-      "Conquistas",
-      "Mensalidades"
+      "Conquistas"
     ]).then((synced) => {
       if (synced) setRevision((current) => current + 1);
     });
@@ -145,22 +132,7 @@ export function StudentArea() {
     () => getStatusPagamento(studentId),
     [studentId, revision]
   );
-  const mensalidadeAtual = useMemo(
-    () => getMensalidadeAtualDoAluno(studentId),
-    [studentId, revision]
-  );
-  const proximaMensalidade = useMemo(
-    () =>
-      mensalidadeAtual?.status === "pago"
-        ? getProximaMensalidadeDoAluno(studentId)
-        : null,
-    [mensalidadeAtual?.status, studentId, revision]
-  );
-  const mensalidadeVisivel = proximaMensalidade ?? mensalidadeAtual;
-  const mensalidadeDoMesAtual =
-    mensalidadeVisivel?.mesReferencia === getMesReferencia();
-  const currentPaymentStatus: PagamentoStatus =
-    mensalidadeAtual?.status === "pago" ? "pago" : paymentStatus;
+  const currentPaymentStatus: PagamentoStatus = paymentStatus;
 
   useEffect(() => {
     if (!studentId) return;
@@ -241,54 +213,12 @@ export function StudentArea() {
     if (calendarWindow) calendarWindow.opener = null;
   };
 
-  const copyMonthlyPix = async () => {
-    setPaymentActionLoading(true);
-    setPaymentMessage("");
-    try {
-      const mensalidade = await copiarPixMensalidade(studentId);
-      setPaymentMessage(
-        mensalidade?.status === "pago"
-          ? "Pagamento deste mês já confirmado. A próxima mensalidade abre no dia 1 do próximo mês."
-          : mensalidade?.status === "comprovante_enviado"
-            ? "Solicitação já enviada. Aguarde a baixa no sistema."
-            : "Chave PIX copiada com sucesso! Envie o comprovante e aguarde a baixa no sistema."
-      );
-      setRevision((current) => current + 1);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : "Tente novamente.";
-      setPaymentMessage(`PIX copiado, mas nao consegui registrar na planilha. Detalhe: ${detail}`);
-    } finally {
-      setPaymentActionLoading(false);
-    }
-  };
-
-  const markCashPayment = async () => {
-    setPaymentActionLoading(true);
-    setPaymentMessage("");
-    try {
-      const mensalidade = await registrarPagamentoDinheiro(studentId);
-      setPaymentMessage(
-        mensalidade?.status === "pago"
-          ? "Pagamento deste mês já confirmado. A próxima mensalidade abre no dia 1 do próximo mês."
-          : mensalidade?.status === "comprovante_enviado"
-            ? "Solicitação já enviada. Aguarde a baixa no sistema."
-            : "Pagamento em dinheiro sinalizado. Aguarde a baixa no sistema."
-      );
-      setRevision((current) => current + 1);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : "Tente novamente.";
-      setPaymentMessage(`Nao consegui registrar na planilha. Detalhe: ${detail}`);
-    } finally {
-      setPaymentActionLoading(false);
-    }
-  };
-
   if (!accessChecked) return null;
 
   if (!student || student.status === "pendente" || student.status === "inativo") {
     const message =
       student?.status === "pendente"
-        ? "Sua Área do Aluno está pendente de confirmação."
+        ? "Seu cadastro está em análise."
         : student?.status === "inativo"
           ? "Seu cadastro está inativo. Fale com o Cris para regularizar."
           : "Entre com seu WhatsApp para acessar sua área.";
@@ -299,7 +229,11 @@ export function StudentArea() {
         <h1 className="mt-4 text-3xl font-black uppercase text-cris-navy">
           {message}
         </h1>
-        <p className="mt-3 font-bold text-cris-navy/65">Errou... continua!</p>
+        <p className="mt-3 font-bold text-cris-navy/65">
+          {student?.status === "pendente"
+            ? "Assim que for liberado, sua Área do Aluno ficará disponível."
+            : "Errou... continua!"}
+        </p>
         <Link
           className="mt-6 inline-flex min-h-12 items-center justify-center rounded-lg bg-cris-pink px-6 py-3 font-black uppercase text-white shadow-pop"
           href="/entrar"
@@ -329,66 +263,6 @@ export function StudentArea() {
         <aside className="rounded-lg bg-cris-yellow p-4 font-black text-cris-navy shadow-pop">
           Seu plano está em atraso. Regularize para manter seu acesso.
         </aside>
-      ) : null}
-
-      {mensalidadeVisivel ? (
-        <section className="rounded-lg bg-white p-5 shadow-pop ring-1 ring-cris-navy/10 sm:p-6">
-          <div className="flex items-start gap-4">
-            <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
-              <MoneyIcon className="size-7" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-black uppercase text-cris-pink">
-                Mensalidade do mes
-              </p>
-              <h2 className="mt-1 text-2xl font-black uppercase text-cris-navy">
-                {formatMesReferencia(mensalidadeVisivel.mesReferencia)} - R${mensalidadeVisivel.valor}
-              </h2>
-              <p className="mt-2 font-bold text-cris-navy/65">
-                Vencimento dia 8. Status:{" "}
-                {mensalidadeVisivel.status.replace("_", " ")}
-              </p>
-
-              {!mensalidadeDoMesAtual ? (
-                <p className="mt-4 rounded-lg bg-cris-yellow/25 p-4 font-black text-cris-navy">
-                  Próxima mensalidade. O PIX e o pagamento em dinheiro ficam disponíveis no dia 1 deste mês.
-                </p>
-              ) : mensalidadeVisivel.status === "pago" ? (
-                <p className="mt-4 rounded-lg bg-emerald-100 p-4 font-black text-emerald-700">
-                  Pagamento confirmado. Obrigado!
-                </p>
-              ) : mensalidadeVisivel.status === "comprovante_enviado" ? (
-                <p className="mt-4 rounded-lg bg-cris-yellow/25 p-4 font-black text-cris-navy">
-                  Solicitação enviada. Aguarde a baixa do professor no sistema.
-                </p>
-              ) : (
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <button
-                    className="min-h-12 rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy shadow-pop disabled:opacity-60"
-                    disabled={paymentActionLoading}
-                    onClick={copyMonthlyPix}
-                    type="button"
-                  >
-                    Copiar chave PIX
-                  </button>
-                  <button
-                    className="min-h-12 rounded-lg bg-cris-blue px-5 py-3 text-sm font-black uppercase text-white shadow-pop disabled:opacity-50"
-                    disabled={paymentActionLoading}
-                    onClick={markCashPayment}
-                    type="button"
-                  >
-                    Pagamento em dinheiro
-                  </button>
-                </div>
-              )}
-              {paymentMessage ? (
-                <p className="mt-3 font-black text-cris-pink" aria-live="polite">
-                  {paymentMessage}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </section>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -428,10 +302,16 @@ export function StudentArea() {
             </span>
             <div>
               <p className="text-xs font-black uppercase text-cris-pink">
-                {plan?.aulasPorSemana === 1 ? "Minha aula" : "Minhas aulas"}
+                {plan?.aulasPorSemana === "ilimitado"
+                  ? "Acesso livre"
+                  : plan?.aulasPorSemana === 1
+                    ? "Minha aula"
+                    : "Minhas aulas"}
               </p>
               <h2 className="text-2xl font-black uppercase text-cris-navy">
-                Turmas escolhidas
+                {plan?.aulasPorSemana === "ilimitado"
+                  ? "Todas as aulas liberadas"
+                  : "Turmas escolhidas"}
               </h2>
             </div>
           </div>
@@ -527,12 +407,72 @@ export function StudentArea() {
       <section>
         <h2 className="text-3xl font-black uppercase text-cris-navy">Desafios</h2>
         {challenges.length ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4">
             {challenges.map((challenge) => (
-              <article className="rounded-lg bg-white p-4 shadow-pop ring-1 ring-cris-navy/10" key={challenge.id}>
-                <p className="text-xs font-black uppercase text-cris-purple">Em breve</p>
-                <h3 className="mt-2 text-xl font-black text-cris-navy">{challenge.titulo}</h3>
-                <p className="mt-2 font-bold text-cris-navy/60">{challenge.descricao}</p>
+              <article
+                className="relative overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(135deg,#effcff_0%,#d7efff_28%,#f8fbff_52%,#e7dcff_76%,#c7e8ff_100%)] p-5 shadow-[0_18px_45px_rgba(56,130,180,0.22),inset_0_1px_0_rgba(255,255,255,0.95)] sm:p-6"
+                key={challenge.id}
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute -right-12 -top-12 size-40 rounded-full bg-white/45 blur-2xl"
+                />
+                <div className="relative">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase text-cris-purple">
+                        {challenge.periodo} ·{" "}
+                        {challenge.statusExecucao === "concluido"
+                          ? "Concluído"
+                          : challenge.statusExecucao === "em_andamento"
+                            ? "Em andamento"
+                            : "Fora do período"}
+                      </p>
+                      <h3 className="mt-2 text-2xl font-black text-cris-navy">
+                        {challenge.titulo}
+                      </h3>
+                    </div>
+                    <span className="rounded-lg border border-white/80 bg-white/70 px-3 py-2 text-xs font-black uppercase text-cris-blue shadow-sm backdrop-blur">
+                      {challenge.recompensa}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-lg font-black text-cris-purple">
+                    {challenge.chamada}
+                  </p>
+                  <p className="mt-2 font-bold leading-relaxed text-cris-navy/65">
+                    {challenge.descricao}
+                  </p>
+
+                  <div className="mt-5 flex items-end justify-between gap-4">
+                    <p className="text-sm font-black uppercase text-cris-navy">
+                      Progresso
+                    </p>
+                    <p className="text-2xl font-black text-cris-blue">
+                      {challenge.progresso ?? 0}/{challenge.meta}
+                    </p>
+                  </div>
+                  <div
+                    aria-label={`${challenge.progresso ?? 0} de ${challenge.meta} presenças`}
+                    className="mt-2 h-3 overflow-hidden rounded-full bg-white/75 ring-1 ring-cris-blue/15"
+                    role="progressbar"
+                    aria-valuemax={challenge.meta}
+                    aria-valuemin={0}
+                    aria-valuenow={challenge.progresso ?? 0}
+                  >
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,#25b8ec,#8b5de7,#f20772)] transition-[width] duration-500"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          ((challenge.progresso ?? 0) / challenge.meta) * 100
+                        )}%`
+                      }}
+                    />
+                  </div>
+                  <p className="mt-4 rounded-lg bg-white/65 p-3 font-black text-cris-navy/75 backdrop-blur">
+                    {challenge.mensagem}
+                  </p>
+                </div>
               </article>
             ))}
           </div>
@@ -551,8 +491,29 @@ export function StudentArea() {
         {achievements.length ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {achievements.map((achievement) => (
-              <article className="rounded-lg bg-white p-4 shadow-pop ring-1 ring-cris-navy/10" key={achievement.id}>
-                <h3 className="text-lg font-black uppercase text-cris-navy">{achievement.titulo}</h3>
+              <article
+                className={`rounded-lg p-4 shadow-pop ring-1 ${
+                  achievement.accent === "ice"
+                    ? "bg-[linear-gradient(145deg,#f5fdff,#d9efff,#eee7ff)] ring-cris-blue/20"
+                    : "bg-white ring-cris-navy/10"
+                }`}
+                key={achievement.id}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`grid size-12 shrink-0 place-items-center rounded-full border-2 ${
+                    achievement.desbloqueada
+                      ? "border-white bg-cris-blue text-white shadow-[0_6px_18px_rgba(37,184,236,0.35)]"
+                      : "border-cris-navy/10 bg-white/60 text-cris-navy/30"
+                  }`}>
+                    <TrophyIcon className="size-6" />
+                  </span>
+                  <div>
+                    <p className="text-[0.65rem] font-black uppercase text-cris-purple">
+                      {achievement.desbloqueada ? "Selo conquistado" : "Selo bloqueado"}
+                    </p>
+                    <h3 className="text-lg font-black uppercase text-cris-navy">{achievement.titulo}</h3>
+                  </div>
+                </div>
                 <p className="mt-2 font-bold text-cris-navy/60">{achievement.descricao}</p>
               </article>
             ))}
