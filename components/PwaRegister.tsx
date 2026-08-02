@@ -6,6 +6,17 @@ import { hasOneSignalAppId } from "@/lib/onesignalClient";
 export function PwaRegister() {
   useEffect(() => {
     if (hasOneSignalAppId()) {
+      if ("caches" in window) {
+        // Remove somente caches antigos do app; o worker do OneSignal permanece intacto.
+        void caches.keys().then((keys) =>
+          Promise.all(
+            keys
+              .filter((key) => key.startsWith("central-zumba-do-cris-"))
+              .map((key) => caches.delete(key))
+          )
+        );
+      }
+
       if ("serviceWorker" in navigator) {
         // OneSignal precisa controlar a raiz; remove apenas o worker antigo da PWA.
         navigator.serviceWorker
