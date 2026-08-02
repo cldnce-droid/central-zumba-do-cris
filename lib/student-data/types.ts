@@ -1,5 +1,5 @@
-export type PlanoCodigo = "1x" | "2x" | "3x";
-export type AlunoStatus = "ativo" | "pendente" | "atrasado" | "inativo";
+export type PlanoCodigo = "1x" | "2x" | "3x" | "premium";
+export type AlunoStatus = "ativo" | "pendente" | "inativo";
 export type DiaSemana =
   | "domingo"
   | "segunda"
@@ -31,7 +31,7 @@ export interface Aluno {
   email: string;
   plano: PlanoCodigo;
   status: AlunoStatus;
-  statusCadastro?: "pendente" | "ativo" | "inativo";
+  statusCadastro?: AlunoStatus;
   statusPagamento?: PagamentoStatus;
   dataEntrada: string;
   diaVencimento: number | null;
@@ -45,7 +45,7 @@ export interface Plano {
   id: string;
   nome: string;
   valor: number;
-  aulasPorSemana: 1 | 2 | 3;
+  aulasPorSemana: 1 | 2 | 3 | "ilimitado";
   descricao: string;
   destaque: boolean;
 }
@@ -133,6 +133,12 @@ export interface Desafio {
   meta: number;
   ativo: boolean;
   statusVisual: StatusVisualDesafio;
+  progresso?: number;
+  recompensa?: string;
+  statusExecucao?: "em_andamento" | "concluido" | "fora_periodo";
+  mensagem?: string;
+  chamada?: string;
+  periodo?: string;
 }
 
 export interface ResumoFrequencia {
@@ -146,5 +152,5 @@ export interface ConquistaVisual {
   titulo: string;
   descricao: string;
   desbloqueada: boolean;
-  accent: "pink" | "blue" | "purple" | "yellow";
+  accent: "pink" | "blue" | "purple" | "yellow" | "ice";
 }
