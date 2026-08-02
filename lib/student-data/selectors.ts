@@ -4,7 +4,6 @@ import {
   confirmacoes,
   desafios,
   pagamentos,
-  planos,
   presencas,
   turmas
 } from "./mockData";
@@ -12,12 +11,11 @@ import type {
   ConquistaVisual,
   ResumoFrequencia
 } from "./types";
-
-const planoPorCodigo = {
-  "1x": "PLANO_1X",
-  "2x": "PLANO_2X",
-  "3x": "PLANO_3X"
-} as const;
+import {
+  getOfficialPlan,
+  getPlanSelectionLimit,
+  isPremiumPlan
+} from "./catalog";
 
 function criarDataDaAula(data: string, horario: string) {
   const [hora, minuto = "0"] = horario.split("h");
@@ -34,7 +32,7 @@ export function getPlanoByAluno(alunoId: string) {
   const aluno = getAlunoById(alunoId);
   if (!aluno) return undefined;
 
-  return planos.find((plano) => plano.id === planoPorCodigo[aluno.plano]);
+  return getOfficialPlan(aluno.plano);
 }
 
 export function getTurmasDisponiveisPorPlano(alunoId: string) {
@@ -48,14 +46,17 @@ export function getTurmasDisponiveisPorPlano(alunoId: string) {
     (turma) => turma.nome === aluno.turmaPrincipal
   );
 
-  if (!principal) return turmasAtivas.slice(0, plano.aulasPorSemana);
-  if (plano.aulasPorSemana === 1) return [principal];
-  if (plano.aulasPorSemana === 3) return turmasAtivas;
+  if (isPremiumPlan(aluno.plano)) return turmasAtivas;
+
+  const limit = getPlanSelectionLimit(aluno.plano);
+  if (!principal) return turmasAtivas.slice(0, limit);
+  if (limit === 1) return [principal];
+  if (limit === 3) return turmasAtivas;
 
   return [
     principal,
     ...turmasAtivas.filter((turma) => turma.id !== principal.id)
-  ].slice(0, 2);
+  ].slice(0, limit);
 }
 
 export function getProximaAula(alunoId: string, referencia = new Date()) {
