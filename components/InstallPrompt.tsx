@@ -213,7 +213,7 @@ export function InstallPrompt() {
             onClick={dismissPrompt}
             type="button"
           >
-            Agora não
+            Fazer isso mais tarde
           </button>
         </div>
       </section>
