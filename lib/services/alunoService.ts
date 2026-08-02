@@ -17,7 +17,7 @@ import {
   getPlanSelectionLimit,
   isPremiumPlan
 } from "@/lib/student-data/catalog";
-import { getDesafioDancarinaFrozen } from "@/lib/services/desafioService";
+import { getDesafioAgostoSemSofa } from "@/lib/services/desafioService";
 import {
   sheetRowToAula,
   sheetRowToPresenca,
@@ -249,25 +249,25 @@ export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
 export function getDesafiosDisponiveis(alunoId: string) {
   const aluno = getAlunoById(alunoId);
   if (!aluno) return [];
-  return [getDesafioDancarinaFrozen(aluno)];
+  return [getDesafioAgostoSemSofa(aluno)];
 }
 
 export function getConquistasDoAluno(alunoId: string): ConquistaVisual[] {
-  const frozen = getCachedSheet("Conquistas").some(
+  const venceuSofa = getCachedSheet("Conquistas").some(
     (row) =>
       String(row.alunoId) === alunoId &&
-      String(row.titulo).toLowerCase() === "dançarina frozen"
+      String(row.titulo).toLowerCase() === "venci o sofá"
   );
 
   return [
     {
-      id: "dancarina-frozen",
-      titulo: "Dançarina Frozen",
-      descricao: frozen
-        ? "Julho vencido no ritmo. Desconto de R$10 desbloqueado."
-        : "Complete o desafio de julho para conquistar este selo.",
-      desbloqueada: frozen,
-      accent: "ice"
+      id: "venci-o-sofa",
+      titulo: "Venci o Sofá",
+      descricao: venceuSofa
+        ? "Agosto vencido no ritmo. O sofá não teve chance."
+        : "Complete o desafio de agosto para conquistar este selo.",
+      desbloqueada: venceuSofa,
+      accent: "sofa"
     }
   ];
 }
