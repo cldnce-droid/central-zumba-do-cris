@@ -25,7 +25,7 @@ import {
 } from "@/lib/google-sheets/mappers";
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 import { getOfficialPlan } from "@/lib/student-data/catalog";
-import { registrarConquistaFrozenSeNecessario } from "@/lib/services/desafioService";
+import { registrarConquistaAgostoSemSofaSeNecessario } from "@/lib/services/desafioService";
 
 const STUDENT_STATUS_KEY = "zdc_alunos_status";
 const PRESENCES_KEY = "zdc_presencas";
@@ -249,7 +249,7 @@ export async function validarPresenca(
 
   if (compareceu && aluno) {
     try {
-      await registrarConquistaFrozenSeNecessario(aluno);
+      await registrarConquistaAgostoSemSofaSeNecessario(aluno);
     } catch {
       // A presença continua válida mesmo se a aba Conquistas estiver indisponível.
     }
@@ -402,7 +402,7 @@ export async function sincronizarDashboardProfessor() {
   if (synced) {
     for (const aluno of getAlunosProfessor()) {
       try {
-        await registrarConquistaFrozenSeNecessario(aluno);
+        await registrarConquistaAgostoSemSofaSeNecessario(aluno);
       } catch {
         // A sincronização principal do dashboard não depende das conquistas.
       }
