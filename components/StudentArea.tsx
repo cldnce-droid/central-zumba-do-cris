@@ -410,13 +410,23 @@ export function StudentArea() {
           <div className="mt-4 grid gap-4">
             {challenges.map((challenge) => (
               <article
-                className="relative overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(135deg,#effcff_0%,#d7efff_28%,#f8fbff_52%,#e7dcff_76%,#c7e8ff_100%)] p-5 shadow-[0_18px_45px_rgba(56,130,180,0.22),inset_0_1px_0_rgba(255,255,255,0.95)] sm:p-6"
+                className="relative overflow-hidden rounded-lg border border-cris-purple/15 bg-[linear-gradient(145deg,#fff7fb_0%,#f5eaff_38%,#e7f7ff_72%,#fff4c8_100%)] p-5 shadow-[0_20px_48px_rgba(104,42,167,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] sm:p-6"
                 key={challenge.id}
               >
                 <div
                   aria-hidden="true"
-                  className="absolute -right-12 -top-12 size-40 rounded-full bg-white/45 blur-2xl"
+                  className="absolute -right-12 -top-12 size-40 rounded-full bg-cris-yellow/35 blur-2xl"
                 />
+                <div
+                  aria-hidden="true"
+                  className="absolute bottom-0 right-2 h-24 w-44 opacity-20 sm:opacity-100"
+                >
+                  <div className="absolute bottom-3 left-2 h-12 w-40 rounded-[1.4rem_1.4rem_0.7rem_0.7rem] bg-cris-purple shadow-[inset_0_5px_0_rgba(255,255,255,0.18),0_8px_0_#071046]" />
+                  <div className="absolute bottom-11 left-5 h-10 w-[4.3rem] rotate-[-3deg] rounded-lg bg-cris-pink shadow-inner" />
+                  <div className="absolute bottom-11 right-5 h-10 w-[4.3rem] rotate-[3deg] rounded-lg bg-cris-blue shadow-inner" />
+                  <div className="absolute bottom-0 left-5 h-4 w-3 rounded-b bg-cris-navy" />
+                  <div className="absolute bottom-0 right-5 h-4 w-3 rounded-b bg-cris-navy" />
+                </div>
                 <div className="relative">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -429,10 +439,11 @@ export function StudentArea() {
                             : "Fora do período"}
                       </p>
                       <h3 className="mt-2 text-2xl font-black text-cris-navy">
-                        {challenge.titulo}
+                        <span className="mr-2" aria-hidden="true">🛋️</span>
+                        {challenge.titulo.replace("🛋️", "").trim()}
                       </h3>
                     </div>
-                    <span className="rounded-lg border border-white/80 bg-white/70 px-3 py-2 text-xs font-black uppercase text-cris-blue shadow-sm backdrop-blur">
+                    <span className="rounded-lg border border-white/80 bg-cris-navy px-3 py-2 text-xs font-black uppercase text-cris-yellow shadow-sm">
                       {challenge.recompensa}
                     </span>
                   </div>
@@ -453,14 +464,14 @@ export function StudentArea() {
                   </div>
                   <div
                     aria-label={`${challenge.progresso ?? 0} de ${challenge.meta} presenças`}
-                    className="mt-2 h-3 overflow-hidden rounded-full bg-white/75 ring-1 ring-cris-blue/15"
+                    className="mt-2 h-3 overflow-hidden rounded-full bg-white/80 ring-1 ring-cris-purple/15 sm:max-w-[70%]"
                     role="progressbar"
                     aria-valuemax={challenge.meta}
                     aria-valuemin={0}
                     aria-valuenow={challenge.progresso ?? 0}
                   >
                     <div
-                      className="h-full rounded-full bg-[linear-gradient(90deg,#25b8ec,#8b5de7,#f20772)] transition-[width] duration-500"
+                      className="h-full rounded-full bg-[linear-gradient(90deg,#f20772,#7128ce,#25b8ec,#ffc400)] transition-[width] duration-500"
                       style={{
                         width: `${Math.min(
                           100,
@@ -469,8 +480,11 @@ export function StudentArea() {
                       }}
                     />
                   </div>
-                  <p className="mt-4 rounded-lg bg-white/65 p-3 font-black text-cris-navy/75 backdrop-blur">
+                  <p className="mt-4 rounded-lg bg-white/75 p-3 font-black text-cris-navy/75 backdrop-blur sm:max-w-[70%]">
                     {challenge.mensagem}
+                  </p>
+                  <p className="mt-3 text-xs font-bold text-cris-navy/50 sm:max-w-[70%]">
+                    A meta já considera a semana especial com uma aula por turma.
                   </p>
                 </div>
               </article>
@@ -493,8 +507,8 @@ export function StudentArea() {
             {achievements.map((achievement) => (
               <article
                 className={`rounded-lg p-4 shadow-pop ring-1 ${
-                  achievement.accent === "ice"
-                    ? "bg-[linear-gradient(145deg,#f5fdff,#d9efff,#eee7ff)] ring-cris-blue/20"
+                  achievement.accent === "sofa"
+                    ? "bg-[linear-gradient(145deg,#fff7fb,#f1e6ff,#e3f7ff)] ring-cris-purple/20"
                     : "bg-white ring-cris-navy/10"
                 }`}
                 key={achievement.id}
@@ -505,7 +519,11 @@ export function StudentArea() {
                       ? "border-white bg-cris-blue text-white shadow-[0_6px_18px_rgba(37,184,236,0.35)]"
                       : "border-cris-navy/10 bg-white/60 text-cris-navy/30"
                   }`}>
-                    <TrophyIcon className="size-6" />
+                    {achievement.accent === "sofa" ? (
+                      <span className="text-xl" aria-hidden="true">🛋️</span>
+                    ) : (
+                      <TrophyIcon className="size-6" />
+                    )}
                   </span>
                   <div>
                     <p className="text-[0.65rem] font-black uppercase text-cris-purple">
