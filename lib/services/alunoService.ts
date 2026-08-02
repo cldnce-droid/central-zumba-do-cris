@@ -1,12 +1,4 @@
-import {
-  planos as mockPlans,
-  turmas as mockClasses
-} from "@/lib/student-data/mockData";
-import {
-  getPlanoByAluno as buscarPlanoPorAluno,
-  getProximaAula as buscarProximaAula,
-  getTurmasDisponiveisPorPlano as buscarTurmasDisponiveis
-} from "@/lib/student-data/selectors";
+import { turmas as mockClasses } from "@/lib/student-data/mockData";
 import { getStatusAlunoLocal } from "@/lib/services/professorService";
 import { sheetRowToAluno } from "@/lib/google-sheets/mappers";
 import {
@@ -14,11 +6,20 @@ import {
   readSheet,
   syncGoogleSheetsData
 } from "@/lib/services/googleSheetsService";
-import type { Aluno, ConquistaVisual } from "@/lib/student-data/types";
+import type {
+  Aluno,
+  Aula,
+  ConquistaVisual,
+  Turma
+} from "@/lib/student-data/types";
+import {
+  getOfficialPlan,
+  getPlanSelectionLimit,
+  isPremiumPlan
+} from "@/lib/student-data/catalog";
+import { getDesafioDancarinaFrozen } from "@/lib/services/desafioService";
 import {
   sheetRowToAula,
-  sheetRowToDesafio,
-  sheetRowToPlano,
   sheetRowToPresenca,
   sheetRowToTurma
 } from "@/lib/google-sheets/mappers";
@@ -151,17 +152,7 @@ export async function getAlunoByWhatsappRemoto(whatsapp: string) {
 export function getPlanoByAluno(alunoId: string) {
   const aluno = getAlunoById(alunoId);
   if (!aluno) return undefined;
-  const remotePlans = getCachedSheet("Planos").map(sheetRowToPlano);
-  const sourcePlans = remotePlans.length ? remotePlans : mockPlans;
-  const plan = sourcePlans.find(
-    (plano) =>
-      Number(plano.aulasPorSemana) ===
-      Number(String(aluno.plano).replace("x", ""))
-  );
-  if (plan) {
-    return plan as unknown as ReturnType<typeof buscarPlanoPorAluno>;
-  }
-  return buscarPlanoPorAluno(alunoId);
+  return getOfficialPlan(aluno.plano);
 }
 
 export function getTurmasDisponiveisPorPlano(alunoId: string) {
@@ -170,20 +161,23 @@ export function getTurmasDisponiveisPorPlano(alunoId: string) {
 
   const remoteClasses = getCachedSheet("Turmas").map(sheetRowToTurma);
   const sourceClasses = remoteClasses.length ? remoteClasses : mockClasses;
+  if (isPremiumPlan(aluno.plano)) {
+    return sourceClasses.filter((turma) => turma.ativa) as Turma[];
+  }
   const selectedNames = new Set(
     getSelectedClassNames(aluno).map(normalizeClassName)
   );
 
   if (!selectedNames.size) return [];
 
-  const limit = Number(String(aluno.plano).replace("x", ""));
+  const limit = getPlanSelectionLimit(aluno.plano);
   return sourceClasses
     .filter(
       (turma) =>
         turma.ativa &&
         selectedNames.has(normalizeClassName(String(turma.nome)))
     )
-    .slice(0, limit) as unknown as ReturnType<typeof buscarTurmasDisponiveis>;
+    .slice(0, limit) as Turma[];
 }
 
 export function getProximaAula(alunoId: string, referencia = new Date()) {
@@ -214,9 +208,7 @@ export function getProximaAula(alunoId: string, referencia = new Date()) {
       )
     );
 
-  return generatedClasses[0] as unknown as ReturnType<
-    typeof buscarProximaAula
-  >;
+  return generatedClasses[0] as Aula | undefined;
 }
 
 export function getStatusPagamento(alunoId: string) {
@@ -254,18 +246,28 @@ export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
   return { aulasNoMes: 0, sequenciaAtual: 0, totalPresencas: 0 };
 }
 
-export function getDesafiosDisponiveis(_alunoId: string) {
-  const remoteChallenges = getCachedSheet("Desafios").map(sheetRowToDesafio);
-  if (remoteChallenges.length) {
-    return remoteChallenges.map((challenge) => ({
-      ...challenge,
-      ativo: false,
-      statusVisual: "em_breve" as const
-    }));
-  }
-  return [];
+export function getDesafiosDisponiveis(alunoId: string) {
+  const aluno = getAlunoById(alunoId);
+  if (!aluno) return [];
+  return [getDesafioDancarinaFrozen(aluno)];
 }
 
-export function getConquistasDoAluno(_alunoId: string): ConquistaVisual[] {
-  return [];
+export function getConquistasDoAluno(alunoId: string): ConquistaVisual[] {
+  const frozen = getCachedSheet("Conquistas").some(
+    (row) =>
+      String(row.alunoId) === alunoId &&
+      String(row.titulo).toLowerCase() === "dançarina frozen"
+  );
+
+  return [
+    {
+      id: "dancarina-frozen",
+      titulo: "Dançarina Frozen",
+      descricao: frozen
+        ? "Julho vencido no ritmo. Desconto de R$10 desbloqueado."
+        : "Complete o desafio de julho para conquistar este selo.",
+      desbloqueada: frozen,
+      accent: "ice"
+    }
+  ];
 }
