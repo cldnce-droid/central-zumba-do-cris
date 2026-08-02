@@ -10,8 +10,33 @@ test.beforeEach(async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "zumba-do-cris-install-prompt-dismissed-v2",
+      "true"
+    )
+  );
+  await page.reload();
   await expect(page.locator("body")).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("instalação é opcional e não bloqueia a Home", async ({ page }) => {
+  await page.evaluate(() =>
+    localStorage.removeItem("zumba-do-cris-install-prompt-dismissed-v2")
+  );
+  await page.reload();
+
+  await expect(
+    page.getByRole("heading", { name: /adicione o zumba do cris/i })
+  ).toBeVisible();
+  await page.getByRole("button", { name: /fazer isso mais tarde/i }).click();
+  await expect(
+    page.getByRole("heading", { name: /adicione o zumba do cris/i })
+  ).toBeHidden();
+  await expect(
+    page.getByRole("link", { name: /entrar na minha área/i })
+  ).toBeVisible();
 });
 
 test("home abre os três grupos corretos", async ({ page }) => {
@@ -28,12 +53,102 @@ test("planos e PIX funcionam no celular", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.getByRole("link", { name: /^planos$/i }).first().click();
 
-  await expect(page.getByText("R$50")).toBeVisible();
-  await expect(page.getByText("R$85")).toBeVisible();
+  await expect(page.getByText("R$80")).toBeVisible();
   await expect(page.getByText("R$100")).toBeVisible();
+  await expect(page.getByText("R$130")).toBeVisible();
+  await expect(page.getByText("R$150")).toBeVisible();
 
   await page.getByRole("button", { name: /pagar com pix/i }).click();
   await expect(page.getByText(/chave pix copiada com sucesso/i)).toBeVisible();
+});
+
+test("grade oficial e Premium aparecem nas telas públicas", async ({ page }) => {
+  await page.getByRole("link", { name: /turmas/i }).first().click();
+  await expect(page.getByText("Segunda e quarta")).toBeVisible();
+  await expect(page.getByText("Terça e quinta", { exact: true })).toHaveCount(2);
+
+  await page.getByRole("link", { name: /^planos$/i }).first().click();
+  await expect(page.getByText("Plano Apoiadora Premium")).toBeVisible();
+  await expect(
+    page.getByText(/acesso livre a todas as aulas em qualquer local/i)
+  ).toBeVisible();
+});
+
+test("Premium libera automaticamente todos os locais no cadastro", async ({
+  page
+}) => {
+  await page.goto("/cadastro");
+  await page.getByText("Plano Apoiadora Premium", { exact: true }).click();
+  await expect(page.locator('input[name="turma"]:checked')).toHaveCount(3);
+});
+
+test("desafio Frozen conta somente presenças aceitas", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("alunoAtualId", "ALU_TESTE_FROZEN");
+    localStorage.setItem(
+      "zdc_alunos_remotos",
+      JSON.stringify([
+        {
+          id: "ALU_TESTE_FROZEN",
+          nome: "Aluna Teste",
+          whatsapp: "48999999999",
+          email: "",
+          plano: "1x",
+          status: "ativo",
+          statusCadastro: "ativo",
+          statusPagamento: "pago",
+          dataEntrada: "2026-07-01",
+          diaVencimento: 8,
+          turmaPrincipal: "Palmas",
+          turmasEscolhidas: ["Palmas"],
+          observacoes: ""
+        }
+      ])
+    );
+    localStorage.setItem(
+      "zdc_google_sheets_cache",
+      JSON.stringify({
+        Presencas: [
+          {
+            id: "P1",
+            alunoId: "ALU_TESTE_FROZEN",
+            aulaId: "A1",
+            dataAula: "2026-07-06",
+            status: "aceita",
+            compareceu: true
+          },
+          {
+            id: "P2",
+            alunoId: "ALU_TESTE_FROZEN",
+            aulaId: "A2",
+            dataAula: "2026-07-13",
+            status: "aceita",
+            compareceu: true
+          },
+          {
+            id: "P3",
+            alunoId: "ALU_TESTE_FROZEN",
+            aulaId: "A3",
+            dataAula: "2026-07-20",
+            status: "aceita",
+            compareceu: true
+          },
+          {
+            id: "RECUSADA",
+            alunoId: "ALU_TESTE_FROZEN",
+            aulaId: "A4",
+            dataAula: "2026-07-27",
+            status: "recusada",
+            compareceu: false
+          }
+        ]
+      })
+    );
+  });
+
+  await page.goto("/minha-area");
+  await expect(page.getByText(/desafio dançarina frozen/i)).toBeVisible();
+  await expect(page.getByText("3/4")).toBeVisible();
 });
 
 test("WhatsApp de informações possui número e mensagem", async ({ page }) => {
