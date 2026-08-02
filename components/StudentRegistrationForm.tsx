@@ -1,15 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import {
   CalendarIcon,
   HeartIcon,
-  MessageIcon,
   MoneyIcon,
   PinIcon,
   UsersIcon
 } from "@/components/Icons";
-import { pixKey } from "@/lib/data";
+import {
+  getPlanSelectionLimit,
+  isPremiumPlan,
+  normalizePlano
+} from "@/lib/student-data/catalog";
 import {
   getPlanoCadastro,
   getPlanosParaCadastro,
@@ -77,15 +81,11 @@ function validateForm(form: CadastroAlunoFormData) {
   }
 
   if (form.plano) {
-    const limit = Number(form.plano.replace("x", ""));
-    const hasOnlyGanchos =
-      form.turmaIds.length === 1 && form.turmaIds[0] === "TURMA_GANCHOS";
-
-    if (
-      form.turmaIds.length > limit ||
-      (form.plano === "2x" && !hasOnlyGanchos && form.turmaIds.length < 2)
-    ) {
-      errors.turmaIds = "No plano 2x, escolha dois locais ou somente Ganchos de Fora.";
+    const limit = getPlanSelectionLimit(form.plano);
+    if (form.turmaIds.length !== limit) {
+      errors.turmaIds = isPremiumPlan(form.plano)
+        ? "O Plano Apoiadora Premium libera automaticamente todos os locais."
+        : `Neste plano, escolha exatamente ${limit} ${limit === 1 ? "local" : "locais"}.`;
     }
   }
 
@@ -103,7 +103,6 @@ export function StudentRegistrationForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [registeredStudent, setRegisteredStudent] =
     useState<AlunoPendente | null>(null);
-  const [pixFeedback, setPixFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -129,11 +128,14 @@ export function StudentRegistrationForm() {
   };
 
   const selectPlan = (plan: CadastroAlunoFormData["plano"]) => {
-    const limit = plan ? Number(plan.replace("x", "")) : 0;
+    const limit = plan ? getPlanSelectionLimit(plan) : 0;
     setForm((current) => ({
       ...current,
       plano: plan,
-      turmaIds: current.turmaIds.slice(0, limit)
+      turmaIds:
+        plan && isPremiumPlan(plan)
+          ? classes.map((item) => item.id)
+          : current.turmaIds.slice(0, limit)
     }));
     setErrors((current) => ({
       ...current,
@@ -151,7 +153,12 @@ export function StudentRegistrationForm() {
       return;
     }
 
-    const limit = Number(form.plano.replace("x", ""));
+    if (isPremiumPlan(form.plano)) {
+      updateField("turmaIds", classes.map((item) => item.id));
+      return;
+    }
+
+    const limit = getPlanSelectionLimit(form.plano);
     const isSelected = form.turmaIds.includes(classId);
     const nextSelection = isSelected
       ? form.turmaIds.filter((id) => id !== classId)
@@ -184,7 +191,6 @@ export function StudentRegistrationForm() {
     setSubmitError("");
     try {
       setRegisteredStudent(await salvarAlunoPendente(form));
-      setPixFeedback("");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setSubmitError(
@@ -197,20 +203,7 @@ export function StudentRegistrationForm() {
     }
   };
 
-  const copyPix = async () => {
-    try {
-      await navigator.clipboard.writeText(pixKey);
-      setPixFeedback("Chave PIX copiada!");
-    } catch {
-      setPixFeedback(`Copie a chave PIX: ${pixKey}`);
-    }
-  };
-
   if (registeredStudent) {
-    const whatsappMessage = encodeURIComponent(
-      `Olá, Cris! Fiz meu cadastro na Central Zumba do Cris. Meu nome é ${registeredStudent.nome}, escolhi os locais ${registeredStudent.turmasEscolhidas.join(", ")} e o plano ${selectedPlan?.nome ?? registeredStudent.plano}. Quero enviar meu comprovante. 💖`
-    );
-
     return (
       <div className="flex flex-col gap-5">
         <section className="relative overflow-hidden rounded-lg bg-cris-navy p-6 text-white shadow-pop sm:p-8">
@@ -228,10 +221,12 @@ export function StudentRegistrationForm() {
             Cadastro recebido!
           </h1>
           <p className="mt-4 max-w-2xl text-lg font-bold leading-relaxed text-white/85">
-            Agora é só finalizar o pagamento para garantir sua vaga.
+            Seu cadastro foi recebido. Agora é só aguardar a confirmação para
+            liberar sua Área do Aluno.
           </p>
           <p className="mt-2 max-w-2xl font-bold text-white/65">
-            Após a confirmação do pagamento, sua Área do Aluno será liberada.
+            Assim que for liberado, você poderá acompanhar suas aulas,
+            presenças e desafios.
           </p>
         </section>
 
@@ -305,33 +300,13 @@ export function StudentRegistrationForm() {
           </dl>
         </section>
 
-        <section className="grid gap-3 sm:grid-cols-2">
-          <button
-            className="flex min-h-14 items-center justify-center gap-3 rounded-lg bg-cris-yellow px-5 py-4 text-sm font-black uppercase text-cris-navy shadow-pop transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-cris-pink/25"
-            onClick={copyPix}
-            type="button"
-          >
-            <MoneyIcon className="size-6" />
-            Copiar chave PIX
-          </button>
-          <a
-            className="flex min-h-14 items-center justify-center gap-3 rounded-lg bg-cris-blue px-5 py-4 text-center text-sm font-black uppercase text-white shadow-pop transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-cris-yellow/40"
-            href={`https://wa.me/5541984723756?text=${whatsappMessage}`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <MessageIcon className="size-6" />
-            Falar com o Cris no WhatsApp
-          </a>
-        </section>
-
         <div className="text-center">
-          <p aria-live="polite" className="min-h-6 font-black text-cris-pink">
-            {pixFeedback}
-          </p>
-          <p className="mt-2 font-bold text-cris-navy/65">
-            Envie o comprovante para confirmar sua vaga.
-          </p>
+          <Link
+            className="inline-flex min-h-14 items-center justify-center rounded-lg bg-cris-pink px-6 py-4 text-sm font-black uppercase text-white shadow-pop"
+            href="/entrar"
+          >
+            Acompanhar minha área
+          </Link>
           <p className="mt-4 text-xl font-black text-cris-navy">
             💖 Errou... continua!
           </p>
@@ -441,9 +416,9 @@ export function StudentRegistrationForm() {
 
         <p className="mt-4 font-bold text-cris-navy/65">
           {form.plano
-            ? form.plano === "2x"
-              ? "Escolha ate 2 locais. Se quiser fazer as duas aulas em Ganchos de Fora, selecione somente Ganchos de Fora."
-              : `Escolha ate ${Number(form.plano.replace("x", ""))} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
+            ? isPremiumPlan(form.plano)
+              ? "Todos os locais já estão liberados no Plano Apoiadora Premium."
+              : `Escolha exatamente ${getPlanSelectionLimit(form.plano)} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
             : "Escolha primeiro seu plano para liberar a seleção de locais."}
         </p>
 
@@ -473,11 +448,6 @@ export function StudentRegistrationForm() {
               <span className="mt-2 block text-sm font-bold text-cris-blue">
                 {formatDays(item.dias)} às {item.horario}
               </span>
-              {item.id === "TURMA_GANCHOS" ? (
-                <span className="mt-1 block text-xs font-black uppercase text-cris-pink">
-                  Pode ser escolhido sozinho no plano 1x ou 2x
-                </span>
-              ) : null}
               <span className="mt-1 block text-sm font-bold text-cris-navy/60">
                 {item.endereco}
               </span>
@@ -502,11 +472,11 @@ export function StudentRegistrationForm() {
         </div>
 
         <div
-          className="mt-6 grid gap-3 md:grid-cols-3"
+          className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
           data-registration-error={Boolean(errors.plano)}
         >
           {plans.map((item) => {
-            const code = `${item.aulasPorSemana}x` as CadastroAlunoFormData["plano"];
+            const code = normalizePlano(item) as CadastroAlunoFormData["plano"];
 
             return (
               <label
@@ -526,7 +496,7 @@ export function StudentRegistrationForm() {
                 />
                 {item.destaque ? (
                   <span className="absolute right-0 top-0 bg-cris-yellow px-3 py-1 text-[0.65rem] font-black uppercase text-cris-navy">
-                    Melhor valor
+                    {code === "premium" ? "Acesso livre" : "Destaque"}
                   </span>
                 ) : null}
                 <span className="block text-lg font-black uppercase text-cris-navy">
