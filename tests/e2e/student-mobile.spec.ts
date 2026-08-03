@@ -11,29 +11,30 @@ test.beforeEach(async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await page.evaluate(() =>
-    localStorage.setItem(
-      "zumba-do-cris-install-prompt-dismissed-v2",
-      "true"
-    )
-  );
+  await page.evaluate(() => {
+    localStorage.setItem("zumba-do-cris-install-manual-complete-v1", "true");
+    sessionStorage.removeItem("zumba-do-cris-install-manual-later-v1");
+  });
   await page.reload();
   await expect(page.locator("body")).toBeVisible();
   expect(errors).toEqual([]);
 });
 
-test("instalação é opcional e não bloqueia a Home", async ({ page }) => {
-  await page.evaluate(() =>
-    localStorage.removeItem("zumba-do-cris-install-prompt-dismissed-v2")
-  );
+test("instalação manual é opcional e não bloqueia a Home", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.removeItem("zumba-do-cris-install-manual-complete-v1");
+    sessionStorage.removeItem("zumba-do-cris-install-manual-later-v1");
+  });
   await page.reload();
 
   await expect(
-    page.getByRole("heading", { name: /adicione o zumba do cris/i })
+    page.getByRole("heading", { name: /coloque o zumba do cris/i })
   ).toBeVisible();
-  await page.getByRole("button", { name: /fazer isso mais tarde/i }).click();
+  await expect(page.getByText(/iphone \/ safari/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /instalar app/i })).toHaveCount(0);
+  await page.getByRole("button", { name: /baixar depois/i }).click();
   await expect(
-    page.getByRole("heading", { name: /adicione o zumba do cris/i })
+    page.getByRole("heading", { name: /coloque o zumba do cris/i })
   ).toBeHidden();
   await expect(
     page.getByRole("link", { name: /entrar na minha área/i })
@@ -80,7 +81,17 @@ test("Premium libera automaticamente todos os locais no cadastro", async ({
 }) => {
   await page.goto("/cadastro");
   await page.getByText("Plano Apoiadora Premium", { exact: true }).click();
-  await expect(page.locator('input[name="turma"]:checked')).toHaveCount(3);
+  await expect(page.locator('input[name="turma"]:checked')).toHaveCount(4);
+});
+
+test("plano 2x exige somente um local", async ({ page }) => {
+  await page.goto("/cadastro");
+  await page.getByText("2x por semana", { exact: true }).click();
+  await page.getByText("Palmas", { exact: true }).click();
+  await expect(page.locator('input[name="turma"]:checked')).toHaveCount(1);
+  await expect(
+    page.getByText(/esse local oferece duas aulas por semana/i)
+  ).toBeVisible();
 });
 
 test("desafio Agosto Sem Sofá conta somente presenças aceitas", async ({ page }) => {
