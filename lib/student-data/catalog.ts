@@ -52,7 +52,7 @@ export const officialClasses: Turma[] = [
     local: "Palmas",
     dias: ["segunda", "quarta"],
     horario: "19h",
-    endereco: "2.0 Lounge",
+    endereco: "Novo local em Palmas",
     capacidade: 25,
     ativa: true
   },
@@ -64,6 +64,16 @@ export const officialClasses: Turma[] = [
     horario: "20h15",
     endereco: "Ao lado do Berlanda",
     capacidade: 15,
+    ativa: true
+  },
+  {
+    id: "TURMA_ARMACAO",
+    nome: "Armação",
+    local: "Armação",
+    dias: ["quarta", "sexta"],
+    horario: "20h30",
+    endereco: "Novo local em Armação",
+    capacidade: null,
     ativa: true
   }
 ];
