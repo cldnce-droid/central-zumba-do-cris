@@ -10,10 +10,11 @@ import {
   UsersIcon
 } from "@/components/Icons";
 import {
-  getPlanSelectionLimit,
+  getRegistrationLocationCount,
   isPremiumPlan,
   normalizePlano
 } from "@/lib/student-data/catalog";
+import { pixKey } from "@/lib/data";
 import {
   getPlanoCadastro,
   getPlanosParaCadastro,
@@ -81,7 +82,7 @@ function validateForm(form: CadastroAlunoFormData) {
   }
 
   if (form.plano) {
-    const limit = getPlanSelectionLimit(form.plano);
+    const limit = getRegistrationLocationCount(form.plano);
     if (form.turmaIds.length !== limit) {
       errors.turmaIds = isPremiumPlan(form.plano)
         ? "O Plano Apoiadora Premium libera automaticamente todos os locais."
@@ -105,6 +106,7 @@ export function StudentRegistrationForm() {
     useState<AlunoPendente | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [pixFeedback, setPixFeedback] = useState("");
 
   const selectedClasses = registeredStudent
     ? classes.filter((item) =>
@@ -128,7 +130,7 @@ export function StudentRegistrationForm() {
   };
 
   const selectPlan = (plan: CadastroAlunoFormData["plano"]) => {
-    const limit = plan ? getPlanSelectionLimit(plan) : 0;
+    const limit = plan ? getRegistrationLocationCount(plan) : 0;
     setForm((current) => ({
       ...current,
       plano: plan,
@@ -158,7 +160,7 @@ export function StudentRegistrationForm() {
       return;
     }
 
-    const limit = getPlanSelectionLimit(form.plano);
+    const limit = getRegistrationLocationCount(form.plano);
     const isSelected = form.turmaIds.includes(classId);
     const nextSelection = isSelected
       ? form.turmaIds.filter((id) => id !== classId)
@@ -173,6 +175,15 @@ export function StudentRegistrationForm() {
     }
 
     updateField("turmaIds", nextSelection);
+  };
+
+  const copyPixKey = async () => {
+    try {
+      await navigator.clipboard.writeText(pixKey);
+      setPixFeedback("💖 Chave PIX copiada com sucesso!");
+    } catch {
+      setPixFeedback(`Copie a chave PIX: ${pixKey}`);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -300,6 +311,38 @@ export function StudentRegistrationForm() {
           </dl>
         </section>
 
+        <section className="premium-panel p-5 sm:p-7">
+          <h2 className="text-2xl font-black uppercase text-cris-navy">
+            Próximo passo
+          </h2>
+          <p className="mt-2 font-bold text-cris-navy/65">
+            Fale com o Cris para confirmar seu cadastro. Se preferir PIX, copie
+            a chave abaixo e envie o comprovante pelo WhatsApp.
+          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <button
+              className="min-h-14 rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy shadow-pop"
+              onClick={copyPixKey}
+              type="button"
+            >
+              Copiar chave PIX
+            </button>
+            <a
+              className="inline-flex min-h-14 items-center justify-center rounded-lg bg-cris-blue px-5 py-3 text-center text-sm font-black uppercase text-white shadow-pop"
+              href={`https://wa.me/5541984723756?text=${encodeURIComponent(`Olá, Cris! Fiz meu cadastro na Central Zumba do Cris. Meu nome é ${registeredStudent.nome}. Gostaria de confirmar minha vaga. 💖`)}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Falar com o Cris
+            </a>
+          </div>
+          {pixFeedback ? (
+            <p className="mt-4 break-words rounded-lg bg-cris-pink/10 p-3 text-sm font-black text-cris-pink">
+              {pixFeedback}
+            </p>
+          ) : null}
+        </section>
+
         <div className="text-center">
           <Link
             className="inline-flex min-h-14 items-center justify-center rounded-lg bg-cris-pink px-6 py-4 text-sm font-black uppercase text-white shadow-pop"
@@ -418,7 +461,9 @@ export function StudentRegistrationForm() {
           {form.plano
             ? isPremiumPlan(form.plano)
               ? "Todos os locais já estão liberados no Plano Apoiadora Premium."
-              : `Escolha exatamente ${getPlanSelectionLimit(form.plano)} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
+              : form.plano === "2x"
+                ? "Escolha 1 local. Esse local oferece duas aulas por semana."
+                : `Escolha exatamente ${getRegistrationLocationCount(form.plano)} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
             : "Escolha primeiro seu plano para liberar a seleção de locais."}
         </p>
 
