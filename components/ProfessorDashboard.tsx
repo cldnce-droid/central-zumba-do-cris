@@ -38,7 +38,7 @@ import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 type DashboardTab = "alunos" | "presencas" | "financeiro";
 type ProfessorStudent = ReturnType<typeof getAlunosProfessor>[number];
 
-const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Calheiros"];
+const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Calheiros", "Armação"];
 
 function onlyNumbers(value: string) {
   return value.replace(/\D/g, "");
