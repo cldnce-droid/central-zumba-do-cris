@@ -16,7 +16,7 @@ export default function TurmasPage() {
         Escolha o local que combina com sua rotina e venha dançar.
       </PageTitle>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {classes.map((item) => (
           <article key={item.city} className="premium-panel">
             <div className="relative h-48 overflow-hidden bg-cris-navy">
