@@ -126,6 +126,13 @@ export function getPlanSelectionLimit(value: unknown) {
     : Number(code.replace("x", ""));
 }
 
+export function getRegistrationLocationCount(value: unknown) {
+  const code = normalizePlano(value);
+  if (code === "premium") return officialClasses.length;
+  if (code === "2x") return 1;
+  return Number(code.replace("x", ""));
+}
+
 export function getPlanChallengeGoal(value: unknown) {
   const code = normalizePlano(value);
   if (code === "1x") return 4;
