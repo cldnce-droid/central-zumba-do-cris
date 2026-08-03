@@ -1,7 +1,7 @@
 import { planos, turmas } from "@/lib/student-data/mockData";
 import {
   getOfficialPlan,
-  getPlanSelectionLimit,
+  getRegistrationLocationCount,
   isPremiumPlan
 } from "@/lib/student-data/catalog";
 import type {
@@ -83,7 +83,7 @@ export function createAlunoPendente(
     .map(getTurmaCadastro)
     .filter((turma) => turma !== undefined);
   const limiteDeLocais = formData.plano
-    ? getPlanSelectionLimit(formData.plano)
+    ? getRegistrationLocationCount(formData.plano)
     : 0;
   const quantidadeValida =
     formData.plano &&
@@ -130,10 +130,7 @@ export async function salvarAlunoPendente(
     field: "whatsapp",
     value: aluno.whatsapp
   });
-  if (!existing || existing.fallback || !existing.configured) {
-    throw new Error("Nao foi possivel conectar a base de dados agora. Tente novamente.");
-  }
-  if (existing.data.length > 0) {
+  if (existing?.configured && !existing.fallback && existing.data.length > 0) {
     throw new Error("Ja existe um cadastro com este WhatsApp.");
   }
 
