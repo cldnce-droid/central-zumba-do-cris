@@ -160,7 +160,16 @@ export function getTurmasDisponiveisPorPlano(alunoId: string) {
   if (!aluno) return [];
 
   const remoteClasses = getCachedSheet("Turmas").map(sheetRowToTurma);
-  const sourceClasses = remoteClasses.length ? remoteClasses : mockClasses;
+  // A grade oficial do app prevalece para que horários novos não dependam
+  // de uma atualização manual imediata na aba Turmas.
+  const officialIds = new Set(mockClasses.map((turma) => turma.id));
+  const sourceClasses = [
+    ...mockClasses.map((officialClass) => ({
+      ...remoteClasses.find((remoteClass) => remoteClass.id === officialClass.id),
+      ...officialClass
+    })),
+    ...remoteClasses.filter((remoteClass) => !officialIds.has(remoteClass.id))
+  ];
   if (isPremiumPlan(aluno.plano)) {
     return sourceClasses.filter((turma) => turma.ativa) as Turma[];
   }
