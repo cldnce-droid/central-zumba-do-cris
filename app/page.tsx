@@ -109,7 +109,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {classes.map((item) => (
           <article
             className="premium-panel grid min-h-28 place-items-center p-5 text-center"
@@ -143,7 +143,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {classes.map((item) => (
             <a
               aria-label={`Abrir ${item.city} no Google Maps`}
