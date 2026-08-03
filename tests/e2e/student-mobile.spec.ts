@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 const groups = {
   Calheiros: "https://chat.whatsapp.com/J8wN1cv3qdn9pZEoFpkVWj",
   Palmas: "https://chat.whatsapp.com/B6c5JM9R5nx8IxpZNTK0jp",
-  "Ganchos de Fora": "https://chat.whatsapp.com/FPIReSms4UG6dFwk7RY10D"
+  "Ganchos de Fora": "https://chat.whatsapp.com/FPIReSms4UG6dFwk7RY10D",
+  Armação: "https://chat.whatsapp.com/GYSoPMm0rGxEMlmANShgGb?s=cl&p=a&ilr=0"
 };
 
 test.beforeEach(async ({ page }) => {
