@@ -17,7 +17,7 @@ const classDetails = {
   PALMAS: {
     turmaId: "TURMA_PALMAS",
     local: "Palmas",
-    endereco: "2.0 Lounge",
+    endereco: "Novo local em Palmas",
     horario: "19h"
   },
   CALHEIROS: {
@@ -25,12 +25,18 @@ const classDetails = {
     local: "Calheiros",
     endereco: "Ao lado do Berlanda",
     horario: "20h15"
+  },
+  ARMACAO: {
+    turmaId: "TURMA_ARMACAO",
+    local: "Armação",
+    endereco: "Novo local em Armação",
+    horario: "20h30"
   }
 } as const;
 
 export function getLessonDetailsFromId(id: string): LessonDetails | undefined {
   const match = id.match(
-    /^AULA_(GANCHOS|PALMAS|CALHEIROS)_(\d{4}-\d{2}-\d{2})_(\d{1,4})$/
+    /^AULA_(GANCHOS|PALMAS|CALHEIROS|ARMACAO)_(\d{4}-\d{2}-\d{2})_(\d{1,4})$/
   );
   if (!match) return undefined;
 
