@@ -23,6 +23,12 @@ export const whatsappGroups = [
     schedule: "Terça e quinta • 18h30",
     url: "https://chat.whatsapp.com/FPIReSms4UG6dFwk7RY10D",
     accent: "yellow"
+  },
+  {
+    city: "Armação",
+    schedule: "Quarta e sexta • 20h30",
+    url: "https://chat.whatsapp.com/GYSoPMm0rGxEMlmANShgGb?s=cl&p=a&ilr=0",
+    accent: "pink"
   }
 ] as const;
 
@@ -41,11 +47,11 @@ export const classes = [
     city: "Palmas",
     days: "Segunda e quarta",
     time: "19h",
-    place: "2.0 Lounge",
+    place: "Novo local em Palmas",
     accent: "blue",
     image: "/references/local-palmas.png",
-    mapUrl: "https://maps.app.goo.gl/Tep8YnCCuLQ44Y6y9",
-    note: "Noite de energia alta em um espaço com clima de encontro."
+    mapUrl: "https://maps.app.goo.gl/AGdKbo8jwwS1PfJe9",
+    note: "Segunda e quarta em um novo espaço preparado para a nossa turma."
   },
   {
     city: "Calheiros",
@@ -56,6 +62,16 @@ export const classes = [
     image: "/references/local-calheiros.png",
     mapUrl: "https://maps.app.goo.gl/SAQjdw9UR8AZb2oXA",
     note: "Duas noites na semana para fechar o dia no modo alegria total."
+  },
+  {
+    city: "Armação",
+    days: "Quarta e sexta",
+    time: "20h30",
+    place: "Novo local em Armação",
+    accent: "pink",
+    image: "/references/local-armacao.png",
+    mapUrl: "https://maps.app.goo.gl/HgFsyB2v64qairPG8",
+    note: "Uma nova turma para dançar no meio e no final da semana."
   }
 ] as const;
 
