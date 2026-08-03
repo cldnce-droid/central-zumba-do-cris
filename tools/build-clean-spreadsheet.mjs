@@ -14,8 +14,9 @@ const sheets = [
   ]],
   ["Turmas", ["id", "nome", "local", "dias", "horario", "endereco", "capacidade", "ativa"], [
     ["TURMA_GANCHOS", "Ganchos de Fora", "Ganchos de Fora", "terça,quinta", "18h30", "Salão da Capela", "", true],
-    ["TURMA_PALMAS", "Palmas", "Palmas", "segunda,quarta", "19h", "2.0 Lounge", 25, true],
+    ["TURMA_PALMAS", "Palmas", "Palmas", "segunda,quarta", "19h", "Novo local em Palmas", 25, true],
     ["TURMA_CALHEIROS", "Calheiros", "Calheiros", "terça,quinta", "20h15", "ao lado do Berlanda", 15, true],
+    ["TURMA_ARMACAO", "Armação", "Armação", "quarta,sexta", "20h30", "Novo local em Armação", "", true],
   ]],
   ["Aulas", ["id", "turmaId", "data", "diaSemana", "horario", "local", "endereco", "status"], []],
   ["Confirmacoes", ["id", "alunoId", "aulaId", "dataConfirmacao", "status"], []],
