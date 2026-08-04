@@ -68,11 +68,30 @@ function assertSheetName(sheetName: string): SheetName {
   return sheetName as SheetName;
 }
 
+function getAppsScriptUrl() {
+  const configuredUrl = process.env.GOOGLE_APPS_SCRIPT_URL
+    ?.trim()
+    .replace(/^GOOGLE_APPS_SCRIPT_URL\s*=\s*/i, "")
+    .replace(/^["']|["']$/g, "");
+  if (!configuredUrl) return "";
+
+  if (/^https?:\/\//i.test(configuredUrl)) {
+    return configuredUrl.includes("/macros/s/") && !/\/exec\/?$/i.test(configuredUrl)
+      ? `${configuredUrl.replace(/\/+$/, "")}/exec`
+      : configuredUrl;
+  }
+
+  const deploymentId = configuredUrl
+    .replace(/^\/+/g, "")
+    .replace(/\/exec\/?$/i, "");
+  return `https://script.google.com/macros/s/${deploymentId}/exec`;
+}
+
 async function appsScriptRequest(
   action: string,
   data: SheetRow = {}
 ): Promise<unknown> {
-  const url = process.env.GOOGLE_APPS_SCRIPT_URL;
+  const url = getAppsScriptUrl();
   const secret = process.env.GOOGLE_APPS_SCRIPT_SECRET;
 
   if (!url || !secret) {
@@ -80,15 +99,34 @@ async function appsScriptRequest(
     throw new Error("Google Apps Script não configurado.");
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ secret, action, data }),
-    cache: "no-store",
-    redirect: "follow"
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ secret, action, data }),
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Google Apps Script demorou para responder. Tente novamente.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(
+        "Implantacao do Apps Script nao encontrada. Crie uma nova implantacao e atualize GOOGLE_APPS_SCRIPT_URL."
+      );
+    }
     throw new Error(`Google Apps Script respondeu ${response.status}.`);
   }
 
