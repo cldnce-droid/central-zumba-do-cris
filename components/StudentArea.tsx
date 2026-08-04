@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarIcon,
   HeartIcon,
+  MoneyIcon,
   PinIcon,
   TrophyIcon,
   UsersIcon
@@ -25,6 +26,12 @@ import {
   getConfirmacaoRemotaPorAlunoEAula
 } from "@/lib/services/confirmacaoService";
 import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
+import {
+  copiarPixMensalidade,
+  formatMesReferencia,
+  getMensalidadeAtualDoAluno
+} from "@/lib/services/financeiroService";
+import { pixKey } from "@/lib/data";
 import type { AlunoStatus, Aula, PagamentoStatus } from "@/lib/student-data";
 import { createGoogleCalendarUrl } from "@/lib/utils/calendar";
 
@@ -94,6 +101,8 @@ export function StudentArea() {
   const [presenceRequested, setPresenceRequested] = useState(false);
   const [requestingPresence, setRequestingPresence] = useState(false);
   const [requestError, setRequestError] = useState("");
+  const [copyingPix, setCopyingPix] = useState(false);
+  const [pixFeedback, setPixFeedback] = useState("");
 
   useEffect(() => {
     setStudentId(localStorage.getItem("alunoAtualId") ?? "");
@@ -101,7 +110,8 @@ export function StudentArea() {
     void syncGoogleSheetsData([
       "Alunos",
       "Presencas",
-      "Conquistas"
+      "Conquistas",
+      "Mensalidades"
     ]).then((synced) => {
       if (synced) setRevision((current) => current + 1);
     });
@@ -133,6 +143,31 @@ export function StudentArea() {
     [studentId, revision]
   );
   const currentPaymentStatus: PagamentoStatus = paymentStatus;
+  const currentMonthlyPayment = useMemo(
+    () => (studentId ? getMensalidadeAtualDoAluno(studentId) : null),
+    [studentId, revision]
+  );
+
+  const copyPix = async () => {
+    if (!studentId || copyingPix) return;
+    setCopyingPix(true);
+    setPixFeedback("");
+    try {
+      await copiarPixMensalidade(studentId);
+      setPixFeedback(
+        "Chave PIX copiada com sucesso. Envie o comprovante e aguarde a baixa no sistema."
+      );
+      setRevision((current) => current + 1);
+    } catch (error) {
+      setPixFeedback(
+        error instanceof Error
+          ? `A chave esta abaixo para copia manual. ${error.message}`
+          : "A chave esta abaixo para copia manual."
+      );
+    } finally {
+      setCopyingPix(false);
+    }
+  };
 
   useEffect(() => {
     if (!studentId) return;
@@ -263,6 +298,45 @@ export function StudentArea() {
         <aside className="rounded-lg bg-cris-yellow p-4 font-black text-cris-navy shadow-pop">
           Seu plano está em atraso. Regularize para manter seu acesso.
         </aside>
+      ) : null}
+
+      {currentMonthlyPayment && currentMonthlyPayment.status !== "pago" ? (
+        <section className="premium-panel p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
+              <MoneyIcon className="size-7" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black uppercase text-cris-pink">
+                Mensalidade do mes
+              </p>
+              <h2 className="mt-1 text-2xl font-black uppercase text-cris-navy sm:text-3xl">
+                {formatMesReferencia(currentMonthlyPayment.mesReferencia)} - R${currentMonthlyPayment.valor}
+              </h2>
+              <p className="mt-2 font-bold text-cris-navy/60">
+                Vencimento todo dia 8.
+              </p>
+              <button
+                className="mt-4 min-h-12 w-full rounded-lg bg-cris-yellow px-5 py-3 text-sm font-black uppercase text-cris-navy disabled:opacity-50 sm:w-auto"
+                disabled={copyingPix || currentMonthlyPayment.status === "comprovante_enviado"}
+                onClick={copyPix}
+                type="button"
+              >
+                {copyingPix
+                  ? "Copiando..."
+                  : currentMonthlyPayment.status === "comprovante_enviado"
+                    ? "Solicitacao enviada"
+                    : "Copiar chave PIX"}
+              </button>
+              <p className="mt-3 break-all rounded-lg bg-cris-paper p-3 text-sm font-black text-cris-navy ring-1 ring-cris-navy/10">
+                Chave PIX: {pixKey}
+              </p>
+              {pixFeedback ? (
+                <p className="mt-3 font-bold text-cris-pink">{pixFeedback}</p>
+              ) : null}
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2">
