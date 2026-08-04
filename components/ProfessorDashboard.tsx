@@ -14,11 +14,13 @@ import type {
   Mensalidade,
   Pagamento,
   PagamentoStatus,
+  PlanoCodigo,
   Presenca
 } from "@/lib/student-data";
 import {
   aceitarSolicitacaoPresenca,
   aprovarMensalidade,
+  atualizarPlanoAluno,
   atualizarStatusAluno,
   atualizarStatusPagamento,
   excluirAluno,
@@ -33,6 +35,7 @@ import {
   sincronizarSolicitacoesProfessor,
   sincronizarDashboardProfessor
 } from "@/lib/services/professorService";
+import { officialPlans } from "@/lib/student-data/catalog";
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
 type DashboardTab = "alunos" | "presencas" | "financeiro";
@@ -201,6 +204,8 @@ export function ProfessorDashboard() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [paymentFeedback, setPaymentFeedback] = useState("");
   const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [updatingPlan, setUpdatingPlan] = useState(false);
+  const [planUpgrade, setPlanUpgrade] = useState<PlanoCodigo>("1x");
   const [deletingStudent, setDeletingStudent] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [requestsFeedback, setRequestsFeedback] = useState("");
@@ -284,6 +289,10 @@ export function ProfessorDashboard() {
   const selectedStudent = data.students.find(
     (student) => student.id === selectedStudentId
   );
+
+  useEffect(() => {
+    if (selectedStudent) setPlanUpgrade(selectedStudent.plano);
+  }, [selectedStudent?.id, selectedStudent?.plano]);
   const selectedPayment = selectedStudent
     ? latestPayment(data.payments, selectedStudent.id)
     : undefined;
@@ -534,6 +543,52 @@ export function ProfessorDashboard() {
                     </p>
                   </div>
                 ) : null}
+
+                <div className="rounded-lg bg-cris-paper p-4 ring-1 ring-cris-navy/10">
+                  <label className="text-xs font-black uppercase text-cris-purple">
+                    Alterar plano
+                    <select
+                      className="mt-2 min-h-12 w-full rounded-lg border-2 border-cris-navy/10 bg-white px-4 py-3 text-base font-bold text-cris-navy outline-none focus:border-cris-purple"
+                      onChange={(event) =>
+                        setPlanUpgrade(event.target.value as PlanoCodigo)
+                      }
+                      value={planUpgrade}
+                    >
+                      {officialPlans.map((item) => (
+                        <option
+                          key={item.id}
+                          value={item.id === "PLANO_PREMIUM" ? "premium" : item.id.replace("PLANO_", "").toLowerCase()}
+                        >
+                          {item.nome} - R${item.valor}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="mt-3 min-h-12 w-full rounded-lg bg-cris-purple px-4 py-3 text-sm font-black uppercase text-white disabled:opacity-50"
+                    disabled={updatingPlan || planUpgrade === selectedStudent.plano}
+                    onClick={async () => {
+                      setUpdatingPlan(true);
+                      setPaymentFeedback("");
+                      try {
+                        await atualizarPlanoAluno(selectedStudent.id, planUpgrade);
+                        setPaymentFeedback("Plano atualizado com sucesso.");
+                        refresh();
+                      } catch (error) {
+                        setPaymentFeedback(
+                          error instanceof Error
+                            ? error.message
+                            : "Nao foi possivel atualizar o plano."
+                        );
+                      } finally {
+                        setUpdatingPlan(false);
+                      }
+                    }}
+                    type="button"
+                  >
+                    {updatingPlan ? "Atualizando..." : "Atualizar plano"}
+                  </button>
+                </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
