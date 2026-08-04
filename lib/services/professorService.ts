@@ -3,6 +3,7 @@ import type {
   AlunoStatus,
   Confirmacao,
   PagamentoStatus,
+  PlanoCodigo,
   Presenca
 } from "@/lib/student-data";
 import {
@@ -122,6 +123,31 @@ export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus)
     throw new Error("Não foi possível atualizar o cadastro.");
   }
   void syncGoogleSheetsData(["Alunos"]);
+}
+
+export async function atualizarPlanoAluno(
+  alunoId: string,
+  plano: PlanoCodigo
+) {
+  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+  if (localStudents.some((student) => student.id === alunoId)) {
+    localStorage.setItem(
+      REGISTERED_STUDENTS_KEY,
+      JSON.stringify(
+        localStudents.map((student) =>
+          student.id === alunoId ? { ...student, plano } : student
+        )
+      )
+    );
+  }
+
+  updateCachedRow("Alunos", alunoId, { plano });
+  const updated = await updateRow("Alunos", alunoId, { plano });
+  if (!updated) {
+    throw new Error("Nao foi possivel atualizar o plano na planilha.");
+  }
+
+  await syncGoogleSheetsData(["Alunos"]);
 }
 
 export async function excluirAluno(alunoId: string) {
