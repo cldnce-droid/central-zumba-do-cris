@@ -9,7 +9,7 @@ import type {
   PlanoCodigo
 } from "@/lib/student-data/types";
 import { alunoToSheetRow } from "@/lib/google-sheets/mappers";
-import { appendRow, readSheet } from "@/lib/services/googleSheetsService";
+import { appendRow } from "@/lib/services/googleSheetsService";
 
 export interface CadastroAlunoFormData {
   nome: string;
@@ -126,14 +126,7 @@ export async function salvarAlunoPendente(
     throw new Error("Ja existe um cadastro com este WhatsApp.");
   }
 
-  const existing = await readSheet("Alunos", {
-    field: "whatsapp",
-    value: aluno.whatsapp
-  });
-  if (existing?.configured && !existing.fallback && existing.data.length > 0) {
-    throw new Error("Ja existe um cadastro com este WhatsApp.");
-  }
-
+  // O Apps Script valida duplicidade com lock antes de criar a linha.
   const salvoNaPlanilha = await appendRow("Alunos", alunoToSheetRow(aluno));
   if (!salvoNaPlanilha) {
     throw new Error("Nao foi possivel conectar a base de dados agora. Tente novamente.");
