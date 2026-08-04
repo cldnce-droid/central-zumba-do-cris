@@ -15,6 +15,25 @@ export type SheetName =
 const CACHE_KEY = "zdc_google_sheets_cache";
 type SheetsCache = Partial<Record<SheetName, SheetRow[]>>;
 
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 20000
+) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("A conexao demorou para responder. Tente novamente.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 export async function readSheet(sheetName: string, query?: {
   field: string;
   value: string;
@@ -23,7 +42,7 @@ export async function readSheet(sheetName: string, query?: {
     const params = query
       ? `?${new URLSearchParams(query).toString()}`
       : "";
-    const response = await fetch(`/api/sheets/${sheetName}${params}`, {
+    const response = await fetchWithTimeout(`/api/sheets/${sheetName}${params}`, {
       cache: "no-store"
     });
     if (!response.ok) return null;
@@ -141,7 +160,7 @@ export async function syncGoogleSheetsData(
 
 export async function appendRow(sheetName: string, data: SheetRow) {
   try {
-    const response = await fetch(`/api/sheets/${sheetName}`, {
+    const response = await fetchWithTimeout(`/api/sheets/${sheetName}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
@@ -167,7 +186,7 @@ export async function updateRow(
   data: SheetRow
 ) {
   try {
-    const response = await fetch(`/api/sheets/${sheetName}/${id}`, {
+    const response = await fetchWithTimeout(`/api/sheets/${sheetName}/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
@@ -189,7 +208,7 @@ export async function updateRow(
 
 export async function deleteRow(sheetName: string, id: string) {
   try {
-    const response = await fetch(`/api/sheets/${sheetName}/${id}`, {
+    const response = await fetchWithTimeout(`/api/sheets/${sheetName}/${id}`, {
       method: "DELETE"
     });
     if (!response.ok) {
