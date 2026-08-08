@@ -70,7 +70,7 @@ export const officialClasses: Turma[] = [
     id: "TURMA_ARMACAO",
     nome: "Armação",
     local: "Armação",
-    dias: ["quarta", "sexta"],
+    dias: ["segunda", "quarta"],
     horario: "20h30",
     endereco: "Novo local em Armação",
     capacidade: null,
