@@ -26,7 +26,7 @@ export const whatsappGroups = [
   },
   {
     city: "Armação",
-    schedule: "Quarta e sexta • 20h30",
+    schedule: "Segunda e quarta • 20h30",
     url: "https://chat.whatsapp.com/GYSoPMm0rGxEMlmANShgGb?s=cl&p=a&ilr=0",
     accent: "pink"
   }
@@ -65,7 +65,7 @@ export const classes = [
   },
   {
     city: "Armação",
-    days: "Quarta e sexta",
+    days: "Segunda e quarta",
     time: "20h30",
     place: "Novo local em Armação",
     accent: "pink",
