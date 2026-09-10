@@ -12,6 +12,24 @@
 8. Em **Quem pode acessar**, escolha **Qualquer pessoa**.
 9. Autorize o acesso solicitado e copie a URL terminada em `/exec`.
 
+## Quando aparecer erro 404
+
+O erro 404 significa que a implantacao salva na Vercel nao existe mais ou nao
+esta publicada como Aplicativo da Web. Para corrigir:
+
+1. Salve o codigo deste documento no Apps Script.
+2. Clique em **Implantar > Nova implantacao**.
+3. Em **Tipo**, escolha **Aplicativo da Web**.
+4. Em **Executar como**, escolha **Eu**.
+5. Em **Quem pode acessar**, escolha **Qualquer pessoa**.
+6. Clique em **Implantar** e copie a nova URL completa terminada em `/exec`.
+7. Na Vercel, substitua o valor de `GOOGLE_APPS_SCRIPT_URL` pela nova URL.
+8. Confirme que `GOOGLE_APPS_SCRIPT_SECRET` tem o mesmo valor de
+   `SCRIPT_SECRET` e faca um novo redeploy.
+
+O app tambem aceita somente o codigo da implantacao iniciado por `AKfy`, mas a
+URL completa e a opcao recomendada.
+
 ```javascript
 const SCRIPT_SECRET = "COLOQUE_UM_SEGREDO_FORTE_AQUI";
 
@@ -42,7 +60,12 @@ const ACTIONS = {
   createDesafio: (data) => createRow("Desafios", data),
   updateDesafio: (data) => updateRow("Desafios", data),
   getConquistas: () => readRows("Conquistas"),
-  createConquista: (data) => createRow("Conquistas", data),
+  createConquista: (data) => createConquistaUnica(data),
+  consultarSeloPatriota: (data) => patriota(data, false),
+  solicitarSeloPatriota: (data) => patriota(data, true),
+  listarSolicitacoesSelos: () => { ensureSelosSheet(); return readRows("SolicitacoesSelos"); },
+  concederSelo: (data) => concederSelo(data),
+  decidirSelo: (data) => decidirSelo(data),
   updateConquista: (data) => updateRow("Conquistas", data),
   deleteRow: (data) => deleteRow(data.sheetName, data.id)
 };
@@ -67,11 +90,16 @@ function doPost(e) {
       return jsonResponse({ ok: false, error: "Ação inválida." });
     }
 
-    const data = handler(payload.data || {});
-    return jsonResponse({ ok: true, data: data });
+    // Reads do not wait behind writes. Mutations are serialized to avoid duplicates.
+    const lock = /^get/.test(payload.action) ? null : LockService.getScriptLock();
+    if (lock && !lock.tryLock(4000)) throw new Error("A base está ocupada. Aguarde alguns segundos e tente novamente.");
+    try {
+      const data = handler(payload.data || {});
+      return jsonResponse({ ok: true, data: data });
+    } finally { if (lock) { try { SpreadsheetApp.flush(); } finally { lock.releaseLock(); } } }
   } catch (error) {
     console.error("Falha no Apps Script:", error.message);
-    return jsonResponse({ ok: false, error: "Não foi possível processar a solicitação." });
+    return jsonResponse({ ok: false, error: String(error.message || "Não foi possível processar a solicitação.") });
   }
 }
 
@@ -113,38 +141,43 @@ function createAluno(data) {
   const whatsapp = String(data.whatsapp || "").replace(/\D/g, "");
   if (!whatsapp) throw new Error("WhatsApp obrigatório.");
 
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-
-  try {
+  {
     const duplicate = readRows("Alunos").some(
       (row) => String(row.whatsapp || "").replace(/\D/g, "") === whatsapp
     );
     if (duplicate) throw new Error("Já existe um cadastro com este WhatsApp.");
     return createRow("Alunos", Object.assign({}, data, { whatsapp: whatsapp }));
-  } finally {
-    lock.releaseLock();
   }
+}
+
+function findRowNumber(sheet, headers, id) {
+  const column = headers.indexOf("id");
+  if (column < 0) throw new Error("Coluna id não encontrada.");
+  const count = sheet.getLastRow() - 1;
+  if (count < 1) return -1;
+  const ids = sheet.getRange(2, column + 1, count, 1).getValues();
+  const index = ids.findIndex(row => String(row[0]) === String(id));
+  return index < 0 ? -1 : index + 2;
 }
 
 function updateRow(name, data) {
   if (!data.id) throw new Error("ID obrigatório.");
   const sheet = getSheet(name);
   const headers = getHeaders(sheet);
-  const idColumn = headers.indexOf("id");
-  if (idColumn < 0) throw new Error("Coluna id não encontrada.");
-
-  const rows = sheet.getRange(2, 1, Math.max(sheet.getLastRow() - 1, 1), headers.length).getValues();
-  const index = rows.findIndex((row) => String(row[idColumn]) === String(data.id));
-  if (index < 0) throw new Error("Registro não encontrado.");
-
-  const current = rows[index];
-  const values = headers.map((header, column) =>
-    Object.prototype.hasOwnProperty.call(data, header)
-      ? normalizeValue(data[header])
-      : current[column]
-  );
-  sheet.getRange(index + 2, 1, 1, headers.length).setValues([values]);
+  if (name === "Alunos" && Object.prototype.hasOwnProperty.call(data, "statusPagamento") && headers.indexOf("statusPagamento") < 0) {
+    throw new Error("Adicione a coluna statusPagamento na aba Alunos, com esta escrita exata.");
+  }
+  const row = findRowNumber(sheet, headers, data.id);
+  if (row < 0) throw new Error("Registro não encontrado.");
+  const columns = headers.map((header, index) => ({ header, index })).filter(({ header }) => header !== "id" && Object.prototype.hasOwnProperty.call(data, header));
+  // A payment toggle reads just IDs and writes just one cell.
+  if (columns.length === 1) {
+    sheet.getRange(row, columns[0].index + 1).setValue(normalizeValue(data[columns[0].header]));
+  } else if (columns.length) {
+    const values = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
+    columns.forEach(({ header, index }) => values[index] = normalizeValue(data[header]));
+    sheet.getRange(row, 1, 1, headers.length).setValues([values]);
+  }
   return data;
 }
 
@@ -205,6 +238,87 @@ function upsertRow(name, data) {
   if (!data.id) return createRow(name, data);
   const existing = readRows(name).some((row) => String(row.id) === String(data.id));
   return existing ? updateRow(name, data) : createRow(name, data);
+}
+
+const SELOS = {
+  sofa: { titulo: "Venci o Sofá", sufixo: "AGOSTO_SEM_SOFA_2026_08" },
+  patriota: { titulo: "Patriota", sufixo: "PATRIOTA_2026_09_07" }
+};
+function ensureSelosSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet();
+  if (!book.getSheetByName("SolicitacoesSelos")) {
+    const sheet = book.insertSheet("SolicitacoesSelos");
+    sheet.appendRow(["id", "alunoId", "nomeAluno", "whatsapp", "selo", "status", "dataSolicitacao", "dataDecisao"]);
+  }
+}
+function findAluno(id) {
+  const aluno = readRows("Alunos").find(row => String(row.id) === String(id));
+  if (!aluno) throw new Error("Aluna não encontrada.");
+  return aluno;
+}
+function findConquista(alunoId, title) {
+  return readRows("Conquistas").find(row => String(row.alunoId) === String(alunoId) && String(row.titulo).toLowerCase() === title.toLowerCase());
+}
+function createConquistaUnica(data) {
+  if (!data.id || !data.alunoId || !data.titulo) throw new Error("Dados do selo incompletos.");
+  const headers = getHeaders(getSheet("Conquistas"));
+  ["id", "alunoId", "nomeAluno", "tipo", "titulo", "dataConquista", "observacao"].forEach(header => {
+    if (headers.indexOf(header) < 0) throw new Error("Adicione a coluna " + header + " na aba Conquistas.");
+  });
+  const existing = findConquista(data.alunoId, String(data.titulo));
+  return existing || createRow("Conquistas", data);
+}
+function concederSelo(data) {
+  const selo = SELOS[data.selo];
+  if (!selo) throw new Error("Selo inválido.");
+  const aluno = findAluno(data.alunoId);
+  const conquista = createConquistaUnica({
+    id: "CONQ_" + aluno.id + "_" + selo.sufixo, alunoId: aluno.id, nomeAluno: aluno.nome,
+    tipo: "desafio", titulo: selo.titulo, coreografia: "", dataConquista: new Date().toISOString().slice(0, 10),
+    observacao: "Concedido pelo professor. " + String(data.motivo || "")
+  });
+  // Keep a pending/rejected request consistent when the professor grants manually.
+  if (data.selo === "patriota") {
+    ensureSelosSheet();
+    const id = "SOL_" + aluno.id + "_PATRIOTA_2026_09_07";
+    if (readRows("SolicitacoesSelos").some(row => String(row.id) === id)) {
+      updateRow("SolicitacoesSelos", { id: id, status: "aprovada", dataDecisao: new Date().toISOString() });
+    }
+  }
+  return { status: "aprovada", conquista: conquista };
+}
+function patriota(data, solicitar) {
+  const aluno = findAluno(data.alunoId);
+  const digits = value => String(value || "").replace(/\D/g, "");
+  if (!digits(data.whatsapp) || digits(aluno.whatsapp) !== digits(data.whatsapp) || String(aluno.statusCadastro || aluno.status) !== "ativo") {
+    throw new Error("Entre com o WhatsApp do seu cadastro ativo para solicitar o selo.");
+  }
+  const conquista = findConquista(aluno.id, SELOS.patriota.titulo);
+  if (conquista) return { status: "aprovada", conquista: conquista };
+  ensureSelosSheet();
+  const id = "SOL_" + aluno.id + "_PATRIOTA_2026_09_07";
+  const existing = readRows("SolicitacoesSelos").find(row => String(row.id) === id);
+  if (existing) return { status: existing.status, solicitacao: existing };
+  if (!solicitar) return { status: "disponivel" };
+  const row = { id: id, alunoId: aluno.id, nomeAluno: aluno.nome, whatsapp: aluno.whatsapp,
+    selo: "patriota", status: "solicitada", dataSolicitacao: new Date().toISOString(), dataDecisao: "" };
+  createRow("SolicitacoesSelos", row);
+  return { status: "solicitada", solicitacao: row };
+}
+function decidirSelo(data) {
+  ensureSelosSheet();
+  const row = readRows("SolicitacoesSelos").find(row => String(row.id) === String(data.id));
+  if (!row) throw new Error("Solicitação não encontrada.");
+  const existing = findConquista(row.alunoId, SELOS.patriota.titulo);
+  // A repeated approval is safe; a stale rejection cannot revoke a granted badge.
+  if (existing) {
+    updateRow("SolicitacoesSelos", { id: row.id, status: "aprovada", dataDecisao: row.dataDecisao || new Date().toISOString() });
+    return { status: "aprovada", conquista: existing };
+  }
+  if (row.status !== "solicitada") return { status: row.status };
+  if (data.aprovar === true) return concederSelo({ alunoId: row.alunoId, selo: "patriota", motivo: "Participação no aulão especial de 7 de setembro de 2026 aprovada." });
+  updateRow("SolicitacoesSelos", { id: row.id, status: "recusada", dataDecisao: new Date().toISOString() });
+  return { status: "recusada" };
 }
 
 function normalizeValue(value) {
@@ -293,3 +407,9 @@ atrasado
 No dia 1 de cada mes, a Area do Aluno ja mostra a mensalidade do mes. Quando
 a aluna copia a chave PIX e toca em `Comprovante enviado`, o registro aparece
 na aba `Financeiro` do Dashboard do Professor para aprovacao.
+
+## Atualização de setembro: selos e desempenho
+
+Publique o código acima como uma nova versão da implantação existente e faça o deploy dos arquivos do app. Mantenha seu SCRIPT_SECRET atual. A aba SolicitacoesSelos é criada automaticamente, sem apagar dados existentes. A aba Conquistas deve existir com os cabeçalhos id, alunoId, nomeAluno, tipo, titulo, coreografia, dataConquista, observacao.
+
+Pagamentos passam a atualizar uma única célula de Alunos. O servidor serializa gravações e impede duplicar selos. Solicitações de Patriota não concedem selos: somente a ação autenticada do professor aprova.
