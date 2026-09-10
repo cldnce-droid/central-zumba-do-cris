@@ -30,11 +30,16 @@ export function getConfirmacaoPorAlunoEAula(alunoId: string, aulaId: string) {
   );
 }
 
+export async function getConfirmacoesRemotasDoAluno(alunoId: string) {
+  const response = await readSheet("Confirmacoes", { field: "alunoId", value: alunoId });
+  return response?.data ?? [];
+}
+
 export async function getConfirmacaoRemotaPorAlunoEAula(
   alunoId: string,
   aulaId: string
 ) {
-  const response = await readSheet("Confirmacoes");
+  const response = await readSheet("Confirmacoes", { field: "alunoId", value: alunoId });
   return response?.data.find(
     (item) =>
       String(item.alunoId) === alunoId &&
