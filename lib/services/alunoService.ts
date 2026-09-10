@@ -259,7 +259,7 @@ export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
 export function getDesafiosDisponiveis(alunoId: string) {
   const aluno = getAlunoById(alunoId);
   if (!aluno) return [];
-  return [getDesafioAgostoSemSofa(aluno)];
+  return [getDesafioAgostoSemSofa(aluno)].filter(desafio => desafio.ativo);
 }
 
 export function getConquistasDoAluno(alunoId: string): ConquistaVisual[] {
