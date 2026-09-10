@@ -48,7 +48,8 @@ export function getDesafioAgostoSemSofa(
     String(reference.getMonth() + 1).padStart(2, "0"),
     String(reference.getDate()).padStart(2, "0")
   ].join("-");
-  const completed = progress >= goal;
+  const awarded = getCachedSheet("Conquistas").some(row => String(row.alunoId) === aluno.id && String(row.titulo).toLowerCase() === CHALLENGE_TITLE.toLowerCase());
+  const completed = awarded || progress >= goal;
   const inPeriod =
     referenceKey >= CHALLENGE_START && referenceKey <= CHALLENGE_END;
   const statusExecucao = completed
