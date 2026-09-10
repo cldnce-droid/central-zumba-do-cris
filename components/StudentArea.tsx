@@ -33,7 +33,7 @@ import {
   formatMesReferencia,
   getMensalidadeAtualDoAluno
 } from "@/lib/services/financeiroService";
-import { pixKey, links } from "@/lib/data";
+import { pixKey } from "@/lib/data";
 import type { AlunoStatus, Aula, PagamentoStatus, ConquistaVisual } from "@/lib/student-data";
 import { createGoogleCalendarUrl } from "@/lib/utils/calendar";
 
@@ -666,24 +666,23 @@ async function achievementStory(achievement: ConquistaVisual, nome: string): Pro
     const timer = window.setTimeout(() => reject(new Error("Não foi possível carregar a logo. Tente novamente.")), 12000);
     logo.onload = () => { clearTimeout(timer); resolve(); };
     logo.onerror = () => { clearTimeout(timer); reject(new Error("Não foi possível carregar a logo. Tente novamente.")); };
-    logo.src = links.officialLogo;
+    logo.src = "/references/logo-sem-fundo.png";
   });
   const patriota = achievement.id === "patriota-2026";
   const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
   gradient.addColorStop(0, "#fffaf0"); gradient.addColorStop(.55, patriota ? "#e6f6e9" : "#f0e6ff"); gradient.addColorStop(1, "#e1f5ff");
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1080, 1920);
   function circle(x: number, y: number, radius: number, color: string) { ctx!.fillStyle=color; ctx!.beginPath(); ctx!.arc(x,y,radius,0,Math.PI*2); ctx!.fill(); }
-  circle(-80,530,240,"#ffc400"); circle(1130,1440,260,"#f20772"); circle(1030,200,100,"#25b8ec");
-  const colors=["#f20772","#7128ce","#25b8ec","#ffc400"];
-  for(let i=0;i<32;i++){ctx.save();ctx.translate(55+(i*173)%970,380+(i*127)%1120);ctx.rotate(i);ctx.fillStyle=colors[i%4];ctx.fillRect(-5,-13,10,26);ctx.restore();}
-  const ratio = Math.min(460/logo.naturalWidth,240/logo.naturalHeight);
-  ctx.drawImage(logo,540-logo.naturalWidth*ratio/2,165,logo.naturalWidth*ratio,logo.naturalHeight*ratio);
+  circle(-90,620,150,"#ffc400"); circle(1200,1440,170,"#f20772"); circle(1140,180,130,"#25b8ec");
+  // Transparent source has wide margins; the visible mark stays smaller than the badge.
+  const ratio = Math.min(560/logo.naturalWidth,840/logo.naturalHeight);
+  ctx.drawImage(logo,540-logo.naturalWidth*ratio/2,-110,logo.naturalWidth*ratio,logo.naturalHeight*ratio);
   function text(value: string,y: number,size: number,color="#071046",weight=900) {
     ctx!.textAlign="center";ctx!.fillStyle=color;
     do {ctx!.font=`${weight} ${size}px Arial, sans-serif`;size--;} while(ctx!.measureText(value).width>900 && size>14);
     ctx!.fillText(value,540,y);
   }
-  text("MAIS UMA CONQUISTA!",460,36,"#7128ce");
+  text("MAIS UMA CONQUISTA!",510,36,"#7128ce");
   circle(540,810,245,"#071046");circle(540,790,232,"#ffc400");circle(540,790,207,"#ffffff");
   if(patriota){
     ctx.fillStyle="#168144";ctx.fillRect(375,680,330,220);
@@ -699,8 +698,8 @@ async function achievementStory(achievement: ConquistaVisual, nome: string): Pro
   text(patriota ? "EU SOU PATRIOTA!" : "VENCI O SOFÁ!",1200,78);
   const firstName=nome.trim().split(/\s+/)[0] || "Eu";
   text(firstName,1320,60,"#7128ce");
-  text(patriota ? "Eu fui no aulão especial" : "Em agosto, eu escolhi dançar.",1410,39,"#071046",700);
-  text(patriota ? "de 7 de setembro!" : "O sofá tentou. A dança venceu.",1470,39,"#071046",700);
+  text(patriota ? "Participei do aulão especial" : "Completei a meta de presenças",1410,39,"#071046",700);
+  text(patriota ? "de 7 de setembro e ganhei este selo!" : "do meu plano nas aulas de agosto!",1470,39,"#071046",700);
   text(patriota ? "7 DE SETEMBRO · 2026" : "AGOSTO · 2026",1570,28,"#7128ce");
   text("ERROU... CONTINUA!",1720,43);text("ZUMBA DO CRIS",1780,29,"#7128ce");
   return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("Não foi possível gerar a imagem.")),"image/png"));
