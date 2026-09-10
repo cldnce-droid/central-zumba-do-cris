@@ -26,9 +26,9 @@ export async function PATCH(
     const updates = await request.json();
     await updateRow(sheet, id, updates);
     return NextResponse.json({ configured: true, data: updates });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: "Não foi possível atualizar a planilha." },
+      { error: "Não foi possível atualizar a planilha.", detail: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
