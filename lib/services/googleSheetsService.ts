@@ -13,9 +13,12 @@ export type SheetName =
   | "Conquistas";
 
 const CACHE_KEY = "zdc_google_sheets_cache";
+const cacheVersions: Record<string, number> = {};
+const pendingReads = new Map<string, Promise<SheetResponse | null>>();
+type SheetResponse = { configured: boolean; data: SheetRow[]; fallback?: boolean };
 type SheetsCache = Partial<Record<SheetName, SheetRow[]>>;
 
-async function fetchWithTimeout(
+export async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit = {},
   timeoutMs = 20000
@@ -34,7 +37,7 @@ async function fetchWithTimeout(
   }
 }
 
-export async function readSheet(sheetName: string, query?: {
+async function fetchSheet(sheetName: string, query?: {
   field: string;
   value: string;
 }) {
@@ -56,6 +59,15 @@ export async function readSheet(sheetName: string, query?: {
   }
 }
 
+export function readSheet(sheetName: string, query?: { field: string; value: string }) {
+  const key = JSON.stringify([sheetName, query, cacheVersions[sheetName] ?? 0]);
+  const pending = pendingReads.get(key);
+  if (pending) return pending;
+  const request = fetchSheet(sheetName, query).finally(() => pendingReads.delete(key));
+  pendingReads.set(key, request);
+  return request;
+}
+
 export function getCachedSheet(sheetName: SheetName) {
   if (typeof window === "undefined") return [];
   try {
@@ -72,6 +84,7 @@ export function updateCachedRow(
   updates: SheetRow
 ) {
   if (typeof window === "undefined") return;
+  cacheVersions[sheetName] = (cacheVersions[sheetName] ?? 0) + 1;
   try {
     const cache = JSON.parse(
       localStorage.getItem(CACHE_KEY) ?? "{}"
@@ -88,15 +101,14 @@ export function updateCachedRow(
 
 export function replaceCachedSheet(sheetName: SheetName, rows: SheetRow[]) {
   if (typeof window === "undefined") return;
+  cacheVersions[sheetName] = (cacheVersions[sheetName] ?? 0) + 1;
   try {
     const cache = JSON.parse(
       localStorage.getItem(CACHE_KEY) ?? "{}"
     ) as SheetsCache;
     cache[sheetName] = rows;
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ [sheetName]: rows }));
-  }
+  } catch { /* Cache indisponível não invalida uma gravação remota. */ }
 }
 
 export function appendCachedRow(sheetName: SheetName, row: SheetRow) {
@@ -120,8 +132,9 @@ export async function syncGoogleSheetsData(
 ) {
   const results = await Promise.all(
     sheetNames.map(async (sheetName) => {
+      const version = cacheVersions[sheetName] ?? 0;
       const response = await readSheet(sheetName);
-      return { sheetName, response };
+      return { sheetName, response, version };
     })
   );
 
@@ -143,14 +156,12 @@ export async function syncGoogleSheetsData(
     if (!successfulResults.length) return false;
 
     const nextCache = { ...currentCache };
-    successfulResults.forEach(({ sheetName, response }) => {
+    successfulResults.forEach(({ sheetName, response, version }) => {
+      if ((cacheVersions[sheetName] ?? 0) !== version) return;
       nextCache[sheetName] = response?.data ?? [];
     });
 
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify(nextCache)
-    );
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(nextCache)); } catch { return false; }
 
     return true;
   }
@@ -165,6 +176,7 @@ export async function appendRow(sheetName: string, data: SheetRow) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
+    if (response.status === 401) throw new Error("Sua sessão expirou. Entre novamente na Área do Professor.");
     if (!response.ok) {
       const result = await response.json().catch(() => null) as {
         error?: string;
@@ -191,6 +203,7 @@ export async function updateRow(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
+    if (response.status === 401) throw new Error("Sua sessão expirou. Entre novamente na Área do Professor.");
     if (!response.ok) {
       const result = await response.json().catch(() => null) as {
         error?: string;
@@ -211,6 +224,7 @@ export async function deleteRow(sheetName: string, id: string) {
     const response = await fetchWithTimeout(`/api/sheets/${sheetName}/${id}`, {
       method: "DELETE"
     });
+    if (response.status === 401) throw new Error("Sua sessão expirou. Entre novamente na Área do Professor.");
     if (!response.ok) {
       const result = await response.json().catch(() => null) as {
         error?: string;
