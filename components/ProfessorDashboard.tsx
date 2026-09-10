@@ -1,5 +1,8 @@
 "use client";
 
+import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
+import { ProfessorChallenges } from "@/components/ProfessorChallenges";
+import { PaymentStatusButton } from "@/components/PaymentStatusButton";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -38,7 +41,7 @@ import {
 import { officialPlans } from "@/lib/student-data/catalog";
 import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 
-type DashboardTab = "alunos" | "presencas" | "financeiro";
+type DashboardTab = "alunos" | "presencas" | "financeiro" | "desafios";
 type ProfessorStudent = ReturnType<typeof getAlunosProfessor>[number];
 
 const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Calheiros", "Armação"];
@@ -203,7 +206,9 @@ export function ProfessorDashboard() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [isLeaving, setIsLeaving] = useState(false);
   const [paymentFeedback, setPaymentFeedback] = useState("");
-  const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [paymentFilter, setPaymentFilter] = useState("Todas");
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [studentsFeedback, setStudentsFeedback] = useState("");
   const [updatingPlan, setUpdatingPlan] = useState(false);
   const [planUpgrade, setPlanUpgrade] = useState<PlanoCodigo>("1x");
   const [deletingStudent, setDeletingStudent] = useState(false);
@@ -228,7 +233,11 @@ export function ProfessorDashboard() {
   const refresh = () => setRevision((value) => value + 1);
 
   useEffect(() => {
-    void sincronizarDashboardProfessor().then(refresh);
+    void sincronizarDashboardProfessor().then((ok) => {
+      if (!ok) setStudentsFeedback("Não foi possível atualizar a lista. Confira a conexão e tente atualizar.");
+      refresh();
+    }).catch(() => setStudentsFeedback("Não foi possível atualizar a lista."))
+      .finally(() => setLoadingStudents(false));
   }, []);
 
   useEffect(() => {
@@ -266,7 +275,6 @@ export function ProfessorDashboard() {
     const query = search.trim().toLowerCase();
     const numericQuery = onlyNumbers(search);
 
-    if (!query && classFilter === "Todas") return [];
 
     return data.students.filter((student) => {
       const classes = selectedClasses(
@@ -282,9 +290,13 @@ export function ProfessorDashboard() {
           onlyNumbers(String(student.whatsapp ?? "")).includes(numericQuery)) ||
         classes.some((turma) => turma.toLowerCase().includes(query));
 
-      return matchesClass && matchesSearch;
+      return matchesClass && matchesSearch && (paymentFilter === "Todas" || student.statusPagamento === paymentFilter);
     });
-  }, [classFilter, data.students, search]);
+  }, [classFilter, data.students, search, paymentFilter]);
+
+  useEffect(() => {
+    if (selectedStudentId) void syncGoogleSheetsData(["Presencas"]).then(refresh);
+  }, [selectedStudentId]);
 
   const selectedStudent = data.students.find(
     (student) => student.id === selectedStudentId
@@ -365,7 +377,7 @@ export function ProfessorDashboard() {
         </button>
       </header>
 
-      <nav className="grid gap-3 rounded-lg bg-white p-2 shadow-pop ring-1 ring-cris-navy/10 sm:grid-cols-3">
+      <nav className="grid gap-3 rounded-lg bg-white p-2 shadow-pop ring-1 ring-cris-navy/10 grid-cols-2 sm:grid-cols-4">
         <TabButton
           active={activeTab === "alunos"}
           icon={<UsersIcon className="size-5" />}
@@ -387,6 +399,7 @@ export function ProfessorDashboard() {
         >
           Financeiro
         </TabButton>
+        <TabButton active={activeTab === "desafios"} icon={<TrophyIcon className="size-5" />} onClick={() => setActiveTab("desafios")}>Desafios</TabButton>
       </nav>
 
       {activeTab === "alunos" ? (
@@ -430,12 +443,20 @@ export function ProfessorDashboard() {
               </select>
             </label>
 
+            <label className="mt-4 block text-sm font-black text-cris-navy">Pagamento
+              <select aria-label="Filtrar pagamento" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}>
+                <option value="Todas">Todas</option><option value="atrasado">Atrasadas</option><option value="pago">Pagas</option>
+              </select>
+            </label>
+            <button type="button" disabled={loadingStudents} className="mt-4 min-h-11 rounded-lg border-2 border-cris-blue px-4 font-bold disabled:opacity-50" onClick={async () => {
+              setLoadingStudents(true); setStudentsFeedback("");
+              try { if (!await sincronizarDashboardProfessor()) throw new Error("Não foi possível atualizar a lista."); refresh(); }
+              catch (error) { setStudentsFeedback(error instanceof Error ? error.message : "Falha ao atualizar."); }
+              finally { setLoadingStudents(false); }
+            }}>{loadingStudents ? "Carregando alunas..." : "Atualizar lista"}</button>
+            <p role="status" className="mt-3 font-bold text-cris-navy">{studentsFeedback || `${filteredStudents.length} alunas encontradas`}</p>
             <div className="mt-5 grid gap-3">
-              {!search.trim() && classFilter === "Todas" ? (
-                <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
-                  Busque uma aluna por nome, WhatsApp ou turma.
-                </p>
-              ) : filteredStudents.length ? (
+              {filteredStudents.length ? (
                 filteredStudents.map((student) => {
                   const payment = latestPayment(data.payments, student.id);
                   return (
@@ -464,8 +485,9 @@ export function ProfessorDashboard() {
                         ).join(", ") || "Nenhuma turma escolhida"}
                       </p>
                       <p className="mt-1 text-sm font-bold text-cris-navy/60">
-                        Pagamento: {statusLabel(payment?.status ?? "atrasado")}
+                        Pagamento: {statusLabel(student.statusPagamento ?? "atrasado")}
                       </p>
+                      <PaymentStatusButton alunoId={student.id} nome={student.nome} status={student.statusPagamento === "pago" ? "pago" : "atrasado"} onSaved={refresh} />
                       <button
                         className="mt-4 min-h-11 rounded-lg bg-cris-pink px-4 py-2 text-sm font-black uppercase text-white"
                         onClick={() => setSelectedStudentId(student.id)}
@@ -523,7 +545,7 @@ export function ProfessorDashboard() {
                     {statusLabel(selectedStudent.status)}
                   </Info>
                   <Info label="Status do pagamento">
-                    {statusLabel(selectedPayment?.status ?? "atrasado")}
+                    {statusLabel(selectedStudent.statusPagamento ?? "atrasado")}
                   </Info>
                   <Info label="Presenças validadas">
                     {selectedFrequency.total}
@@ -608,38 +630,7 @@ export function ProfessorDashboard() {
                       : "Ativar cadastro"}
                   </button>
 
-                  <button
-                    className="min-h-12 rounded-lg bg-cris-yellow px-4 py-3 text-sm font-black uppercase text-cris-navy disabled:opacity-50"
-                    disabled={!selectedPayment || updatingPayment}
-                    onClick={async () => {
-                      if (!selectedPayment) return;
-                      setUpdatingPayment(true);
-                      setPaymentFeedback("");
-                      try {
-                        await atualizarStatusPagamento(
-                          selectedStudent.id,
-                          selectedPayment.status === "pago"
-                            ? "atrasado"
-                            : "pago"
-                        );
-                        setPaymentFeedback("Pagamento atualizado com sucesso.");
-                        refresh();
-                      } catch {
-                        setPaymentFeedback(
-                          "Não foi possível atualizar. Confira a coluna statusPagamento na aba Alunos."
-                        );
-                      } finally {
-                        setUpdatingPayment(false);
-                      }
-                    }}
-                    type="button"
-                  >
-                    {updatingPayment
-                      ? "Atualizando..."
-                      : selectedPayment?.status === "pago"
-                      ? "Marcar como atrasado"
-                      : "Marcar como pago"}
-                  </button>
+                  <PaymentStatusButton alunoId={selectedStudent.id} nome={selectedStudent.nome} status={selectedStudent.statusPagamento === "pago" ? "pago" : "atrasado"} onSaved={refresh} />
                 </div>
                 <button
                   className="min-h-12 rounded-lg border-2 border-cris-pink bg-white px-4 py-3 text-sm font-black uppercase text-cris-pink disabled:opacity-50"
@@ -753,6 +744,8 @@ export function ProfessorDashboard() {
             </div>
           )}
         </DashboardSection>
+      ) : activeTab === "desafios" ? (
+        <ProfessorChallenges students={data.students} />
       ) : (
         <FinanceiroDashboard
           feedback={financeFeedback}
