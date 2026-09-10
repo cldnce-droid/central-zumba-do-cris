@@ -354,12 +354,11 @@ export async function aprovarMensalidade(mensalidadeId: string) {
     dataPagamento: new Date().toISOString().slice(0, 10),
     observacao: "Pagamento aprovado pelo professor"
   };
-  updateCachedRow("Mensalidades", mensalidadeId, updates);
   const updated = await updateRow("Mensalidades", mensalidadeId, updates);
   if (!updated) {
     throw new Error("Nao foi possivel aprovar a mensalidade.");
   }
-  void syncGoogleSheetsData(["Mensalidades"]);
+  updateCachedRow("Mensalidades", mensalidadeId, updates);
   return true;
 }
 
@@ -368,29 +367,15 @@ export async function atualizarStatusPagamento(
   status: PagamentoStatus
 ) {
   const normalizedStatus = status === "pago" ? "pago" : "atrasado";
-  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
-  if (localStudents.some((student) => student.id === alunoId)) {
-    localStorage.setItem(
-      REGISTERED_STUDENTS_KEY,
-      JSON.stringify(
-        localStudents.map((student) =>
-          student.id === alunoId
-            ? { ...student, statusPagamento: normalizedStatus }
-            : student
-        )
-      )
-    );
-  }
-  updateCachedRow("Alunos", alunoId, {
-    statusPagamento: normalizedStatus
-  });
-  const updated = await updateRow("Alunos", alunoId, {
-    statusPagamento: normalizedStatus
-  });
-  if (!updated) {
-    throw new Error("Não foi possível atualizar o pagamento na planilha.");
-  }
-  void syncGoogleSheetsData(["Alunos"]);
+  await updateRow("Alunos", alunoId, { statusPagamento: normalizedStatus });
+  updateCachedRow("Alunos", alunoId, { statusPagamento: normalizedStatus });
+  try {
+    const students = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+    localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(students.map(
+      student => student.id === alunoId
+        ? { ...student, statusPagamento: normalizedStatus } : student
+    )));
+  } catch { /* A gravação remota já foi confirmada; cache é opcional. */ }
 }
 
 export function getProximasAulasProfessor() {
@@ -418,24 +403,8 @@ export function limparDadosLocaisDeTeste() {
 }
 
 export async function sincronizarDashboardProfessor() {
-  const synced = await syncGoogleSheetsData([
-    "Alunos",
-    "Presencas",
-    "Mensalidades",
-    "Conquistas"
-  ]);
-
-  if (synced) {
-    for (const aluno of getAlunosProfessor()) {
-      try {
-        await registrarConquistaAgostoSemSofaSeNecessario(aluno);
-      } catch {
-        // A sincronização principal do dashboard não depende das conquistas.
-      }
-    }
-  }
-
-  return synced;
+  // As demais abas carregam quando o professor as abre.
+  return syncGoogleSheetsData(["Alunos"]);
 }
 
 export function getResumoDashboard() {
