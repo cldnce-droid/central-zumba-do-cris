@@ -87,7 +87,7 @@ function getAppsScriptUrl() {
   return `https://script.google.com/macros/s/${deploymentId}/exec`;
 }
 
-async function appsScriptRequest(
+export async function appsScriptRequest(
   action: string,
   data: SheetRow = {}
 ): Promise<unknown> {
