@@ -39,6 +39,7 @@ function getStoredAlunos(key: string): Aluno[] {
 
 function getAlunosDisponiveis() {
   return [
+    ...getCachedSheet("Alunos").map(sheetRowToAluno),
     ...getStoredAlunos(ALUNOS_REMOTOS_KEY),
     ...getStoredAlunos(ALUNOS_PENDENTES_KEY)
   ];
@@ -142,7 +143,7 @@ export async function getAlunoByWhatsappRemoto(whatsapp: string) {
       ALUNOS_REMOTOS_KEY,
       JSON.stringify([...existentes, alunoRemoto])
     );
-    void syncGoogleSheetsData(["Alunos"]);
+    // A Área do Aluno faz a sincronização ao abrir; não duplicar a consulta aqui.
     return alunoRemoto;
   }
 
@@ -268,7 +269,9 @@ export function getConquistasDoAluno(alunoId: string): ConquistaVisual[] {
       String(row.titulo).toLowerCase() === "venci o sofá"
   );
 
+  const patriota = getCachedSheet("Conquistas").some(row => String(row.alunoId) === alunoId && String(row.titulo).toLowerCase() === "patriota");
   return [
+    { id: "patriota-2026", titulo: "Patriota", descricao: patriota ? "Eu participei do aulão especial de 7 de setembro de 2026!" : "Participe do aulão de 7 de setembro e solicite a aprovação do Cris.", desbloqueada: patriota, accent: "yellow" },
     {
       id: "venci-o-sofa",
       titulo: "Venci o Sofá",
