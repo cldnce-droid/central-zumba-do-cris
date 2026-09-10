@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PatriotaChallenge } from "@/components/PatriotaChallenge";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -23,7 +24,8 @@ import {
 } from "@/lib/services/alunoService";
 import {
   confirmarPresenca,
-  getConfirmacaoRemotaPorAlunoEAula
+  getConfirmacaoRemotaPorAlunoEAula,
+  getConfirmacoesRemotasDoAluno
 } from "@/lib/services/confirmacaoService";
 import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
 import {
@@ -175,13 +177,12 @@ export function StudentArea() {
 
     void (async () => {
       let lesson = getProximaAula(studentId) ?? null;
+      const confirmations = lesson ? await getConfirmacoesRemotasDoAluno(studentId) : [];
       let requested = false;
 
       for (let index = 0; lesson && index < 8; index += 1) {
-        const confirmation = await getConfirmacaoRemotaPorAlunoEAula(
-          studentId,
-          lesson.id
-        );
+        const lessonId = lesson.id;
+        const confirmation = confirmations.find(row => String(row.alunoId) === studentId && String(row.aulaId) === lessonId);
         const status = String(confirmation?.status ?? "").toLowerCase();
 
         if (status !== "aceita") {
@@ -207,7 +208,10 @@ export function StudentArea() {
   useEffect(() => {
     if (!presenceRequested || !nextClass) return;
 
+    let checking = false;
     const timer = window.setInterval(() => {
+      if (document.hidden || checking) return;
+      checking = true;
       void getConfirmacaoRemotaPorAlunoEAula(studentId, nextClass.id).then(
         (confirmation) => {
           if (String(confirmation?.status).toLowerCase() === "aceita") {
@@ -216,8 +220,8 @@ export function StudentArea() {
             );
           }
         }
-      );
-    }, 10000);
+      ).finally(() => { checking = false; });
+    }, 30000);
 
     return () => window.clearInterval(timer);
   }, [nextClass, presenceRequested, studentId]);
@@ -480,6 +484,7 @@ export function StudentArea() {
 
       <section>
         <h2 className="text-3xl font-black uppercase text-cris-navy">Desafios</h2>
+        <PatriotaChallenge alunoId={student.id} whatsapp={student.whatsapp} onAwarded={() => setRevision(v => v + 1)} />
         {challenges.length ? (
           <div className="mt-4 grid gap-4">
             {challenges.map((challenge) => (
@@ -595,6 +600,8 @@ export function StudentArea() {
                   }`}>
                     {achievement.accent === "sofa" ? (
                       <span className="text-xl" aria-hidden="true">🛋️</span>
+                    ) : achievement.id === "patriota-2026" ? (
+                      <span className="text-xl" aria-hidden="true">🇧🇷</span>
                     ) : (
                       <TrophyIcon className="size-6" />
                     )}
