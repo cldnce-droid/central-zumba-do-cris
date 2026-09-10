@@ -490,7 +490,14 @@ export function ProfessorDashboard() {
                       <PaymentStatusButton alunoId={student.id} nome={student.nome} status={student.statusPagamento === "pago" ? "pago" : "atrasado"} onSaved={refresh} />
                       <button
                         className="mt-4 min-h-11 rounded-lg bg-cris-pink px-4 py-2 text-sm font-black uppercase text-white"
-                        onClick={() => setSelectedStudentId(student.id)}
+                        onClick={() => {
+                          setSelectedStudentId(student.id);
+                          requestAnimationFrame(() => {
+                            const detail = document.getElementById("ficha-aluna");
+                            detail?.focus({ preventScroll: true });
+                            detail?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          });
+                        }}
                         type="button"
                       >
                         Abrir ficha
@@ -506,6 +513,7 @@ export function ProfessorDashboard() {
             </div>
           </DashboardSection>
 
+          <div id="ficha-aluna" tabIndex={-1} className="scroll-mt-4 rounded-lg outline-none">
           <DashboardSection
             icon={<MoneyIcon className="size-6" />}
             title="Ficha do Aluno"
@@ -675,6 +683,7 @@ export function ProfessorDashboard() {
               </p>
             )}
           </DashboardSection>
+          </div>
         </section>
       ) : activeTab === "presencas" ? (
         <DashboardSection
