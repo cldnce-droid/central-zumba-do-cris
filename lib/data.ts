@@ -8,7 +8,7 @@ export const pixKey = "4c1f81f8-95e8-4a9c-b7fa-58268fe36315";
 export const whatsappGroups = [
   {
     city: "Calheiros",
-    schedule: "Terça e quinta • 20h15",
+    schedule: "Terça e quinta • 20h30",
     url: "https://chat.whatsapp.com/J8wN1cv3qdn9pZEoFpkVWj",
     accent: "pink"
   },
@@ -56,7 +56,7 @@ export const classes = [
   {
     city: "Calheiros",
     days: "Terça e quinta",
-    time: "20h15",
+    time: "20h30",
     place: "Ao lado do Berlanda",
     accent: "purple",
     image: "/references/local-calheiros.png",
