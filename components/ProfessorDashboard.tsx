@@ -217,6 +217,7 @@ export function ProfessorDashboard() {
   const [paymentFilter, setPaymentFilter] = useState("Todas");
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [studentsFeedback, setStudentsFeedback] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updatingPlan, setUpdatingPlan] = useState(false);
   const [planUpgrade, setPlanUpgrade] = useState<PlanoCodigo>("1x");
   const [deletingStudent, setDeletingStudent] = useState(false);
@@ -668,18 +669,28 @@ export function ProfessorDashboard() {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
-                    className="min-h-12 rounded-lg bg-cris-blue px-4 py-3 text-sm font-black uppercase text-white"
+                    className="min-h-12 rounded-lg bg-cris-blue px-4 py-3 text-sm font-black uppercase text-white disabled:opacity-50"
+                    disabled={updatingStatus}
                     onClick={async () => {
                       const nextStatus: AlunoStatus =
                         selectedStudent.status === "ativo"
                           ? "inativo"
                           : "ativo";
-                      await atualizarStatusAluno(selectedStudent.id, nextStatus);
-                      refresh();
+                      if (updatingStatus) return;
+                      setUpdatingStatus(true);
+                      setPaymentFeedback("");
+                      try {
+                        await atualizarStatusAluno(selectedStudent.id, nextStatus);
+                        refresh();
+                      } catch (error) {
+                        setPaymentFeedback(error instanceof Error ? error.message : "Não foi possível atualizar o cadastro.");
+                      } finally {
+                        setUpdatingStatus(false);
+                      }
                     }}
                     type="button"
                   >
-                    {selectedStudent.status === "ativo"
+                    {updatingStatus ? "Atualizando..." : selectedStudent.status === "ativo"
                       ? "Inativar cadastro"
                       : "Ativar cadastro"}
                   </button>

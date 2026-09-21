@@ -259,7 +259,7 @@ export function getResumoFrequencia(alunoId: string, referencia = new Date()) {
 export function getDesafiosDisponiveis(alunoId: string) {
   const aluno = getAlunoById(alunoId);
   if (!aluno) return [];
-  return [getDesafioAgostoSemSofa(aluno)];
+  return [getDesafioAgostoSemSofa(aluno)].filter(desafio => desafio.ativo);
 }
 
 export function getConquistasDoAluno(alunoId: string): ConquistaVisual[] {
@@ -270,7 +270,9 @@ export function getConquistasDoAluno(alunoId: string): ConquistaVisual[] {
   );
 
   const patriota = getCachedSheet("Conquistas").some(row => String(row.alunoId) === alunoId && String(row.titulo).toLowerCase() === "patriota");
+  const axe = getCachedSheet("Conquistas").some(row => String(row.alunoId) === alunoId && String(row.titulo).toLowerCase() === "axé raiz");
   return [
+    { id: "axe-raiz-2026", titulo: "Axé Raiz", descricao: axe ? "Os clássicos tocaram. Eu dancei! Participei do aulão Só Axé das Antigas." : "Selo de participação no aulão Só Axé das Antigas, sujeito à aprovação do Cris.", desbloqueada: axe, accent: "pink" },
     { id: "patriota-2026", titulo: "Patriota", descricao: patriota ? "Eu participei do aulão especial de 7 de setembro de 2026!" : "Participe do aulão de 7 de setembro e solicite a aprovação do Cris.", desbloqueada: patriota, accent: "yellow" },
     {
       id: "venci-o-sofa",

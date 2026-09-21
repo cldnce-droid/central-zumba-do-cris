@@ -98,6 +98,7 @@ function localDateKey(date = new Date()) {
 export function StudentArea() {
   const [shareAchievement, setShareAchievement] = useState<ConquistaVisual | null>(null);
   const [studentId, setStudentId] = useState("");
+  const [syncError, setSyncError] = useState("");
   const [accessChecked, setAccessChecked] = useState(false);
   const [revision, setRevision] = useState(0);
   const [nextClass, setNextClass] = useState<Aula | null>(null);
@@ -115,8 +116,8 @@ export function StudentArea() {
       "Presencas",
       "Conquistas",
       "Mensalidades"
-    ]).then((synced) => {
-      if (synced) setRevision((current) => current + 1);
+    ], () => setRevision(current => current + 1)).then(synced => {
+      if (!synced) setSyncError("Alguns dados não puderam ser atualizados. Confira a conexão e atualize a página para tentar novamente.");
     });
   }, []);
 
@@ -286,6 +287,7 @@ export function StudentArea() {
 
   return (
     <div className="flex flex-col gap-5 sm:gap-6">
+      {syncError && <p role="alert" className="rounded-lg bg-cris-yellow p-4 font-bold">{syncError}</p>}
       <header className="relative overflow-hidden rounded-lg bg-white p-5 shadow-pop ring-1 ring-cris-navy/10 sm:p-7">
         <div className="paint-stroke absolute -right-10 top-5 h-9 w-44 bg-cris-pink" />
         <p className="text-sm font-black uppercase text-cris-blue">

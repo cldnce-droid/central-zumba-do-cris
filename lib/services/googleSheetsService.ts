@@ -26,10 +26,13 @@ export async function fetchWithTimeout(
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    const response = await fetch(input, { ...init, signal: controller.signal });
+    // Keep the timeout active until the complete response has arrived.
+    const body = await response.arrayBuffer();
+    return new Response([204, 205, 304].includes(response.status) ? null : body, { status: response.status, statusText: response.statusText, headers: response.headers });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("A conexao demorou para responder. Tente novamente.");
+      throw new Error("A conexão demorou para responder. Atualize para conferir se a operação foi concluída antes de tentar novamente.");
     }
     throw error;
   } finally {
@@ -128,45 +131,24 @@ export async function syncGoogleSheetsData(
     "Confirmacoes",
     "Presencas",
     "Conquistas"
-  ]
+  ],
+  onProgress?: () => void
 ) {
-  const results = await Promise.all(
-    sheetNames.map(async (sheetName) => {
-      const version = cacheVersions[sheetName] ?? 0;
-      const response = await readSheet(sheetName);
-      return { sheetName, response, version };
-    })
-  );
-
-  if (typeof window !== "undefined") {
-    let currentCache: SheetsCache = {};
+  const results = await Promise.all([...new Set(sheetNames)].map(async sheetName => {
+    const version = cacheVersions[sheetName] ?? 0;
+    const response = await readSheet(sheetName);
+    if (!response || response.configured === false || response.fallback) return false;
+    if (typeof window === "undefined") return false;
+    if ((cacheVersions[sheetName] ?? 0) !== version) return true;
     try {
-      currentCache = JSON.parse(
-        localStorage.getItem(CACHE_KEY) ?? "{}"
-      ) as SheetsCache;
-    } catch {
-      currentCache = {};
-    }
-
-    const successfulResults = results.filter(
-      ({ response }) =>
-        response && response.configured !== false && !response.fallback
-    );
-
-    if (!successfulResults.length) return false;
-
-    const nextCache = { ...currentCache };
-    successfulResults.forEach(({ sheetName, response, version }) => {
-      if ((cacheVersions[sheetName] ?? 0) !== version) return;
-      nextCache[sheetName] = response?.data ?? [];
-    });
-
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify(nextCache)); } catch { return false; }
-
+      const current = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}") as SheetsCache;
+      current[sheetName] = response.data;
+      localStorage.setItem(CACHE_KEY, JSON.stringify(current));
+    } catch { return false; }
+    onProgress?.();
     return true;
-  }
-
-  return false;
+  }));
+  return results.every(Boolean);
 }
 
 export async function appendRow(sheetName: string, data: SheetRow) {

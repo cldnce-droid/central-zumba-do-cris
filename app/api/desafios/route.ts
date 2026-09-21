@@ -10,14 +10,14 @@ export async function POST(request: NextRequest) {
       consultar: "consultarSeloPatriota", solicitar: "solicitarSeloPatriota",
       listar: "listarSolicitacoesSelos", conceder: "concederSelo", decidir: "decidirSelo"
     };
-    const action = actions[data.acao];
+    const action = data.selo === "axe" && data.acao === "consultar" ? "consultarSeloAxe" : data.selo === "axe" && data.acao === "solicitar" ? "solicitarSeloAxe" : actions[data.acao];
     if (!action) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
     if (!["consultar", "solicitar"].includes(data.acao) && !isProfessorRequestAuthenticated(request)) {
       return NextResponse.json({ error: "Sua sessão expirou. Entre novamente na Área do Professor." }, { status: 401 });
     }
     // Do not forward status, title or arbitrary sheet fields from the client.
     const payload: SheetRow = ["consultar", "solicitar"].includes(data.acao)
-      ? { alunoId: String(data.alunoId ?? ""), whatsapp: String(data.whatsapp ?? "") }
+      ? { alunoId: String(data.alunoId ?? ""), whatsapp: String(data.whatsapp ?? ""), selo: data.selo === "axe" ? "axe" : "patriota" }
       : data.acao === "conceder"
         ? { alunoId: String(data.alunoId ?? ""), selo: String(data.selo ?? ""), motivo: String(data.motivo ?? "").slice(0, 300) }
         : { id: String(data.id ?? ""), aprovar: data.aprovar === true };

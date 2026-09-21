@@ -34,36 +34,38 @@ URL completa e a opcao recomendada.
 const SCRIPT_SECRET = "COLOQUE_UM_SEGREDO_FORTE_AQUI";
 
 const ACTIONS = {
-  getAlunos: () => readRows("Alunos"),
+  getAlunos: (data) => readRows("Alunos", data),
   createAluno: (data) => createAluno(data),
   updateAluno: (data) => updateRow("Alunos", data),
   deleteAluno: (data) => deleteAluno(data),
-  getPlanos: () => readRows("Planos"),
+  getPlanos: (data) => readRows("Planos", data),
   createPlano: (data) => createRow("Planos", data),
   updatePlano: (data) => updateRow("Planos", data),
-  getTurmas: () => readRows("Turmas"),
+  getTurmas: (data) => readRows("Turmas", data),
   createTurma: (data) => createRow("Turmas", data),
   updateTurma: (data) => updateRow("Turmas", data),
-  getAulas: () => readRows("Aulas"),
+  getAulas: (data) => readRows("Aulas", data),
   createAula: (data) => createRow("Aulas", data),
   updateAula: (data) => updateRow("Aulas", data),
-  getConfirmacoes: () => readRows("Confirmacoes"),
+  getConfirmacoes: (data) => readRows("Confirmacoes", data),
   createConfirmacao: (data) => upsertRow("Confirmacoes", data),
   updateConfirmacao: (data) => updateRow("Confirmacoes", data),
-  getPresencas: () => readRows("Presencas"),
+  getPresencas: (data) => readRows("Presencas", data),
   upsertPresenca: (data) => upsertRow("Presencas", data),
-  getPagamentos: () => readRows("Pagamentos"),
+  getPagamentos: (data) => readRows("Pagamentos", data),
   upsertPagamento: (data) => upsertRow("Pagamentos", data),
-  getMensalidades: () => readRows("Mensalidades"),
+  getMensalidades: (data) => readRows("Mensalidades", data),
   upsertMensalidade: (data) => upsertRow("Mensalidades", data),
-  getDesafios: () => readRows("Desafios"),
+  getDesafios: (data) => readRows("Desafios", data),
   createDesafio: (data) => createRow("Desafios", data),
   updateDesafio: (data) => updateRow("Desafios", data),
-  getConquistas: () => readRows("Conquistas"),
+  getConquistas: (data) => readRows("Conquistas", data),
   createConquista: (data) => createConquistaUnica(data),
+  consultarSeloAxe: (data) => patriota(data, false, "axe"),
+  solicitarSeloAxe: (data) => patriota(data, true, "axe"),
   consultarSeloPatriota: (data) => patriota(data, false),
   solicitarSeloPatriota: (data) => patriota(data, true),
-  listarSolicitacoesSelos: () => { ensureSelosSheet(); return readRows("SolicitacoesSelos"); },
+  listarSolicitacoesSelos: () => SpreadsheetApp.getActiveSpreadsheet().getSheetByName("SolicitacoesSelos") ? readRows("SolicitacoesSelos") : [],
   concederSelo: (data) => concederSelo(data),
   decidirSelo: (data) => decidirSelo(data),
   updateConquista: (data) => updateRow("Conquistas", data),
@@ -77,7 +79,10 @@ function doGet() {
   });
 }
 
+let requestRows = {};
+
 function doPost(e) {
+  requestRows = {};
   try {
     const payload = JSON.parse((e.postData && e.postData.contents) || "{}");
 
@@ -91,7 +96,8 @@ function doPost(e) {
     }
 
     // Reads do not wait behind writes. Mutations are serialized to avoid duplicates.
-    const lock = /^get/.test(payload.action) ? null : LockService.getScriptLock();
+    const readOnly = /^get/.test(payload.action) || ["consultarSeloAxe", "consultarSeloPatriota", "listarSolicitacoesSelos"].includes(payload.action);
+    const lock = readOnly ? null : LockService.getScriptLock();
     if (lock && !lock.tryLock(4000)) throw new Error("A base está ocupada. Aguarde alguns segundos e tente novamente.");
     try {
       const data = handler(payload.data || {});
@@ -115,7 +121,15 @@ function getHeaders(sheet) {
   return sheet.getRange(1, 1, 1, lastColumn).getValues()[0].map(String);
 }
 
-function readRows(name) {
+function readRows(name, query) {
+  if (!requestRows[name]) requestRows[name] = readAllRows(name);
+  const rows = requestRows[name];
+  if (!query || !query.field || query.value === undefined) return rows;
+  const normal = value => query.field === "whatsapp" ? String(value || "").replace(/\D/g, "") : String(value === undefined ? "" : value);
+  return rows.filter(row => normal(row[query.field]) === normal(query.value));
+}
+
+function readAllRows(name) {
   const sheet = getSheet(name);
   const headers = getHeaders(sheet);
   const lastRow = sheet.getLastRow();
@@ -131,6 +145,7 @@ function readRows(name) {
 }
 
 function createRow(name, data) {
+  delete requestRows[name];
   const sheet = getSheet(name);
   const headers = getHeaders(sheet);
   sheet.appendRow(headers.map((header) => normalizeValue(data[header])));
@@ -161,6 +176,7 @@ function findRowNumber(sheet, headers, id) {
 }
 
 function updateRow(name, data) {
+  delete requestRows[name];
   if (!data.id) throw new Error("ID obrigatório.");
   const sheet = getSheet(name);
   const headers = getHeaders(sheet);
@@ -182,6 +198,7 @@ function updateRow(name, data) {
 }
 
 function deleteRow(name, id) {
+  delete requestRows[name];
   if (!id) throw new Error("ID obrigatório.");
   const sheet = getSheet(name);
   const headers = getHeaders(sheet);
@@ -200,6 +217,7 @@ function deleteRow(name, id) {
 }
 
 function deleteRowsByField(name, field, value) {
+  delete requestRows[name];
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
   if (!sheet) return 0;
   const headers = getHeaders(sheet);
@@ -242,7 +260,8 @@ function upsertRow(name, data) {
 
 const SELOS = {
   sofa: { titulo: "Venci o Sofá", sufixo: "AGOSTO_SEM_SOFA_2026_08" },
-  patriota: { titulo: "Patriota", sufixo: "PATRIOTA_2026_09_07" }
+  patriota: { titulo: "Patriota", sufixo: "PATRIOTA_2026_09_07" },
+  axe: { titulo: "Axé Raiz", sufixo: "AXE_RAIZ_2026_09_17" }
 };
 function ensureSelosSheet() {
   const book = SpreadsheetApp.getActiveSpreadsheet();
@@ -278,30 +297,32 @@ function concederSelo(data) {
     observacao: "Concedido pelo professor. " + String(data.motivo || "")
   });
   // Keep a pending/rejected request consistent when the professor grants manually.
-  if (data.selo === "patriota") {
+  if (data.selo === "patriota" || data.selo === "axe") {
     ensureSelosSheet();
-    const id = "SOL_" + aluno.id + "_PATRIOTA_2026_09_07";
+    const id = "SOL_" + aluno.id + "_" + selo.sufixo;
     if (readRows("SolicitacoesSelos").some(row => String(row.id) === id)) {
       updateRow("SolicitacoesSelos", { id: id, status: "aprovada", dataDecisao: new Date().toISOString() });
     }
   }
   return { status: "aprovada", conquista: conquista };
 }
-function patriota(data, solicitar) {
+function patriota(data, solicitar, chave = "patriota") {
+  const selo = SELOS[chave];
+  if (!["patriota", "axe"].includes(chave)) throw new Error("Evento inválido.");
   const aluno = findAluno(data.alunoId);
   const digits = value => String(value || "").replace(/\D/g, "");
   if (!digits(data.whatsapp) || digits(aluno.whatsapp) !== digits(data.whatsapp) || String(aluno.statusCadastro || aluno.status) !== "ativo") {
     throw new Error("Entre com o WhatsApp do seu cadastro ativo para solicitar o selo.");
   }
-  const conquista = findConquista(aluno.id, SELOS.patriota.titulo);
+  const conquista = findConquista(aluno.id, selo.titulo);
   if (conquista) return { status: "aprovada", conquista: conquista };
-  ensureSelosSheet();
-  const id = "SOL_" + aluno.id + "_PATRIOTA_2026_09_07";
-  const existing = readRows("SolicitacoesSelos").find(row => String(row.id) === id);
+  if (solicitar) ensureSelosSheet();
+  const id = "SOL_" + aluno.id + "_" + selo.sufixo;
+  const existing = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("SolicitacoesSelos") ? readRows("SolicitacoesSelos").find(row => String(row.id) === id) : undefined;
   if (existing) return { status: existing.status, solicitacao: existing };
   if (!solicitar) return { status: "disponivel" };
   const row = { id: id, alunoId: aluno.id, nomeAluno: aluno.nome, whatsapp: aluno.whatsapp,
-    selo: "patriota", status: "solicitada", dataSolicitacao: new Date().toISOString(), dataDecisao: "" };
+    selo: chave, status: "solicitada", dataSolicitacao: new Date().toISOString(), dataDecisao: "" };
   createRow("SolicitacoesSelos", row);
   return { status: "solicitada", solicitacao: row };
 }
@@ -309,14 +330,16 @@ function decidirSelo(data) {
   ensureSelosSheet();
   const row = readRows("SolicitacoesSelos").find(row => String(row.id) === String(data.id));
   if (!row) throw new Error("Solicitação não encontrada.");
-  const existing = findConquista(row.alunoId, SELOS.patriota.titulo);
+  const chave = String(row.selo || "patriota");
+  if (!["patriota", "axe"].includes(chave)) throw new Error("Evento inválido.");
+  const existing = findConquista(row.alunoId, SELOS[chave].titulo);
   // A repeated approval is safe; a stale rejection cannot revoke a granted badge.
   if (existing) {
     updateRow("SolicitacoesSelos", { id: row.id, status: "aprovada", dataDecisao: row.dataDecisao || new Date().toISOString() });
     return { status: "aprovada", conquista: existing };
   }
   if (row.status !== "solicitada") return { status: row.status };
-  if (data.aprovar === true) return concederSelo({ alunoId: row.alunoId, selo: "patriota", motivo: "Participação no aulão especial de 7 de setembro de 2026 aprovada." });
+  if (data.aprovar === true) return concederSelo({ alunoId: row.alunoId, selo: chave, motivo: chave === "axe" ? "Participação no aulão Só Axé das Antigas de 17 de setembro de 2026 aprovada." : "Participação no aulão especial de 7 de setembro de 2026 aprovada." });
   updateRow("SolicitacoesSelos", { id: row.id, status: "recusada", dataDecisao: new Date().toISOString() });
   return { status: "recusada" };
 }
@@ -413,3 +436,12 @@ na aba `Financeiro` do Dashboard do Professor para aprovacao.
 Publique o código acima como uma nova versão da implantação existente e faça o deploy dos arquivos do app. Mantenha seu SCRIPT_SECRET atual. A aba SolicitacoesSelos é criada automaticamente, sem apagar dados existentes. A aba Conquistas deve existir com os cabeçalhos id, alunoId, nomeAluno, tipo, titulo, coreografia, dataConquista, observacao.
 
 Pagamentos passam a atualizar uma única célula de Alunos. O servidor serializa gravações e impede duplicar selos. Solicitações de Patriota não concedem selos: somente a ação autenticada do professor aprova.
+
+
+## Revisão de comunicação — 21/09/2026
+
+Este código inclui consultas de selos sem bloqueio de escrita, reaproveitamento de leituras dentro de uma requisição e filtro de resposta por campo. O filtro reduz o volume enviado ao app; a leitura da faixa na planilha ainda é necessária. As gravações continuam protegidas por bloqueio.
+
+Publique este código como uma nova versão da implantação existente do Apps Script, preservando o segredo configurado. Depois publique os arquivos atualizados do app na Vercel. Esta revisão não foi implantada automaticamente. Se optar por criar outra implantação com outra URL, atualize GOOGLE_APPS_SCRIPT_URL antes de publicar o app.
+
+A revisão local cobre falhas e concorrência simuladas, mas não mede a latência da implantação real. Os logs do servidor agora registram a ação e sua duração, sem o conteúdo dos cadastros. Em caso de tempo excedido, confira os dados antes de repetir: interromper a espera não desfaz uma gravação que já chegou ao Google.

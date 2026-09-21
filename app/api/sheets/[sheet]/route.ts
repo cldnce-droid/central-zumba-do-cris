@@ -26,10 +26,10 @@ export async function GET(
   try {
     const field = request.nextUrl.searchParams.get("field");
     const value = request.nextUrl.searchParams.get("value");
-    const rows = await readSheet(sheet);
+    const rows = await readSheet(sheet, field && value !== null ? { field, value } : undefined);
     const data =
       field && value !== null
-        ? rows.filter((row) => String(row[field] ?? "") === value)
+        ? rows.filter((row) => field === "whatsapp" ? String(row[field] ?? "").replace(/\D/g, "") === value.replace(/\D/g, "") : String(row[field] ?? "") === value)
         : rows;
 
     if (sheet === "Alunos") {

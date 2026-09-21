@@ -53,7 +53,9 @@ function readLocalMensalidades() {
 function saveLocalMensalidade(mensalidade: Mensalidade) {
   if (typeof window === "undefined") return;
   const rows = readLocalMensalidades().filter((item) => item.id !== mensalidade.id);
-  localStorage.setItem(MENSALIDADES_KEY, JSON.stringify([...rows, mensalidade]));
+  try {
+    localStorage.setItem(MENSALIDADES_KEY, JSON.stringify([...rows, mensalidade]));
+  } catch { /* A gravação remota já foi confirmada. */ }
 }
 
 function normalizeStatus(mensalidade: Mensalidade): Mensalidade {
@@ -105,6 +107,15 @@ function montarMensalidadeDoMes(alunoId: string, date = new Date()) {
   if (!aluno) return null;
 
   const mesReferencia = getMesReferencia(date);
+  const alunoEntrouNoMes = String(aluno.dataEntrada ?? "").startsWith(mesReferencia);
+  const mesAtual = mesReferencia === getMesReferencia();
+  const pagoNoCadastro = mesAtual && alunoEntrouNoMes && aluno.statusPagamento === "pago";
+  const status: MensalidadeStatus = pagoNoCadastro
+    ? "pago"
+    : date.getDate() > 8
+      ? "atrasado"
+      : "em_aberto";
+
   return {
     id: `MEN_${mesReferencia.replace("-", "_")}_${alunoId}`,
     alunoId,
@@ -114,11 +125,13 @@ function montarMensalidadeDoMes(alunoId: string, date = new Date()) {
     plano: aluno.plano,
     valor: plano?.valor ?? 0,
     vencimento: `${mesReferencia}-08`,
-    status: date.getDate() > 8 ? "atrasado" : "em_aberto",
-    dataPagamento: null,
+    status,
+    dataPagamento: pagoNoCadastro ? aluno.dataEntrada || localDateKey() : null,
     dataComprovante: null,
     metodo: aluno.formaPagamento ?? "pix",
-    observacao: ""
+    observacao: pagoNoCadastro
+      ? "Pagamento do mes de entrada marcado como pago no cadastro."
+      : ""
   };
 }
 
@@ -166,7 +179,7 @@ export async function copiarPixMensalidade(alunoId: string) {
 
   saveLocalMensalidade(updated);
   appendCachedRow("Mensalidades", { ...updated });
-  void syncGoogleSheetsData(["Mensalidades"]);
+
 
   return updated;
 }
@@ -197,7 +210,7 @@ export async function registrarPagamentoDinheiro(alunoId: string) {
 
   saveLocalMensalidade(updated);
   appendCachedRow("Mensalidades", { ...updated });
-  void syncGoogleSheetsData(["Mensalidades"]);
+
 
   return updated;
 }
@@ -216,10 +229,10 @@ export async function atualizarMensalidadeStatus(
     observacao: status === "pago" ? "Pagamento aprovado pelo professor" : existing.observacao
   };
 
-  saveLocalMensalidade(updated);
-  appendCachedRow("Mensalidades", { ...updated });
   const saved = await updateRow("Mensalidades", mensalidadeId, { ...updated });
   if (!saved) throw new Error("Nao foi possivel atualizar a mensalidade.");
-  void syncGoogleSheetsData(["Mensalidades"]);
+  saveLocalMensalidade(updated);
+  appendCachedRow("Mensalidades", { ...updated });
+
   return updated;
 }

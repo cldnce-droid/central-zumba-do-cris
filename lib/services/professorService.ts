@@ -43,6 +43,8 @@ function readLocal<T>(key: string, fallback: T): T {
 }
 
 export function getStatusAlunoLocal(alunoId: string) {
+  const remote = getCachedSheet("Alunos").find(row => String(row.id) === alunoId);
+  if (remote) return sheetRowToAluno(remote).status;
   return readLocal<Record<string, AlunoStatus>>(STUDENT_STATUS_KEY, {})[alunoId];
 }
 
@@ -63,8 +65,8 @@ export function getAlunosProfessor() {
   const sourceStudents = Array.from(studentsById.values());
   return sourceStudents.map((aluno) => ({
     ...aluno,
-    status: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
-    statusCadastro: overrides[String(aluno.id)] ?? aluno.statusCadastro ?? aluno.status,
+    status: aluno.statusCadastro ?? aluno.status ?? overrides[String(aluno.id)],
+    statusCadastro: aluno.statusCadastro ?? aluno.status ?? overrides[String(aluno.id)],
     statusPagamento:
       (aluno.statusCadastro ?? aluno.status) === "pendente"
         ? aluno.statusPagamento
@@ -74,83 +76,33 @@ export function getAlunosProfessor() {
 }
 
 export async function atualizarStatusAluno(alunoId: string, status: AlunoStatus) {
-  const overrides = readLocal<Record<string, AlunoStatus>>(
-    STUDENT_STATUS_KEY,
-    {}
-  );
-  localStorage.setItem(
-    STUDENT_STATUS_KEY,
-    JSON.stringify({ ...overrides, [alunoId]: status })
-  );
-  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
-  if (localStudents.some((student) => student.id === alunoId)) {
-    localStorage.setItem(
-      REGISTERED_STUDENTS_KEY,
-      JSON.stringify(
-        localStudents.map((student) =>
-          student.id === alunoId
-            ? {
-                ...student,
-                status,
-                statusCadastro: status,
-                ...(status === "ativo"
-                  ? {
-                      diaVencimento: 8,
-                      statusPagamento: student.statusPagamento ?? "atrasado"
-                    }
-                  : {})
-              }
-            : student
-        )
-      )
-    );
-  }
-  const studentUpdates = {
-    status,
-    statusCadastro: status,
-    ...(status === "ativo"
-      ? {
-          diaVencimento: 8,
-          statusPagamento:
-            getAlunosProfessor().find((student) => student.id === alunoId)
-              ?.statusPagamento ?? "atrasado"
-        }
-      : {})
-  };
+  const studentUpdates = { status, statusCadastro: status, ...(status === "ativo" ? {
+    diaVencimento: 8,
+    statusPagamento: getAlunosProfessor().find(student => student.id === alunoId)?.statusPagamento ?? "atrasado"
+  } : {}) };
+  await updateRow("Alunos", alunoId, studentUpdates);
   updateCachedRow("Alunos", alunoId, studentUpdates);
-  const updated = await updateRow("Alunos", alunoId, studentUpdates);
-  if (!updated) {
-    throw new Error("Não foi possível atualizar o cadastro.");
-  }
-  void syncGoogleSheetsData(["Alunos"]);
+  try {
+    const overrides = readLocal<Record<string, AlunoStatus>>(STUDENT_STATUS_KEY, {});
+    delete overrides[alunoId];
+    localStorage.setItem(STUDENT_STATUS_KEY, JSON.stringify(overrides));
+    const students = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+    localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(students.map(student => student.id === alunoId ? { ...student, ...studentUpdates } : student)));
+  } catch { /* Remote write is already confirmed. */ }
 }
 
-export async function atualizarPlanoAluno(
-  alunoId: string,
-  plano: PlanoCodigo
-) {
-  const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
-  if (localStudents.some((student) => student.id === alunoId)) {
-    localStorage.setItem(
-      REGISTERED_STUDENTS_KEY,
-      JSON.stringify(
-        localStudents.map((student) =>
-          student.id === alunoId ? { ...student, plano } : student
-        )
-      )
-    );
-  }
-
+export async function atualizarPlanoAluno(alunoId: string, plano: PlanoCodigo) {
+  await updateRow("Alunos", alunoId, { plano });
   updateCachedRow("Alunos", alunoId, { plano });
-  const updated = await updateRow("Alunos", alunoId, { plano });
-  if (!updated) {
-    throw new Error("Nao foi possivel atualizar o plano na planilha.");
-  }
-
-  await syncGoogleSheetsData(["Alunos"]);
+  try {
+    const students = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
+    localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(students.map(student => student.id === alunoId ? { ...student, plano } : student)));
+  } catch { /* Remote write is already confirmed. */ }
 }
 
 export async function excluirAluno(alunoId: string) {
+  const deleted = await deleteRow("Alunos", alunoId);
+  if (!deleted) throw new Error("Não foi possível excluir o aluno.");
   const localStudents = readLocal<typeof alunos>(REGISTERED_STUDENTS_KEY, []);
   localStorage.setItem(
     REGISTERED_STUDENTS_KEY,
@@ -179,11 +131,7 @@ export async function excluirAluno(alunoId: string) {
     }
   );
 
-  const deleted = await deleteRow("Alunos", alunoId);
-  if (!deleted) {
-    throw new Error("Nao foi possivel excluir o aluno.");
-  }
-  void syncGoogleSheetsData(["Alunos", "Confirmacoes", "Presencas", "Mensalidades"]);
+
 }
 
 export function getConfirmacoesProfessor() {
@@ -199,13 +147,9 @@ export function getConfirmacoesProfessor() {
 }
 
 export async function sincronizarSolicitacoesProfessor() {
-  const response = await readSheet("Confirmacoes");
-  if (!response || response.fallback || !response.configured) {
-    throw new Error("Não foi possível acessar a aba Confirmacoes.");
-  }
-  replaceCachedSheet("Confirmacoes", response.data);
-  void syncGoogleSheetsData(["Alunos", "Presencas"]);
-  return response.data.length;
+  const synced = await syncGoogleSheetsData(["Confirmacoes", "Presencas"]);
+  if (!synced) throw new Error("Não foi possível atualizar todas as confirmações e presenças. Tente atualizar novamente.");
+  return getCachedSheet("Confirmacoes").length;
 }
 
 export async function sincronizarFinanceiroProfessor() {

@@ -102,6 +102,7 @@ export async function appsScriptRequest(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   let response: Response;
+  const startedAt = Date.now();
 
   try {
     response = await fetch(url, {
@@ -112,40 +113,42 @@ export async function appsScriptRequest(
       redirect: "follow",
       signal: controller.signal
     });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(
+          "Implantacao do Apps Script nao encontrada. Crie uma nova implantacao e atualize GOOGLE_APPS_SCRIPT_URL."
+        );
+      }
+      throw new Error(`Google Apps Script respondeu ${response.status}.`);
+    }
+
+    const result = await response.json() as {
+      ok?: boolean;
+      data?: unknown;
+      error?: string;
+    };
+
+    if (!result.ok) {
+      throw new Error(result.error || "Falha no Google Apps Script.");
+    }
+
+    return result.data;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Google Apps Script demorou para responder. Tente novamente.");
+      throw new Error("Google Apps Script demorou para responder. Atualize para conferir se a operação foi concluída antes de tentar novamente.");
     }
     throw error;
   } finally {
     clearTimeout(timeout);
+    console.info("AppsScript request", { action, durationMs: Date.now() - startedAt });
   }
 
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error(
-        "Implantacao do Apps Script nao encontrada. Crie uma nova implantacao e atualize GOOGLE_APPS_SCRIPT_URL."
-      );
-    }
-    throw new Error(`Google Apps Script respondeu ${response.status}.`);
-  }
-
-  const result = await response.json() as {
-    ok?: boolean;
-    data?: unknown;
-    error?: string;
-  };
-
-  if (!result.ok) {
-    throw new Error(result.error || "Falha no Google Apps Script.");
-  }
-
-  return result.data;
 }
 
-export async function readSheet(sheetName: string): Promise<SheetRow[]> {
+export async function readSheet(sheetName: string, query?: { field: string; value: string }): Promise<SheetRow[]> {
   const sheet = assertSheetName(sheetName);
-  const data = await appsScriptRequest(readActions[sheet]);
+  const data = await appsScriptRequest(readActions[sheet], query ?? {});
   return Array.isArray(data) ? data as SheetRow[] : [];
 }
 
