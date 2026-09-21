@@ -485,6 +485,7 @@ export function StudentArea() {
 
       <section>
         <h2 className="text-3xl font-black uppercase text-cris-navy">Desafios</h2>
+        <PatriotaChallenge selo="axe" alunoId={student.id} whatsapp={student.whatsapp} onAwarded={() => setRevision(v => v + 1)} />
         <PatriotaChallenge alunoId={student.id} whatsapp={student.whatsapp} onAwarded={() => setRevision(v => v + 1)} />
         {challenges.length ? (
           <div className="mt-4 grid gap-4">
@@ -601,7 +602,9 @@ export function StudentArea() {
                       ? "border-white bg-cris-blue text-white shadow-[0_6px_18px_rgba(37,184,236,0.35)]"
                       : "border-cris-navy/10 bg-white/60 text-cris-navy/30"
                   }`}>
-                    {achievement.accent === "sofa" ? (
+                    {achievement.id === "axe-raiz-2026" ? (
+                      <img src="/references/selo-axe-raiz.png" alt="" className="size-11 object-contain" />
+                    ) : achievement.accent === "sofa" ? (
                       <span className="text-xl" aria-hidden="true">🛋️</span>
                     ) : achievement.id === "patriota-2026" ? (
                       <span className="text-xl" aria-hidden="true">🇧🇷</span>
@@ -669,6 +672,17 @@ async function achievementStory(achievement: ConquistaVisual, nome: string): Pro
     logo.src = "/references/logo-sem-fundo.png";
   });
   const patriota = achievement.id === "patriota-2026";
+  const axe = achievement.id === "axe-raiz-2026";
+  let axeBadge: HTMLImageElement | null = null;
+  if (axe) {
+    axeBadge = new Image();
+    await new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => reject(new Error("Não foi possível carregar o selo. Tente novamente.")), 12000);
+      axeBadge!.onload = () => { clearTimeout(timer); resolve(); };
+      axeBadge!.onerror = () => { clearTimeout(timer); reject(new Error("Não foi possível carregar o selo. Tente novamente.")); };
+      axeBadge!.src = "/references/selo-axe-raiz.png";
+    });
+  }
   const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
   gradient.addColorStop(0, "#fffaf0"); gradient.addColorStop(.55, patriota ? "#e6f6e9" : "#f0e6ff"); gradient.addColorStop(1, "#e1f5ff");
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1080, 1920);
@@ -683,8 +697,8 @@ async function achievementStory(achievement: ConquistaVisual, nome: string): Pro
     ctx!.fillText(value,540,y);
   }
   text("MAIS UMA CONQUISTA!",510,36,"#7128ce");
-  circle(540,810,245,"#071046");circle(540,790,232,"#ffc400");circle(540,790,207,"#ffffff");
-  if(patriota){
+  if (!axe) { circle(540,810,245,"#071046");circle(540,790,232,"#ffc400");circle(540,790,207,"#ffffff"); }
+  if (axe && axeBadge) { ctx.drawImage(axeBadge,270,525,540,540); } else if(patriota){
     ctx.fillStyle="#168144";ctx.fillRect(375,680,330,220);
     ctx.fillStyle="#ffc400";ctx.beginPath();ctx.moveTo(540,702);ctx.lineTo(683,790);ctx.lineTo(540,878);ctx.lineTo(397,790);ctx.closePath();ctx.fill();
     circle(540,790,62,"#183a8b");ctx.strokeStyle="white";ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(483,775);ctx.quadraticCurveTo(540,767,595,807);ctx.stroke();
@@ -695,12 +709,12 @@ async function achievementStory(achievement: ConquistaVisual, nome: string): Pro
     ctx.fillStyle="#071046";ctx.fillRect(390,874,23,32);ctx.fillRect(666,874,23,32);
   }
   text("SELO DESBLOQUEADO",1100,30,"#7128ce");
-  text(patriota ? "EU SOU PATRIOTA!" : "VENCI O SOFÁ!",1200,78);
+  text(axe ? "EU SOU AXÉ RAIZ!" : patriota ? "EU SOU PATRIOTA!" : "VENCI O SOFÁ!",1200,78);
   const firstName=nome.trim().split(/\s+/)[0] || "Eu";
   text(firstName,1320,60,"#7128ce");
-  text(patriota ? "Participei do aulão especial" : "Completei a meta de presenças",1410,39,"#071046",700);
-  text(patriota ? "de 7 de setembro e ganhei este selo!" : "do meu plano nas aulas de agosto!",1470,39,"#071046",700);
-  text(patriota ? "7 DE SETEMBRO · 2026" : "AGOSTO · 2026",1570,28,"#7128ce");
+  text(axe ? "Participei do aulão" : patriota ? "Participei do aulão especial" : "Completei a meta de presenças",1410,39,"#071046",700);
+  text(axe ? "Só Axé das Antigas!" : patriota ? "de 7 de setembro e ganhei este selo!" : "do meu plano nas aulas de agosto!",1470,39,"#071046",700);
+  text(axe ? "17 DE SETEMBRO · 2026" : patriota ? "7 DE SETEMBRO · 2026" : "AGOSTO · 2026",1570,28,"#7128ce");
   text("ERROU... CONTINUA!",1720,43);text("ZUMBA DO CRIS",1780,29,"#7128ce");
   return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("Não foi possível gerar a imagem.")),"image/png"));
 }
