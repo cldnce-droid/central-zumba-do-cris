@@ -24,7 +24,7 @@ const classDetails = {
     turmaId: "TURMA_CALHEIROS",
     local: "Calheiros",
     endereco: "Ao lado do Berlanda",
-    horario: "20h15"
+    horario: "20h30"
   },
   ARMACAO: {
     turmaId: "TURMA_ARMACAO",
@@ -40,12 +40,14 @@ export function getLessonDetailsFromId(id: string): LessonDetails | undefined {
   );
   if (!match) return undefined;
 
-  const [, classCode, data] = match;
+  const [, classCode, data, encodedTime] = match;
+  const time = encodedTime.padStart(4, "0");
   const details = classDetails[classCode as keyof typeof classDetails];
 
   return {
     id,
     data,
-    ...details
+    ...details,
+    horario: `${time.slice(0, 2)}h${time.slice(2)}`
   };
 }
