@@ -257,21 +257,12 @@ export async function validarPresenca(
     observacao: ""
   };
 
-  const next = existing
-    ? presences.map((item) => (item.id === existing.id ? presence : item))
-    : [...presences, presence];
-  localStorage.setItem(PRESENCES_KEY, JSON.stringify(next));
-  if (existing) {
-    updateCachedRow("Presencas", existing.id, { ...presence });
-  } else {
-    appendCachedRow("Presencas", { ...presence });
-  }
-  const saved = existing
-    ? await updateRow("Presencas", existing.id, { ...presence })
-    : await appendRow("Presencas", { ...presence });
-  if (!saved) {
-    throw new Error("Não foi possível validar a presença.");
-  }
+  await (existing
+    ? updateRow("Presencas", existing.id, { ...presence })
+    : appendRow("Presencas", { ...presence }));
+  appendCachedRow("Presencas", { ...presence });
+  const next = existing ? presences.map(item => item.id === existing.id ? presence : item) : [...presences, presence];
+  try { localStorage.setItem(PRESENCES_KEY, JSON.stringify(next)); } catch { /* Cache opcional. */ }
 
   if (compareceu && aluno) {
     try {
@@ -284,28 +275,21 @@ export async function validarPresenca(
 
 function saveConfirmations(confirmations: Confirmacao[]) {
   if (typeof window !== "undefined") {
-    localStorage.setItem(CONFIRMATIONS_KEY, JSON.stringify(confirmations));
+    try { localStorage.setItem(CONFIRMATIONS_KEY, JSON.stringify(confirmations)); } catch { /* Cache opcional. */ }
   }
 }
 
 async function processarAceiteSolicitacaoPresenca(confirmacaoId: string) {
   const confirmations = getConfirmacoesProfessor();
   const confirmation = confirmations.find((item) => item.id === confirmacaoId);
-  if (!confirmation) return;
+  if (!confirmation) throw new Error("Solicitação não encontrada. Atualize a lista.");
 
-  const updated = { ...confirmation, status: "aceita" as const };
-  saveConfirmations(
-    confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
-  );
-  const [confirmationUpdated] = await Promise.all([
-    updateRow("Confirmacoes", confirmacaoId, { status: "aceita" }),
-    validarPresenca(updated.alunoId, updated.aulaId, true)
-  ]);
-  if (!confirmationUpdated) {
-    throw new Error("Não foi possível aceitar a solicitação.");
-  }
+  if (confirmation.status === "aceita") return;
+  // Persist attendance first; a failed queue update can safely be retried.
+  await validarPresenca(confirmation.alunoId, confirmation.aulaId, true);
+  await updateRow("Confirmacoes", confirmacaoId, { status: "aceita" });
   updateCachedRow("Confirmacoes", confirmacaoId, { status: "aceita" });
-  void syncGoogleSheetsData(["Confirmacoes", "Presencas"]);
+  saveConfirmations(confirmations.map(item => item.id === confirmacaoId ? { ...item, status: "aceita" } : item));
 }
 
 export async function aceitarSolicitacaoPresenca(confirmacaoId: string) {
@@ -315,20 +299,14 @@ export async function aceitarSolicitacaoPresenca(confirmacaoId: string) {
 export async function recusarSolicitacaoPresenca(confirmacaoId: string) {
   const confirmations = getConfirmacoesProfessor();
   const confirmation = confirmations.find((item) => item.id === confirmacaoId);
-  if (!confirmation) return;
+  if (!confirmation) throw new Error("Solicitação não encontrada. Atualize a lista.");
 
-  const updated = { ...confirmation, status: "recusada" as const };
-  saveConfirmations(
-    confirmations.map((item) => (item.id === confirmacaoId ? updated : item))
-  );
-  const confirmationUpdated = await updateRow("Confirmacoes", confirmacaoId, {
-    status: "recusada"
-  });
-  if (!confirmationUpdated) {
-    throw new Error("Não foi possível recusar a solicitação.");
+  if (getPresencasProfessor().some(p => p.alunoId === confirmation.alunoId && p.aulaId === confirmation.aulaId && p.compareceu)) {
+    throw new Error("Esta presença já foi gravada. Conclua a aprovação da solicitação.");
   }
+  await updateRow("Confirmacoes", confirmacaoId, { status: "recusada" });
   updateCachedRow("Confirmacoes", confirmacaoId, { status: "recusada" });
-  void syncGoogleSheetsData(["Confirmacoes"]);
+  saveConfirmations(confirmations.map(item => item.id === confirmacaoId ? { ...item, status: "recusada" } : item));
 }
 
 export function getPagamentosProfessor() {
