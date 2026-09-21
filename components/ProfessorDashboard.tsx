@@ -4,7 +4,7 @@ import { syncGoogleSheetsData } from "@/lib/services/googleSheetsService";
 import { ProfessorChallenges } from "@/components/ProfessorChallenges";
 import { PaymentStatusButton } from "@/components/PaymentStatusButton";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarIcon,
   MoneyIcon,
@@ -206,6 +206,14 @@ export function ProfessorDashboard() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [isLeaving, setIsLeaving] = useState(false);
   const [paymentFeedback, setPaymentFeedback] = useState("");
+  const [registrationFilter, setRegistrationFilter] = useState("Todas");
+  const [planFilter, setPlanFilter] = useState("Todos");
+  const [presenceClass, setPresenceClass] = useState("Todas");
+  const [presenceDate, setPresenceDate] = useState("");
+  const [presenceSearch, setPresenceSearch] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const processingRef = useRef(false);
+  const [presenceProgress, setPresenceProgress] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("Todas");
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [studentsFeedback, setStudentsFeedback] = useState("");
@@ -290,9 +298,9 @@ export function ProfessorDashboard() {
           onlyNumbers(String(student.whatsapp ?? "")).includes(numericQuery)) ||
         classes.some((turma) => turma.toLowerCase().includes(query));
 
-      return matchesClass && matchesSearch && (paymentFilter === "Todas" || student.statusPagamento === paymentFilter);
+      return matchesClass && matchesSearch && (registrationFilter === "Todas" || student.status === registrationFilter) && (planFilter === "Todos" || student.plano === planFilter) && (paymentFilter === "Todas" || student.statusPagamento === paymentFilter);
     });
-  }, [classFilter, data.students, search, paymentFilter]);
+  }, [classFilter, data.students, search, paymentFilter, registrationFilter, planFilter]);
 
   useEffect(() => {
     if (selectedStudentId) void syncGoogleSheetsData(["Presencas"]).then(refresh);
@@ -339,6 +347,33 @@ export function ProfessorDashboard() {
       )
     );
 
+  const visibleRequests = requests.filter(({ student, lesson }) =>
+    (presenceClass === "Todas" || lesson?.local === presenceClass) &&
+    (!presenceDate || lesson?.data === presenceDate) &&
+    (!presenceSearch.trim() || `${student?.nome ?? ""} ${student?.whatsapp ?? ""}`.toLowerCase().includes(presenceSearch.trim().toLowerCase()))
+  );
+  async function processPresences(ids: string[], approve: boolean) {
+    if (processingRef.current || !ids.length) return;
+    if (ids.length > 1 && !window.confirm(`${approve ? "Aprovar" : "Recusar"} as ${ids.length} solicitações exibidas pelos filtros atuais?`)) return;
+    processingRef.current = true; setProcessing(true); setRequestsFeedback("");
+    let saved = 0; const errors: string[] = [];
+    try {
+      for (const [index, id] of ids.entries()) {
+        const name = requests.find(r => r.confirmation.id === id)?.student?.nome ?? id;
+        setPresenceProgress(`${index + 1} de ${ids.length}: ${name}`);
+        try {
+          await (approve ? aceitarSolicitacaoPresenca(id) : recusarSolicitacaoPresenca(id));
+          saved++; refresh();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Falha ao salvar.";
+          errors.push(`${name}: ${message}`);
+          if (message.includes("sessão expirou")) break;
+        }
+      }
+      setRequestsFeedback(`${saved} de ${ids.length} solicitações ${approve ? "aprovadas" : "recusadas"}.${errors.length ? " Não concluídas: " + errors.join("; ") : ""}`);
+    } finally { processingRef.current = false; setProcessing(false); setPresenceProgress(""); }
+  }
+
   const logout = async () => {
     setIsLeaving(true);
     try {
@@ -381,25 +416,25 @@ export function ProfessorDashboard() {
         <TabButton
           active={activeTab === "alunos"}
           icon={<UsersIcon className="size-5" />}
-          onClick={() => setActiveTab("alunos")}
+          onClick={() => { if (!processingRef.current) setActiveTab("alunos"); }}
         >
           Alunos
         </TabButton>
         <TabButton
           active={activeTab === "presencas"}
           icon={<TrophyIcon className="size-5" />}
-          onClick={() => setActiveTab("presencas")}
+          onClick={() => { if (!processingRef.current) setActiveTab("presencas"); }}
         >
           Presenças
         </TabButton>
         <TabButton
           active={activeTab === "financeiro"}
           icon={<MoneyIcon className="size-5" />}
-          onClick={() => setActiveTab("financeiro")}
+          onClick={() => { if (!processingRef.current) setActiveTab("financeiro"); }}
         >
           Financeiro
         </TabButton>
-        <TabButton active={activeTab === "desafios"} icon={<TrophyIcon className="size-5" />} onClick={() => setActiveTab("desafios")}>Desafios</TabButton>
+        <TabButton active={activeTab === "desafios"} icon={<TrophyIcon className="size-5" />} onClick={() => { if (!processingRef.current) setActiveTab("desafios"); }}>Desafios</TabButton>
       </nav>
 
       {activeTab === "alunos" ? (
@@ -443,6 +478,17 @@ export function ProfessorDashboard() {
               </select>
             </label>
 
+            <label className="mt-4 block text-sm font-black text-cris-navy">Status do cadastro
+              <select aria-label="Filtrar cadastro" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={registrationFilter} onChange={e => setRegistrationFilter(e.target.value)}>
+                <option value="Todas">Todas</option><option value="ativo">Ativas</option><option value="inativo">Inativas</option><option value="pendente">Aguardando ativação</option>
+              </select>
+            </label>
+            <label className="mt-4 block text-sm font-black text-cris-navy">Plano
+              <select aria-label="Filtrar plano" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={planFilter} onChange={e => setPlanFilter(e.target.value)}>
+                <option value="Todos">Todos</option><option value="1x">1x por semana</option><option value="2x">2x por semana</option><option value="3x">3x por semana</option><option value="premium">Apoiadora Premium</option>
+              </select>
+            </label>
+            <button type="button" className="mt-3 min-h-11 font-bold underline" onClick={() => {setRegistrationFilter("Todas");setPlanFilter("Todos");setPaymentFilter("Todas");setClassFilter("Todas");setSearch("");}}>Limpar filtros</button>
             <label className="mt-4 block text-sm font-black text-cris-navy">Pagamento
               <select aria-label="Filtrar pagamento" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}>
                 <option value="Todas">Todas</option><option value="atrasado">Atrasadas</option><option value="pago">Pagas</option>
@@ -690,6 +736,7 @@ export function ProfessorDashboard() {
           icon={<CalendarIcon className="size-6" />}
           title="Solicitações de Presença"
         >
+          <fieldset disabled={processing} className="min-w-0">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="font-bold leading-relaxed text-cris-navy/60">
               Valide as solicitações de presença das alunas.
@@ -717,34 +764,44 @@ export function ProfessorDashboard() {
             </button>
           </div>
 
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+            <label className="font-bold">Turma da presença<select className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={presenceClass} onChange={e => setPresenceClass(e.target.value)}>{classFilters.map(item => <option key={item}>{item}</option>)}</select></label>
+            <label className="font-bold">Data da aula<input type="date" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={presenceDate} onChange={e => setPresenceDate(e.target.value)} /></label>
+            <label className="font-bold">Buscar presença<input type="search" placeholder="Nome ou WhatsApp" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={presenceSearch} onChange={e => setPresenceSearch(e.target.value)} /></label>
+          </div>
+          <button type="button" className="mb-3 min-h-11 font-bold underline" onClick={() => {setPresenceClass("Todas");setPresenceDate("");setPresenceSearch("");}}>Limpar filtros de presença</button>
+          <p className="mb-3 font-bold">{visibleRequests.length} solicitações exibidas. As ações em grupo afetam somente estes resultados.</p>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <button type="button" disabled={loadingRequests || !visibleRequests.length} className="min-h-12 rounded-lg bg-emerald-600 px-4 font-black text-white disabled:opacity-50" onClick={() => processPresences(visibleRequests.map(r => r.confirmation.id), true)}>Aprovar todas ({visibleRequests.length})</button>
+            <button type="button" disabled={loadingRequests || !visibleRequests.length} className="min-h-12 rounded-lg border-2 border-cris-pink px-4 font-black disabled:opacity-50" onClick={() => processPresences(visibleRequests.map(r => r.confirmation.id), false)}>Recusar todas ({visibleRequests.length})</button>
+          </div>
+          {presenceProgress && <p role="status" className="mb-4 font-bold">{presenceProgress} · Aguarde nesta aba até concluir.</p>}
           {requestsFeedback ? (
             <p className="mb-4 rounded-lg bg-cris-pink/10 p-4 font-bold text-cris-pink ring-1 ring-cris-pink/20">
               {requestsFeedback}
             </p>
           ) : null}
 
-          {loadingRequests && !requests.length ? (
+          {loadingRequests && !visibleRequests.length ? (
             <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
               Buscando solicitações...
             </p>
-          ) : !requests.length ? (
+          ) : !visibleRequests.length ? (
             <p className="rounded-lg bg-cris-paper p-4 font-bold text-cris-navy/55">
               Nenhuma solicitação de presença no momento.
             </p>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
-              {requests.map(({ confirmation, student, lesson, presence }) => (
+              {visibleRequests.map(({ confirmation, student, lesson, presence }) => (
                 <PresenceRequestCard
                   confirmation={confirmation}
                   key={confirmation.id}
                   lesson={lesson}
                   onAccept={async () => {
-                    await aceitarSolicitacaoPresenca(confirmation.id);
-                    refresh();
+                    await processPresences([confirmation.id], true);
                   }}
                   onReject={async () => {
-                    await recusarSolicitacaoPresenca(confirmation.id);
-                    refresh();
+                    await processPresences([confirmation.id], false);
                   }}
                   presence={presence}
                   student={student}
@@ -752,6 +809,7 @@ export function ProfessorDashboard() {
               ))}
             </div>
           )}
+          </fieldset>
         </DashboardSection>
       ) : activeTab === "desafios" ? (
         <ProfessorChallenges students={data.students} />
