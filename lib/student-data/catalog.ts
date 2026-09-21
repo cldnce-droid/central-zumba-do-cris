@@ -61,7 +61,7 @@ export const officialClasses: Turma[] = [
     nome: "Calheiros",
     local: "Calheiros",
     dias: ["terça", "quinta"],
-    horario: "20h15",
+    horario: "20h30",
     endereco: "Ao lado do Berlanda",
     capacidade: 15,
     ativa: true
