@@ -32,7 +32,7 @@ export function ProfessorChallenges({ students }: { students: ReturnType<typeof 
     finally { setLoading(false); }
   }
   useEffect(() => { void reload(); }, []);
-  const titles: Record<string, string> = { sofa: "Venci o Sofá", patriota: "Patriota", axe: "Axé Raiz" };
+  const titles: Record<string, string> = { sofa: "Venci o Sofá", patriota: "Patriota", axe: "Axé Raiz", criancas: "Dia das Crianças" };
   const awardedIds = new Set(getCachedSheet("Conquistas")
     .filter(r => String(r.titulo).toLowerCase() === titles[selo].toLowerCase())
     .map(r => String(r.alunoId)));
@@ -56,7 +56,7 @@ export function ProfessorChallenges({ students }: { students: ReturnType<typeof 
           await seloRequest({ acao: "conceder", alunoId: student.id, selo, motivo });
           saved++;
           setSelectedIds(ids => ids.filter(id => id !== student.id));
-          if (selo === "patriota" || selo === "axe") setRows(rows => rows.map(row => String(row.alunoId) === student.id && String(row.selo ?? "patriota") === selo ? { ...row, status: "aprovada" } : row));
+          if (selo === "patriota" || selo === "axe" || selo === "criancas") setRows(rows => rows.map(row => String(row.alunoId) === student.id && String(row.selo ?? "patriota") === selo ? { ...row, status: "aprovada" } : row));
           setRevision(v => v + 1);
         } catch (error) {
           errors.push(`${student.nome}: ${error instanceof Error ? error.message : "Falha ao conceder selo."}`);
@@ -83,14 +83,14 @@ export function ProfessorChallenges({ students }: { students: ReturnType<typeof 
     <div className="rounded-lg bg-white p-5 shadow-pop">
       <h2 className="text-2xl font-black text-cris-navy">Desafios e selos</h2>
       <p className="mt-2 font-bold text-cris-navy/65">Reconheça a constância e os momentos especiais das alunas. Conceder um selo não altera presença nem pagamento.</p>
-      <p className="mt-3 font-bold">🛋️ Venci o Sofá — desafio de agosto · 🇧🇷 Patriota — aulão de 7 de setembro de 2026 · 📼 Axé Raiz — Só Axé das Antigas, 17 de setembro</p>
+      <p className="mt-3 font-bold">🛋️ Venci o Sofá — desafio de agosto · 🇧🇷 Patriota — aulão de 7 de setembro de 2026 · 📼 Axé Raiz — Só Axé das Antigas, 17 de setembro · 🎈 Dia das Crianças — 12 de outubro</p>
       <button type="button" disabled={loading || !!busy} onClick={reload} className="mt-3 min-h-11 rounded-lg border-2 border-cris-blue px-4 font-bold">{loading ? "Atualizando..." : "Atualizar desafios"}</button>
       {loadError && <p role="alert" className="mt-3 font-bold text-cris-pink">{loadError}</p>}
       {feedback && <p role="status" className="mt-3 font-bold">{feedback}</p>}
     </div>
     <div className="rounded-lg bg-white p-5 shadow-pop">
       <h3 className="text-xl font-black">Conceder selo às alunas</h3>
-      <label className="mt-4 block font-bold">Selo<select disabled={!!busy} className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={selo} onChange={e => { setSelo(e.target.value); setFailures([]); setFeedback(""); }}><option value="sofa">Venci o Sofá — agosto</option><option value="patriota">Patriota — 7 de setembro</option><option value="axe">Axé Raiz — Só Axé das Antigas</option></select></label>
+      <label className="mt-4 block font-bold">Selo<select disabled={!!busy} className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={selo} onChange={e => { setSelo(e.target.value); setFailures([]); setFeedback(""); }}><option value="sofa">Venci o Sofá — agosto</option><option value="patriota">Patriota — 7 de setembro</option><option value="axe">Axé Raiz — Só Axé das Antigas</option><option value="criancas">Dia das Crianças — 12 de outubro</option></select></label>
       <label className="mt-4 block font-bold">Buscar aluna<input disabled={!!busy} type="search" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" placeholder="Nome ou WhatsApp" value={query} onChange={e => setQuery(e.target.value)} /></label>
       <p className="mt-2 text-sm">Você pode mudar a busca sem perder as alunas selecionadas.</p>
       <div className="mt-3 flex flex-wrap gap-3">
@@ -114,7 +114,7 @@ export function ProfessorChallenges({ students }: { students: ReturnType<typeof 
     <div className="rounded-lg bg-white p-5 shadow-pop">
       <h3 className="text-xl font-black">Pedidos de selos ({pending.length})</h3>
       <p className="mt-2">Aprove somente quem participou do evento indicado no pedido.</p>
-      <label className="mt-3 block font-bold">Filtrar evento<select disabled={!!busy} value={eventFilter} onChange={e => setEventFilter(e.target.value)} className="mt-2 min-h-12 w-full rounded-lg border-2 p-3"><option value="todos">Todos os eventos</option><option value="patriota">Patriota — 7 de setembro</option><option value="axe">Axé Raiz — 17 de setembro</option></select></label>
+      <label className="mt-3 block font-bold">Filtrar evento<select disabled={!!busy} value={eventFilter} onChange={e => setEventFilter(e.target.value)} className="mt-2 min-h-12 w-full rounded-lg border-2 p-3"><option value="todos">Todos os eventos</option><option value="patriota">Patriota — 7 de setembro</option><option value="axe">Axé Raiz — 17 de setembro</option><option value="criancas">Dia das Crianças — 12 de outubro</option></select></label>
       {!loading && !loadError && !pending.length && <p className="mt-4">Nenhuma solicitação pendente.</p>}
       {pending.map(row => <article key={String(row.id)} className="mt-4 rounded-lg bg-cris-paper p-4">
         <p className="font-black text-cris-purple">{titles[String(row.selo ?? "patriota")] ?? String(row.selo)}</p><p className="font-black">{String(row.nomeAluno)}</p><p>{String(row.whatsapp)}</p>

@@ -45,6 +45,31 @@ check('Axe rejected request does not grant badge',()=>{
  action('solicitarSeloAxe',{alunoId:'A2',whatsapp:'48888888888'});assert.equal(action('decidirSelo',{id:'SOL_A2_AXE_RAIZ_2026_09_17',aprovar:false}).data.status,'recusada');
  assert(!tables.Conquistas.some(row=>row[1]==='A2'&&row[4]==='Axé Raiz'));
 });
+check('Children badge requires approval, is separate and cannot duplicate',()=>{
+ const data={alunoId:'A1',whatsapp:'48999999999',status:'aprovada'};
+ assert.equal(action('consultarSeloCriancas',data).data.status,'disponivel');
+ assert.equal(action('solicitarSeloCriancas',data).data.status,'solicitada');
+ action('solicitarSeloCriancas',data);
+ assert.equal(tables.SolicitacoesSelos.filter(r=>r[0]==='SOL_A1_DIA_DAS_CRIANCAS_2026_10_12').length,1);
+ assert(!tables.Conquistas.some(r=>r[4]==='Dia das Crianças'));
+ const id='SOL_A1_DIA_DAS_CRIANCAS_2026_10_12';
+ assert.equal(action('decidirSelo',{id,aprovar:true}).data.conquista.titulo,'Dia das Crianças');
+ action('decidirSelo',{id,aprovar:true});
+ assert.equal(tables.Conquistas.filter(r=>r[1]==='A1'&&r[4]==='Dia das Crianças').length,1);
+ assert.equal(action('decidirSelo',{id,aprovar:false}).data.status,'aprovada');
+ assert.equal(action('consultarSeloAxe',data).data.status,'aprovada');
+});
+check('Children request rejects wrong phone and supports rejection and manual grant',()=>{
+ assert.equal(action('solicitarSeloCriancas',{alunoId:'A2',whatsapp:'wrong'}).ok,false);
+ const data={alunoId:'A2',whatsapp:'48888888888'};
+ action('solicitarSeloCriancas',data);
+ assert.equal(action('decidirSelo',{id:'SOL_A2_DIA_DAS_CRIANCAS_2026_10_12',aprovar:false}).data.status,'recusada');
+ assert(!tables.Conquistas.some(r=>r[1]==='A2'&&r[4]==='Dia das Crianças'));
+ action('concederSelo',{alunoId:'A2',selo:'criancas'});
+ assert.equal(action('consultarSeloCriancas',data).data.status,'aprovada');
+ lockAllowed=false;
+ try {assert.equal(action('consultarSeloCriancas',data).ok,true);} finally {lockAllowed=true;}
+});
 check('lock contention is an explicit retryable error',()=>{lockAllowed=false;assert.match(action('updateAluno',{id:'A1',statusPagamento:'atrasado'}).error,/ocupada/);lockAllowed=true;});
 
 check('read-only badge requests work while write lock is busy',()=>{
