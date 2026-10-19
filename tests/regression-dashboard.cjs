@@ -70,6 +70,31 @@ check('Children request rejects wrong phone and supports rejection and manual gr
  lockAllowed=false;
  try {assert.equal(action('consultarSeloCriancas',data).ok,true);} finally {lockAllowed=true;}
 });
+check('Geladinha badge requires approval, is separate and cannot duplicate',()=>{
+ const data={alunoId:'A1',whatsapp:'48999999999',status:'aprovada'};
+ assert.equal(action('consultarSeloGeladinha',data).data.status,'disponivel');
+ assert.equal(action('solicitarSeloGeladinha',data).data.status,'solicitada');
+ action('solicitarSeloGeladinha',data);
+ assert.equal(tables.SolicitacoesSelos.filter(r=>r[0]==='SOL_A1_CORRE_CORRE_GELADINHA_2026_10_17').length,1);
+ assert(!tables.Conquistas.some(r=>r[4]==='Corre Corre Geladinha 2026'));
+ const id='SOL_A1_CORRE_CORRE_GELADINHA_2026_10_17';
+ assert.equal(action('decidirSelo',{id,aprovar:true}).data.conquista.titulo,'Corre Corre Geladinha 2026');
+ action('decidirSelo',{id,aprovar:true});
+ assert.equal(tables.Conquistas.filter(r=>r[1]==='A1'&&r[4]==='Corre Corre Geladinha 2026').length,1);
+ assert.equal(action('decidirSelo',{id,aprovar:false}).data.status,'aprovada');
+ assert.equal(action('consultarSeloAxe',data).data.status,'aprovada');
+});
+check('Geladinha request rejects wrong phone and supports rejection and manual grant',()=>{
+ assert.equal(action('solicitarSeloGeladinha',{alunoId:'A2',whatsapp:'wrong'}).ok,false);
+ const data={alunoId:'A2',whatsapp:'48888888888'};
+ action('solicitarSeloGeladinha',data);
+ assert.equal(action('decidirSelo',{id:'SOL_A2_CORRE_CORRE_GELADINHA_2026_10_17',aprovar:false}).data.status,'recusada');
+ assert(!tables.Conquistas.some(r=>r[1]==='A2'&&r[4]==='Corre Corre Geladinha 2026'));
+ action('concederSelo',{alunoId:'A2',selo:'geladinha'});
+ assert.equal(action('consultarSeloGeladinha',data).data.status,'aprovada');
+ lockAllowed=false;
+ try {assert.equal(action('consultarSeloGeladinha',data).ok,true);} finally {lockAllowed=true;}
+});
 check('lock contention is an explicit retryable error',()=>{lockAllowed=false;assert.match(action('updateAluno',{id:'A1',statusPagamento:'atrasado'}).error,/ocupada/);lockAllowed=true;});
 
 check('read-only badge requests work while write lock is busy',()=>{

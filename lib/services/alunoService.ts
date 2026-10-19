@@ -270,9 +270,11 @@ export function getConquistasDoAluno(alunoId: string): ConquistaVisual[] {
   );
 
   const patriota = getCachedSheet("Conquistas").some(row => String(row.alunoId) === alunoId && String(row.titulo).toLowerCase() === "patriota");
+  const geladinha = getCachedSheet("Conquistas").some(row => String(row.alunoId) === alunoId && String(row.titulo).toLowerCase() === "corre corre geladinha 2026");
   const criancas = getCachedSheet("Conquistas").some(row => String(row.alunoId) === alunoId && String(row.titulo).toLowerCase() === "dia das crianças");
   const axe = getCachedSheet("Conquistas").some(row => String(row.alunoId) === alunoId && String(row.titulo).toLowerCase() === "axé raiz");
   return [
+    { id: "corre-corre-geladinha-2026", titulo: "Corre Corre Geladinha 2026", descricao: geladinha ? "Eu fui! Participei da Corre Corre Geladinha em 17 de outubro de 2026." : "Participou da Corre Corre Geladinha? Solicite seu selo e aguarde a aprovação do Cris.", desbloqueada: geladinha, accent: "pink" },
     { id: "dia-das-criancas-2026", titulo: "Dia das Crianças", descricao: criancas ? "Eu fui! Dancei e me diverti no aulão especial de Dia das Crianças de 12 de outubro de 2026." : "Participou do aulão de Dia das Crianças? Solicite o selo e aguarde a aprovação do Cris.", desbloqueada: criancas, accent: "pink" },
     { id: "axe-raiz-2026", titulo: "Axé Raiz", descricao: axe ? "Os clássicos tocaram. Eu dancei! Participei do aulão Só Axé das Antigas." : "Selo de participação no aulão Só Axé das Antigas, sujeito à aprovação do Cris.", desbloqueada: axe, accent: "pink" },
     { id: "patriota-2026", titulo: "Patriota", descricao: patriota ? "Eu participei do aulão especial de 7 de setembro de 2026!" : "Participe do aulão de 7 de setembro e solicite a aprovação do Cris.", desbloqueada: patriota, accent: "yellow" },

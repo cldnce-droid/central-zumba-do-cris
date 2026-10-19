@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import { seloRequest, type SeloStatus } from "@/lib/services/selosService";
 
-export function PatriotaChallenge({ alunoId, whatsapp, onAwarded, selo = "patriota" }: { selo?: "patriota" | "axe" | "criancas"; alunoId: string; whatsapp: string; onAwarded: () => void }) {
+export function PatriotaChallenge({ alunoId, whatsapp, onAwarded, selo = "patriota" }: { selo?: "patriota" | "axe" | "criancas" | "geladinha"; alunoId: string; whatsapp: string; onAwarded: () => void }) {
+  const geladinha = selo === "geladinha";
   const criancas = selo === "criancas";
   const axe = selo === "axe";
-  const title = criancas ? "Dia das Crianças" : axe ? "Axé Raiz" : "Patriota";
+  const title = geladinha ? "Corre Corre Geladinha 2026" : criancas ? "Dia das Crianças" : axe ? "Axé Raiz" : "Patriota";
   const [status, setStatus] = useState<SeloStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -16,12 +17,13 @@ export function PatriotaChallenge({ alunoId, whatsapp, onAwarded, selo = "patrio
     finally { setBusy(false); }
   }
   useEffect(() => { void load("consultar"); }, [alunoId, whatsapp, selo]);
-  return <article className={`mt-4 rounded-lg border-2 p-5 shadow-pop ${criancas ? "border-cris-pink/30 bg-gradient-to-br from-yellow-100 via-pink-50 to-cyan-100" : "border-emerald-600/20 bg-gradient-to-br from-emerald-50 via-white to-yellow-100"}`}>
-    <p className="text-sm font-black text-emerald-800">{criancas ? "12 de outubro de 2026 · Aulão de Dia das Crianças" : axe ? "17 de setembro de 2026 · Só Axé das Antigas" : "7 de setembro de 2026 · Aulão especial"}</p>
-    <h3 className="mt-2 text-2xl font-black text-cris-navy">{criancas ? "🎈 Eu fui! Dia das Crianças" : axe ? "Desafio Axé Raiz" : "🇧🇷 Desafio Patriota"}</h3>
+  return <article className={`mt-4 rounded-lg border-2 p-5 shadow-pop ${criancas || geladinha ? "border-cris-pink/30 bg-gradient-to-br from-yellow-100 via-pink-50 to-cyan-100" : "border-emerald-600/20 bg-gradient-to-br from-emerald-50 via-white to-yellow-100"}`}>
+    <p className="text-sm font-black text-emerald-800">{geladinha ? "17 de outubro de 2026 · Corre Corre Geladinha" : criancas ? "12 de outubro de 2026 · Aulão de Dia das Crianças" : axe ? "17 de setembro de 2026 · Só Axé das Antigas" : "7 de setembro de 2026 · Aulão especial"}</p>
+    <h3 className="mt-2 text-2xl font-black text-cris-navy">{geladinha ? "Eu fui na Corre Corre Geladinha 2026!" : criancas ? "🎈 Eu fui! Dia das Crianças" : axe ? "Desafio Axé Raiz" : "🇧🇷 Desafio Patriota"}</h3>
+    {geladinha && <img src="/references/selo-corre-corre-geladinha.webp" alt="Selo Corre Corre Geladinha 2026" className="mx-auto mt-5 w-full max-w-xs object-contain" />}
     {criancas && <img src="/references/selo-dia-das-criancas.webp" alt="Eu fui! Aulão especial Dia das Crianças" className="mx-auto mt-4 w-full max-w-sm rounded-lg" />}
     {axe && <img src="/references/selo-axe-raiz.png" alt="Selo Axé Raiz: fita cassete retrô" className="mx-auto mt-4 w-52" />}
-    <p className="mt-3 font-bold text-cris-navy/70">{criancas ? "Dançou, brincou e celebrou com a gente no aulão de Dia das Crianças? Solicite seu selo de participação. O Cris vai conferir sua presença e aprovar." : axe ? "Os clássicos tocaram. Eu dancei! Participou do aulão Só Axé das Antigas? Solicite seu selo: o Cris vai conferir sua participação e aprovar." : "Esteve no nosso aulão especial de 7 de setembro? Solicite seu selo de participação. O Cris vai conferir e aprovar."}</p>
+    <p className="mt-3 font-bold text-cris-navy/70">{geladinha ? "Participou da Corre Corre Geladinha em 17 de outubro de 2026? Solicite seu selo. O Cris vai conferir sua participação e aprovar." : criancas ? "Dançou, brincou e celebrou com a gente no aulão de Dia das Crianças? Solicite seu selo de participação. O Cris vai conferir sua presença e aprovar." : axe ? "Os clássicos tocaram. Eu dancei! Participou do aulão Só Axé das Antigas? Solicite seu selo: o Cris vai conferir sua participação e aprovar." : "Esteve no nosso aulão especial de 7 de setembro? Solicite seu selo de participação. O Cris vai conferir e aprovar."}</p>
     <p role="status" className="mt-4 font-black">{status === "aprovada" ? `Selo ${title} conquistado!` : status === "solicitada" ? "Solicitação enviada. Aguardando aprovação do Cris." : status === "recusada" ? "Solicitação não aprovada. Fale com o Cris se precisar corrigir." : ""}</p>
     {error && <p role="alert" className="mt-3 font-bold text-cris-pink">{error}</p>}
     {status === "disponivel" && <button type="button" disabled={busy} onClick={() => load("solicitar")} className="mt-4 min-h-12 rounded-lg bg-emerald-700 px-5 py-3 font-black text-white disabled:opacity-50">{busy ? "Enviando..." : "Participei · Solicitar selo"}</button>}
