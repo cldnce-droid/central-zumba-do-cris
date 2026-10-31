@@ -95,6 +95,31 @@ check('Geladinha request rejects wrong phone and supports rejection and manual g
  lockAllowed=false;
  try {assert.equal(action('consultarSeloGeladinha',data).ok,true);} finally {lockAllowed=true;}
 });
+check('Halloween badge requires approval, is separate and cannot duplicate',()=>{
+ const data={alunoId:'A1',whatsapp:'48999999999',status:'aprovada'};
+ assert.equal(action('consultarSeloHalloween',data).data.status,'disponivel');
+ assert.equal(action('solicitarSeloHalloween',data).data.status,'solicitada');
+ action('solicitarSeloHalloween',data);
+ assert.equal(tables.SolicitacoesSelos.filter(r=>r[0]==='SOL_A1_HALLOWEEN_2026').length,1);
+ assert(!tables.Conquistas.some(r=>r[4]==='Halloween 2026'));
+ const id='SOL_A1_HALLOWEEN_2026';
+ assert.equal(action('decidirSelo',{id,aprovar:true}).data.conquista.titulo,'Halloween 2026');
+ action('decidirSelo',{id,aprovar:true});
+ assert.equal(tables.Conquistas.filter(r=>r[1]==='A1'&&r[4]==='Halloween 2026').length,1);
+ assert.equal(action('decidirSelo',{id,aprovar:false}).data.status,'aprovada');
+ assert.equal(action('consultarSeloAxe',data).data.status,'aprovada');
+});
+check('Halloween request rejects wrong phone and supports rejection and manual grant',()=>{
+ assert.equal(action('solicitarSeloHalloween',{alunoId:'A2',whatsapp:'wrong'}).ok,false);
+ const data={alunoId:'A2',whatsapp:'48888888888'};
+ action('solicitarSeloHalloween',data);
+ assert.equal(action('decidirSelo',{id:'SOL_A2_HALLOWEEN_2026',aprovar:false}).data.status,'recusada');
+ assert(!tables.Conquistas.some(r=>r[1]==='A2'&&r[4]==='Halloween 2026'));
+ action('concederSelo',{alunoId:'A2',selo:'halloween'});
+ assert.equal(action('consultarSeloHalloween',data).data.status,'aprovada');
+ lockAllowed=false;
+ try {assert.equal(action('consultarSeloHalloween',data).ok,true);} finally {lockAllowed=true;}
+});
 check('lock contention is an explicit retryable error',()=>{lockAllowed=false;assert.match(action('updateAluno',{id:'A1',statusPagamento:'atrasado'}).error,/ocupada/);lockAllowed=true;});
 
 check('read-only badge requests work while write lock is busy',()=>{

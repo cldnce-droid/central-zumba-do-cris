@@ -61,6 +61,8 @@ const ACTIONS = {
   updateDesafio: (data) => updateRow("Desafios", data),
   getConquistas: (data) => readRows("Conquistas", data),
   createConquista: (data) => createConquistaUnica(data),
+  consultarSeloHalloween: (data) => patriota(data, false, "halloween"),
+  solicitarSeloHalloween: (data) => patriota(data, true, "halloween"),
   consultarSeloGeladinha: (data) => patriota(data, false, "geladinha"),
   solicitarSeloGeladinha: (data) => patriota(data, true, "geladinha"),
   consultarSeloCriancas: (data) => patriota(data, false, "criancas"),
@@ -100,7 +102,7 @@ function doPost(e) {
     }
 
     // Reads do not wait behind writes. Mutations are serialized to avoid duplicates.
-    const readOnly = /^get/.test(payload.action) || ["consultarSeloGeladinha", "consultarSeloCriancas", "consultarSeloAxe", "consultarSeloPatriota", "listarSolicitacoesSelos"].includes(payload.action);
+    const readOnly = /^get/.test(payload.action) || ["consultarSeloHalloween", "consultarSeloGeladinha", "consultarSeloCriancas", "consultarSeloAxe", "consultarSeloPatriota", "listarSolicitacoesSelos"].includes(payload.action);
     const lock = readOnly ? null : LockService.getScriptLock();
     if (lock && !lock.tryLock(4000)) throw new Error("A base está ocupada. Aguarde alguns segundos e tente novamente.");
     try {
@@ -265,6 +267,7 @@ function upsertRow(name, data) {
 const SELOS = {
   sofa: { titulo: "Venci o Sofá", sufixo: "AGOSTO_SEM_SOFA_2026_08" },
   patriota: { titulo: "Patriota", sufixo: "PATRIOTA_2026_09_07" },
+  halloween: { titulo: "Halloween 2026", sufixo: "HALLOWEEN_2026" },
   geladinha: { titulo: "Corre Corre Geladinha 2026", sufixo: "CORRE_CORRE_GELADINHA_2026_10_17" },
   criancas: { titulo: "Dia das Crianças", sufixo: "DIA_DAS_CRIANCAS_2026_10_12" },
   axe: { titulo: "Axé Raiz", sufixo: "AXE_RAIZ_2026_09_17" }
@@ -303,7 +306,7 @@ function concederSelo(data) {
     observacao: "Concedido pelo professor. " + String(data.motivo || "")
   });
   // Keep a pending/rejected request consistent when the professor grants manually.
-  if (data.selo === "patriota" || data.selo === "axe" || data.selo === "criancas" || data.selo === "geladinha") {
+  if (data.selo === "patriota" || data.selo === "axe" || data.selo === "criancas" || data.selo === "geladinha" || data.selo === "halloween") {
     ensureSelosSheet();
     const id = "SOL_" + aluno.id + "_" + selo.sufixo;
     if (readRows("SolicitacoesSelos").some(row => String(row.id) === id)) {
@@ -314,7 +317,7 @@ function concederSelo(data) {
 }
 function patriota(data, solicitar, chave = "patriota") {
   const selo = SELOS[chave];
-  if (!["patriota", "axe", "criancas", "geladinha"].includes(chave)) throw new Error("Evento inválido.");
+  if (!["patriota", "axe", "criancas", "geladinha", "halloween"].includes(chave)) throw new Error("Evento inválido.");
   const aluno = findAluno(data.alunoId);
   const digits = value => String(value || "").replace(/\D/g, "");
   if (!digits(data.whatsapp) || digits(aluno.whatsapp) !== digits(data.whatsapp) || String(aluno.statusCadastro || aluno.status) !== "ativo") {
@@ -337,7 +340,7 @@ function decidirSelo(data) {
   const row = readRows("SolicitacoesSelos").find(row => String(row.id) === String(data.id));
   if (!row) throw new Error("Solicitação não encontrada.");
   const chave = String(row.selo || "patriota");
-  if (!["patriota", "axe", "criancas", "geladinha"].includes(chave)) throw new Error("Evento inválido.");
+  if (!["patriota", "axe", "criancas", "geladinha", "halloween"].includes(chave)) throw new Error("Evento inválido.");
   const existing = findConquista(row.alunoId, SELOS[chave].titulo);
   // A repeated approval is safe; a stale rejection cannot revoke a granted badge.
   if (existing) {
@@ -345,7 +348,7 @@ function decidirSelo(data) {
     return { status: "aprovada", conquista: existing };
   }
   if (row.status !== "solicitada") return { status: row.status };
-  if (data.aprovar === true) return concederSelo({ alunoId: row.alunoId, selo: chave, motivo: chave === "geladinha" ? "Participação na Corre Corre Geladinha de 17 de outubro de 2026 aprovada." : chave === "criancas" ? "Participação no aulão especial de Dia das Crianças de 12 de outubro de 2026 aprovada." : chave === "axe" ? "Participação no aulão Só Axé das Antigas de 17 de setembro de 2026 aprovada." : "Participação no aulão especial de 7 de setembro de 2026 aprovada." });
+  if (data.aprovar === true) return concederSelo({ alunoId: row.alunoId, selo: chave, motivo: chave === "halloween" ? "Participação na festa de Halloween 2026 do Zumba do Cris aprovada." : chave === "geladinha" ? "Participação na Corre Corre Geladinha de 17 de outubro de 2026 aprovada." : chave === "criancas" ? "Participação no aulão especial de Dia das Crianças de 12 de outubro de 2026 aprovada." : chave === "axe" ? "Participação no aulão Só Axé das Antigas de 17 de setembro de 2026 aprovada." : "Participação no aulão especial de 7 de setembro de 2026 aprovada." });
   updateRow("SolicitacoesSelos", { id: row.id, status: "recusada", dataDecisao: new Date().toISOString() });
   return { status: "recusada" };
 }
