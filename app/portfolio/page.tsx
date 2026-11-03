@@ -71,15 +71,7 @@ export default function PortfolioPage() {
       <section className="portfolio-section portfolio-creative" aria-labelledby="creative-title">
         <h2 id="creative-title">Criatividade que <span className="portfolio-brush">faz parte.<Accent /></span></h2>
         <p>Direção criativa e produção visual: um olhar que transforma temas, apresentações e cada detalhe da experiência.</p>
-        <Image className="portfolio-cl-logo" src="/portfolio/cl-production.png" alt="Logo original CL Production" width={700} height={467} unoptimized />
-        <figure>
-          <div className="portfolio-limbo">
-            <Image src="/portfolio/limbo-agua.webp" alt="Cena do universo Limbo com figura de branco refletida na água" width={600} height={401} unoptimized />
-            <Image src="/portfolio/limbo-retrato.webp" alt="Retrato do universo Limbo com mãos em torno do rosto" width={334} height={500} unoptimized />
-            <Image src="/portfolio/limbo-flores.webp" alt="Retrato do universo Limbo com flores" width={600} height={401} unoptimized />
-          </div>
-          <figcaption>Universo visual — Limbo</figcaption>
-        </figure>
+        <Image className="portfolio-creative-cover" src="/portfolio/capa.jpeg" alt="CL Production e três fotografias do universo visual de Limbo" width={1240} height={240} unoptimized />
         <a className="portfolio-text-link" href="https://www.instagram.com/clproduction333/" target="_blank" rel="noreferrer">Mais da CL Production · @clproduction333 ↗</a>
       </section>
 
