@@ -2,6 +2,136 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Commercial portfolio: scoped to preserve student and teacher screens. */
+@font-face { font-family: PortfolioBrush; src: url('/portfolio/kalam-bold.ttf') format('truetype'); font-style: normal; font-weight: 700; font-display: swap; }
+.app-shell:has(.portfolio) { background: #f5f7f8; }
+.app-shell:has(.portfolio) .app-bg { display: none; }
+.portfolio { --portfolio-pink: #ff007a; --portfolio-blue: #0055ef; color: #07143d; width: 100%; max-width: 620px; margin: 0 auto; }
+.portfolio a:focus-visible, .portfolio button:focus-visible, .portfolio-home-link:focus-visible { outline: 3px solid #0055ef; outline-offset: 5px; }
+.portfolio-chapter { font-size: 10px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; margin: 24px 4px 10px; }
+.portfolio-chapter:first-child { margin-top: 0; }
+.portfolio-sheet { position: relative; background: white; border-radius: 12px; box-shadow: 0 9px 40px #07143d05; overflow: hidden; }
+.portfolio-brand { display: flex; align-items: center; gap: 8px; padding: 6px 20px 0; min-height: 140px; }
+.portfolio-brand-mark { width: 48%; height: 140px; flex-shrink: 0; overflow: hidden; display: grid; place-items: center; }
+.portfolio-logo { width: 100%; height: auto; transform: scale(1.85); }
+.portfolio-brand-name { position: relative; font-size: clamp(17px,4.3vw,27px); font-weight: 700; line-height: 1.2; letter-spacing: -.025em; }
+.portfolio-brand-name::after, .portfolio-invite > .portfolio-text-link::after, .portfolio-locations::after { content: ''; position: absolute; height: 7px; border-top: 3px solid var(--portfolio-pink); border-radius: 50%; transform: rotate(-2deg); bottom: -13px; left: 0; width: 90%; }
+.portfolio-hero-copy { position: relative; z-index: 1; padding: 8px 20px 0; }
+.portfolio h1 { font-size: clamp(28px,7.7vw,48px); font-weight: 900; letter-spacing: -.045em; line-height: 1.06; margin: 0; }
+.portfolio-hero-highlight { color: var(--portfolio-pink); font-size: clamp(26px,7.3vw,46px); font-weight: 900; letter-spacing: -.045em; line-height: 1.04; margin: 2px 0 12px; }
+.portfolio-intro { font-size: clamp(15px,4vw,21px); line-height: 1.25; max-width: 90%; position: relative; margin: 0; }
+.portfolio-intro > .portfolio-accent { position: absolute; right: -33px; top: 0; }
+.portfolio-wide-break { display: none; }
+.portfolio-hero-photo { position: relative; z-index: 0; margin: -18px 0 0; }
+.portfolio-hero-photo img { width: 100%; height: auto; aspect-ratio: 1.22; object-fit: cover; object-position: 52% center; mask-image: linear-gradient(transparent,black 17%); }
+.portfolio-presentation::before, .portfolio-partnership::after { content: ''; position: absolute; pointer-events: none; z-index: 2; width: 70px; height: 190px; background: repeating-linear-gradient(112deg,transparent 0 3px,#ff007acc 3px 5px,transparent 5px 8px,#ff007a 8px 12px); clip-path: polygon(0 0,74% 7%,30% 21%,94% 29%,43% 39%,83% 48%,23% 59%,61% 69%,12% 79%,35% 93%,0 100%); transform: rotate(15deg); }
+.portfolio-presentation::before { left: -60px; top: 145px; }
+.portfolio-partnership::after { right: -49px; bottom: -45px; transform: rotate(195deg); background: repeating-linear-gradient(112deg,transparent 0 3px,#0055efbb 3px 5px,transparent 5px 8px,#0055ef 8px 12px); }
+.portfolio-section { padding: 25px 20px 0; scroll-margin-top: 20px; }
+.portfolio-section h2 { font-size: clamp(26px,7.4vw,41px); font-weight: 900; line-height: 1.05; letter-spacing: -.04em; margin: 0 0 12px; }
+.portfolio-section p { font-size: clamp(15px,3.8vw,18px); line-height: 1.4; color: #111b36; margin: 0; }
+.portfolio-accent { display: inline-block; width: 30px; height: 30px; margin-left: 5px; flex-shrink: 0; vertical-align: middle; }
+.portfolio-brush { font-family: PortfolioBrush, 'Segoe Print', cursive; font-weight: 700; color: var(--portfolio-pink); display: block; font-size: 1.24em; line-height: 1.05; letter-spacing: -.045em; margin-top: 1px; }
+.portfolio-blue { color: var(--portfolio-blue); }
+.portfolio-about { padding-top: 12px; padding-bottom: 23px; }
+.portfolio-about h2 { font-size: clamp(25px,6.8vw,36px); }
+.portfolio-facts { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; padding: 0; list-style: none; margin: 20px 0 0; }
+.portfolio-facts li { display: flex; align-items: center; gap: 6px; font-size: clamp(10px,2.6vw,14px); font-weight: 700; line-height: 1.25; letter-spacing: -.04em; }
+.portfolio-facts li + li { border-left: 1px solid #07143d88; padding-left: 8px; }
+.portfolio-facts svg { flex-shrink: 0; width: clamp(22px,6vw,34px); height: 34px; color: #ffb900; }
+.portfolio-facts li:first-child svg { stroke: var(--portfolio-blue); fill: none; stroke-width: 2; }
+.portfolio-facts .portfolio-plane { fill: var(--portfolio-pink); width: 28px; height: 28px; }
+.portfolio-experience { padding-bottom: 30px; }
+.portfolio-video { margin-top: 15px; }
+.portfolio-video-cover { display: block; position: relative; width: 100%; aspect-ratio: 16 / 9; background: #07143d; color: white; overflow: hidden; border-radius: 10px; text-align: left; }
+.portfolio-video-cover > img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
+.portfolio-video-cover::after { content: ''; position: absolute; inset: 60% 0 0; background: linear-gradient(transparent,#030812b3); }
+.portfolio-video-cover:hover > img { transform: scale(1.025); }
+.portfolio-video-play { position: absolute; z-index: 1; top: 50%; left: 50%; transform: translate(-50%,-50%); border: 3px solid white; border-radius: 50%; width: clamp(55px,15vw,78px); height: clamp(55px,15vw,78px); display: grid; place-items: center; padding-left: 4px; font-size: 28px; background: #07143d70; backdrop-filter: blur(2px); }
+.portfolio-video-caption { position: absolute; z-index: 1; left: 13px; right: 10px; bottom: 12px; font-size: clamp(12px,3.2vw,16px); line-height: 1.2; }
+.portfolio-video-caption strong { font-weight: 700; }
+.portfolio-video-caption > span { font-weight: 500; }
+.portfolio-video-dialog { position: fixed; inset: 0; margin: 0; padding: 0; border: 0; max-width: none; max-height: none; width: 100%; height: 100dvh; color: #fff; background: #08090d; }
+.portfolio-video-dialog[open] { display: flex; flex-direction: column; }
+.portfolio-video-dialog::backdrop { background: #08090d; }
+.portfolio-video-toolbar { display: flex; flex-shrink: 0; gap: 12px; align-items: center; justify-content: space-between; padding: max(12px,env(safe-area-inset-top)) 16px 12px; }
+.portfolio-video-toolbar h2 { margin: 0; font-size: 14px; color: #fff; font-weight: 700; letter-spacing: 0; }
+.portfolio-video-toolbar button { min-height: 44px; flex-shrink: 0; background: #fff; color: #071046; border-radius: 30px; padding: 10px 18px; font-size: 14px; font-weight: 800; }
+.portfolio-video-dialog video { display: block; width: 100%; flex: 1; min-height: 0; object-fit: contain; padding-bottom: env(safe-area-inset-bottom); }
+.portfolio-video-error { padding: 16px; text-align: center; }
+
+.portfolio-zumba { padding-top: 27px; }
+.portfolio-zumba h2 { font-size: clamp(24px,6.4vw,35px); }
+.portfolio-zumba .portfolio-accent { width: 25px; margin-left: 0; }
+.portfolio-section .portfolio-locations { display: flex; justify-content: center; align-items: center; gap: 8px; font-size: clamp(10px,2.8vw,15px); position: relative; margin-top: 17px; }
+.portfolio-locations svg { width: 26px; height: 30px; color: var(--portfolio-pink); flex-shrink: 0; }
+.portfolio-locations::after { width: 34%; left: 33%; bottom: -12px; height: 5px; border-width: 2px; }
+.portfolio-cl-logo { width: 185px; height: auto; margin: 18px 0 12px; border-radius: 7px; }
+.portfolio-limbo { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; background: #111513; padding: 8px; border-radius: 10px; }
+.portfolio-limbo img { width: 100%; height: 160px; object-fit: contain; }
+.portfolio-limbo img:first-child { grid-column: 1/-1; width: 100%; height: auto; max-height: 250px; }
+.portfolio figcaption { text-align: center; font-size: 11px; margin: 9px 0 0; color: #526078; }
+.portfolio-text-link { display: inline-flex; align-items: center; min-height: 44px; padding: 12px 0; font-size: 13px; color: var(--portfolio-blue); }
+.portfolio-text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.portfolio-invite { padding-top: 30px; padding-bottom: 35px; }
+.portfolio-invite h2 .portfolio-brush { font-size: 1.15em; white-space: nowrap; }
+.portfolio-invite .portfolio-accent { width: 23px; margin-left: 2px; }
+.portfolio-invite > .portfolio-text-link { display: flex; justify-content: center; position: relative; font-size: 13px; margin-top: 10px; }
+.portfolio-invite > .portfolio-text-link::after { width: 75%; left: 12.5%; bottom: 1px; height: 5px; border-width: 2px; }
+.portfolio-actions { display: grid; gap: 8px; margin-top: 20px; }
+.portfolio-actions > a { text-transform: none; min-height: 58px; border-radius: 10px; padding: 12px 18px; font-size: clamp(13px,3.7vw,19px); box-shadow: none; flex-direction: row-reverse; justify-content: space-between; gap: 6px; }
+.portfolio-actions > a > span:first-child { font-size: 28px; font-weight: 400; }
+.portfolio-actions > a > span:last-child { flex: 1; text-align: center; }
+.portfolio-actions > a:first-child { background: var(--portfolio-blue); }
+.portfolio-actions > a:last-child { background: #ed0070; }
+.portfolio-footer { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 0 0; text-align: center; font-size: 11px; color: #526078; }
+.portfolio-footer strong { font-style: italic; font-size: 17px; color: #07143d; }
+.portfolio-footer a { min-height: 44px; padding: 12px; color: var(--portfolio-blue); }
+.portfolio-topline { font-size: 13px; padding: 12px 0; }
+.portfolio-proposal { min-height: 65dvh; }
+.portfolio-proposal h1 { font-size: 36px; }
+.portfolio-proposal .portfolio-hero-highlight { font-size: 22px; margin-top: 14px; }
+.portfolio-eyebrow { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 14px !important; }
+.portfolio-draft { margin: 25px 0 12px; padding: 22px; border: 1px solid #dfe3ea; border-left: 4px solid #ffc400; border-radius: 8px; background: white; }
+.portfolio-draft p { margin-top: 10px; }
+.portfolio-home-link { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 22px; border-radius: 8px; background: #fff; border-left: 5px solid #129ee8; box-shadow: 0 8px 30px #07104610; }
+.portfolio-home-link > span:first-child { display: flex; flex-direction: column; gap: 7px; }
+.portfolio-home-link strong { font-size: 22px; line-height: 1.15; }
+.portfolio-home-link span span:last-child { font-size: 13px; line-height: 1.6; color: #526078; }
+.portfolio-home-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #bc0759; }
+.portfolio-home-link > span:last-child { color: #bc0759; font-size: 32px; }
+
+@media (min-width: 640px) {
+  .portfolio-brand { min-height: 180px; padding: 10px 30px 0; }
+  .portfolio-brand-mark { height: 170px; width: 46%; }
+  .portfolio-brand-name { font-size: 29px; }
+  .portfolio-hero-copy { padding: 8px 30px 0; }
+  .portfolio-section { padding-left: 30px; padding-right: 30px; }
+  .portfolio-intro { max-width: 440px; }
+  .portfolio-hero-photo { margin-top: -32px; }
+  .portfolio-hero-photo img { aspect-ratio: 1.3; }
+  .portfolio-section h2 { font-size: 44px; }
+  .portfolio-about h2, .portfolio-zumba h2 { font-size: 35px; }
+  .portfolio-wide-break { display: initial; }
+  .portfolio-facts { margin-top: 22px; }
+  .portfolio-facts li { gap: 10px; font-size: 15px; }
+  .portfolio-limbo img { height: 200px; }
+  .portfolio-cl-logo { width: 220px; }
+  .portfolio-accent { width: 36px; height: 36px; }
+  .portfolio-invite .portfolio-accent { width: 30px; }
+  .portfolio-invite { padding-top: 35px; }
+  .portfolio-actions > a { min-height: 64px; }
+}
+@media (max-width: 370px) {
+  .portfolio-brand { padding-inline: 12px; gap: 2px; }
+  .portfolio-hero-copy, .portfolio-section { padding-left: 16px; padding-right: 16px; }
+  .portfolio h1 { font-size: 26px; }
+  .portfolio-hero-highlight { font-size: 25px; }
+  .portfolio-invite h2 .portfolio-brush { font-size: 1.06em; }
+  .portfolio-invite .portfolio-accent { width: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .portfolio *, .portfolio-home-link { scroll-behavior: auto; transition: none !important; } }
+
 :root {
   color-scheme: light;
 }

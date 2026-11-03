@@ -109,6 +109,15 @@ export default function Home() {
         </div>
       </section>
 
+      <Link href="/portfolio" className="portfolio-home-link">
+        <span>
+          <span className="portfolio-home-label">Espaços parceiros e patrocinadores</span>
+          <strong>Conheça a Zumba do Cris</strong>
+          <span>Seu espaço ou sua marca pode fazer parte dessa experiência.</span>
+        </span>
+        <span aria-hidden="true">↗</span>
+      </Link>
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {classes.map((item) => (
           <article

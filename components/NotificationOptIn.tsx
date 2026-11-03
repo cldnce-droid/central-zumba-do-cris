@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   getOneSignalDebugInfo,
   getOneSignal,
@@ -85,11 +86,14 @@ async function subscribeWithOneSignal() {
 }
 
 export function NotificationOptIn() {
+  const pathname = usePathname();
+  const isPortfolio = pathname === "/portfolio" || pathname.startsWith("/portfolio/");
   const [isVisible, setIsVisible] = useState(false);
   const [status, setStatus] = useState<NotificationStatus>("idle");
   const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
+    if (isPortfolio) return;
     const iosNavigator = navigator as Navigator & { standalone?: boolean };
     const installed =
       window.matchMedia("(display-mode: standalone)").matches ||
@@ -105,7 +109,7 @@ export function NotificationOptIn() {
     }
 
     return () => window.clearTimeout(showTimer);
-  }, []);
+  }, [isPortfolio]);
 
   const requestNotifications = async () => {
     if (!("Notification" in window)) {
@@ -164,7 +168,7 @@ export function NotificationOptIn() {
     setIsVisible(false);
   };
 
-  if (!isVisible) return null;
+  if (!isVisible || isPortfolio) return null;
 
   const buttonDisabled = status === "loading" || status === "success";
 

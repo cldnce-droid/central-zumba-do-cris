@@ -80,7 +80,7 @@ export default function RootLayout({
         </Script>
         <PwaRegister />
         <NotificationOptIn />
-        <div className="min-h-dvh overflow-hidden bg-cris-paper text-cris-navy">
+        <div className="app-shell min-h-dvh overflow-hidden bg-cris-paper text-cris-navy">
           <div className="app-bg" aria-hidden="true" />
           <Header />
           <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-col px-4 pb-28 pt-5 md:px-5 md:pb-12 md:pt-3">
