@@ -34,6 +34,7 @@ URL completa e a opcao recomendada.
 const SCRIPT_SECRET = "COLOQUE_UM_SEGREDO_FORTE_AQUI";
 
 const ACTIONS = {
+  getAgendaParcerias: () => getAgendaParcerias(),
   getAlunos: (data) => readRows("Alunos", data),
   createAluno: (data) => createAluno(data),
   updateAluno: (data) => updateRow("Alunos", data),
@@ -86,6 +87,29 @@ function doGet() {
 }
 
 let requestRows = {};
+
+// Execute once from the editor after approving the portfolio preview.
+// The calendar stays private. Only occupied intervals are returned to the PWA.
+function configurarAgendaParcerias() {
+  const properties = PropertiesService.getScriptProperties();
+  const existing = properties.getProperty("PARCERIAS_CALENDAR_ID");
+  if (existing && CalendarApp.getCalendarById(existing)) return existing;
+  const calendar = CalendarApp.createCalendar("Zumba do Cris · Parcerias de verão", {
+    timeZone: "America/Sao_Paulo",
+    summary: "Reservas confirmadas após pagamento e confirmação do patrocínio. Cada espaço ocupa um período semanal durante as nove semanas da temporada."
+  });
+  properties.setProperty("PARCERIAS_CALENDAR_ID", calendar.getId());
+  return calendar.getId();
+}
+
+function getAgendaParcerias() {
+  const id = PropertiesService.getScriptProperties().getProperty("PARCERIAS_CALENDAR_ID");
+  if (!id) throw new Error("Agenda de parcerias não configurada.");
+  const calendar = CalendarApp.getCalendarById(id);
+  if (!calendar) throw new Error("Agenda de parcerias indisponível.");
+  const events = calendar.getEvents(new Date("2026-12-18T00:00:00-03:00"), new Date("2027-02-15T00:00:00-03:00"));
+  return { busy: events.map(event => ({ start: event.getStartTime().toISOString(), end: event.getEndTime().toISOString() })) };
+}
 
 function doPost(e) {
   requestRows = {};
@@ -454,3 +478,11 @@ Este código inclui consultas de selos sem bloqueio de escrita, reaproveitamento
 Publique este código como uma nova versão da implantação existente do Apps Script, preservando o segredo configurado. Depois publique os arquivos atualizados do app na Vercel. Esta revisão não foi implantada automaticamente. Se optar por criar outra implantação com outra URL, atualize GOOGLE_APPS_SCRIPT_URL antes de publicar o app.
 
 A revisão local cobre falhas e concorrência simuladas, mas não mede a latência da implantação real. Os logs do servidor agora registram a ação e sua duração, sem o conteúdo dos cadastros. Em caso de tempo excedido, confira os dados antes de repetir: interromper a espera não desfaz uma gravação que já chegou ao Google.
+
+## Agenda de parcerias — prévia de novembro/2026
+
+Ainda não implantada. Após aprovação, preservar o segredo e o manifesto existentes, executar `configurarAgendaParcerias` no editor e autorizar o acesso ao Google Agenda. Essa função cria uma agenda privada uma única vez. Se o manifesto declarar escopos explicitamente, incluir o escopo de Calendar necessário sem remover os existentes. Atualizar a implantação existente somente depois da autorização.
+
+A agenda separada é a fonte de verdade. O PWA consulta apenas os intervalos ocupados; títulos, nomes, descrições e contatos não são retornados. Solicitações seguem pelo WhatsApp e não criam reservas. Após pagamento e confirmação do patrocínio, Cris registra nessa agenda um evento semanal por nove ocorrências no período escolhido. Primeiras datas: sexta 18/12, sábado 19/12 ou domingo 20/12/2026. Últimas datas: 12, 13 ou 14/02/2027. Marcar um evento em qualquer parte da manhã bloqueia a manhã da temporada; um evento após o meio-dia bloqueia o período da tarde. Não usar eventos de dia inteiro para reservas de meio período, pois bloqueiam ambos.
+
+O horário exato da aula é combinado com Cris. Um conflito em qualquer uma das nove datas torna o período inteiro indisponível para novos parceiros. A consulta é repetida antes de abrir o WhatsApp. Isso é solicitação, sem promessa de reserva ou garantia contra dois pedidos simultâneos. A decisão final é de Cris no Google Agenda. Para liberar um período, cancelar/remover os eventos correspondentes. Agenda indisponível nunca é tratada como agenda vazia.
