@@ -1,15 +1,27 @@
-export const beaches = [
-  { name: "Armação", fans: 300, price: 800 },
-  { name: "Palmas", fans: 300, price: 800 },
-  { name: "Ganchos de Fora", fans: 150, price: 600 },
-  { name: "Calheiros", fans: 150, price: 600 }
-] as const;
 export const periods = ["Sexta à tarde", "Sábado de manhã", "Sábado à tarde", "Domingo de manhã"];
-export const plans = ["Marca Parceira", "Marca em Destaque", "Patrocínio Exclusivo do Circuito"];
-export const sponsorshipBenefits = [
-  ["Logo nas ventarolas dos encontros contratados.", "Menções e ativação da marca em todos os encontros contratados e nos posts relacionados."],
-  ["Logo nas ventarolas dos encontros contratados.", "Menções e ativação da marca em todos os encontros contratados e nos posts relacionados.", "Beach flag nos encontros contratados.", "Espaço para sorteio de brindes ou outro tipo de ativação, conforme a necessidade da marca e mediante alinhamento."],
-  ["Exclusividade de patrocínio em todo o circuito.", "Logo no verso de até 8.100 ventarolas.", "Beach flags nos 36 encontros.", "Menções e ativação da marca nos 36 encontros e nos posts relacionados.", "Espaço para sorteio de brindes ou outro tipo de ativação, conforme a necessidade da marca e mediante alinhamento.", "Relatórios semanais sobre público, publicações e outras ações realizadas no circuito."]
+// Previsão por espaço, a confirmar antes da publicação.
+export const partnerFans = 2500;
+export const beaches = ["Armação", "Palmas", "Calheiros", "Ganchos de Fora"];
+export const offers = [
+  {
+    title: "Logo nas ventarolas",
+    price: 500,
+    benefits: [
+      "Logo no bloco inferior do verso, na área de 40% reservada às marcas em formato menor.",
+      "Divulgação nas 8.000 ventarolas previstas para distribuição nas quatro praias durante a temporada."
+    ]
+  },
+  {
+    title: "Logo ampliada e presença no circuito",
+    price: 2500,
+    benefits: [
+      "Logo ampliada no bloco superior do verso das 8.000 ventarolas previstas. Limitado a 6 marcas.",
+      "Menções à sua marca em todos os 36 encontros previstos para o circuito.",
+      "Logo no par de beach flags coletivos do circuito.",
+      "Oferta da sua marca na página acessada pelo QR Code da ventarola.",
+      "Um post coletivo no Instagram com as seis marcas."
+    ]
+  }
 ] as const;
 export const whatsappUrl = (text: string) => `https://wa.me/5541984774688?text=${encodeURIComponent(text)}`;
 export const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -26,16 +38,4 @@ export function conflicts(dates: string[], period: number, agenda: Agenda) {
     const end = start + 12 * 60 * 60_000;
     return agenda.busy.some(event => Date.parse(event.start) < end && Date.parse(event.end) > start);
   });
-}
-export function sponsorship(plan: number, selection: number[]) {
-  const counts = plan === 2 ? [9, 9, 9, 9] : selection;
-  const count = counts.reduce((a, b) => a + b, 0);
-  const valid = counts.length === 4 && counts.every(n => Number.isInteger(n) && n >= 0 && n <= 9) &&
-    (plan === 0 ? count >= 1 && count <= 9 : plan === 1 ? count >= 10 && count <= 35 : plan === 2 && count === 36);
-  const fans = counts.reduce((sum, n, i) => sum + n * beaches[i].fans, 0);
-  const total = counts.reduce((sum, n, i) => sum + n * beaches[i].price, 0);
-  const investment = plan === 2 ? "Investimento sob proposta." : `Investimento estimado: ${money(total)}. Valor sujeito à negociação.`;
-  const benefits = sponsorshipBenefits[plan];
-  const message = `Olá, Cris! Tenho interesse em ${plans[plan]}.\n${counts.map((n, i) => n ? `${beaches[i].name} · ${n} encontro(s)` : "").filter(Boolean).join("\n")}\n${count} encontros · até ${fans.toLocaleString("pt-BR")} ventarolas.\n${investment}\nBenefícios incluídos:\n${benefits.map(benefit => `• ${benefit}`).join("\n")}\nVamos conversar sobre datas e disponibilidade?`;
-  return { counts, count, fans, total, investment, benefits, message, valid };
 }

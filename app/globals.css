@@ -787,3 +787,19 @@ a {
     transition: none;
   }
 }
+
+.gcr-home-card,.gcr-signature { display:grid; justify-items:center; gap:12px; text-align:center; background:white; padding:24px; color:#07143d; }
+.gcr-home-card { border-radius:16px; border-top:4px solid #ff007a; box-shadow:0 6px 26px #07143d12; }
+.gcr-home-card img,.gcr-signature img { width:min(72%,270px); height:auto; }
+.gcr-home-card strong { background:#0055ef; color:white; border-radius:10px; padding:12px 20px; }
+.gcr-signature span { font-weight:700; }
+.gcr-example { margin: 18px 0 0; }
+.gcr-fan-art { position: relative; max-width: 420px; margin: auto; }
+.gcr-fan-art img { display: block; width: 100%; height: auto; border-radius: 12px; }
+.gcr-marker { position: absolute; pointer-events: none; border: 3px dashed #0055ef; border-radius: 12px; box-shadow: 0 0 0 2px white; }
+.gcr-marker.upper { inset: 13.4% 4% 53.4%; }
+.gcr-marker.lower { inset: 48.8% 11% 22.5%; }
+.gcr-example figcaption { margin-top: 10px; display: grid; gap: 3px; text-align: center; }
+.gcr-example figcaption strong { color: #0043bf; }
+.gcr-example figcaption span { font-size: .875rem; }
+

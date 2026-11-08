@@ -53,14 +53,14 @@ test("vídeos têm fallback, proporção vertical e devolvem foco e posição ao
 
 test("os dois interesses têm destinos diferentes e podem voltar ao portfólio", async ({ page }) => {
   for (const [button, path, title] of [
-    ["Quero ser um espaço parceiro", "espacos-parceiros", "Neste verão, seu espaço é o ponto de encontro da Zumba do Cris."],
-    ["Quero ser patrocinador", "patrocinio", "Traga sua marca para esse movimento"]
+    ["Quero ser um espaço parceiro", "espacos-parceiros", "Espaço Parceiro"],
+    ["Quero ser patrocinador", "patrocinio", "Patrocinadores"]
   ]) {
     await page.goto("/portfolio");
     await page.getByRole("link", { name: button, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/portfolio/${path}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-    await expect(page.getByRole("button", { name: /pelo WhatsApp/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Solicitar parceria pelo WhatsApp|Conversar sobre patrocínio/ })).toBeVisible();
     await page.getByRole("link", { name: "Voltar ao portfólio" }).click();
     await expect(page).toHaveURL(/\/portfolio#parcerias$/);
   }
@@ -69,41 +69,24 @@ test("os dois interesses têm destinos diferentes e podem voltar ao portfólio",
 test("entrada permanente na inicial abre o portfólio", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("zdc-notification-welcome-seen-v6", "true"));
   await page.goto("/");
-  await page.getByRole("link", { name: /Conheça a Zumba do Cris/ }).click();
+  await page.getByRole("link", { name: /Conheça o projeto/ }).click();
   await expect(page).toHaveURL(/\/portfolio$/);
 });
 
 
-test("patrocínio calcula valores, limites e mensagem sem enviar", async ({ page }) => {
-  await page.goto("/portfolio/patrocinio");
-  const send = page.getByRole("button", { name: "Negociar proposta pelo WhatsApp" });
-  await expect(send).toBeDisabled();
-  await page.getByLabel("Armação", { exact: true }).selectOption("3");
-  await page.getByLabel("Calheiros", { exact: true }).selectOption("2");
-  await expect(page.locator(".proposal-total")).toContainText("3.600,00");
-  await expect(page.locator(".proposal-total")).toContainText("1.200 ventarolas");
-  await expect(send).toBeEnabled();
-  await page.getByLabel("Participação", { exact: true }).selectOption("1");
-  await expect(send).toBeDisabled();
-  await page.getByLabel("Armação", { exact: true }).selectOption("8");
-  await expect(send).toBeEnabled();
-  await expect(page.locator(".proposal-total")).toContainText("7.600,00");
-  await page.getByLabel("Participação", { exact: true }).selectOption("2");
-  await expect(page.getByLabel("Armação", { exact: true })).toBeDisabled();
-  await expect(page.locator(".proposal-total")).toContainText("36 encontros · até 8.100 ventarolas");
-  await expect(page.locator(".proposal-total")).toContainText("Investimento sob proposta.");
-  await page.getByLabel("Participação", { exact: true }).selectOption("0");
-  await expect(page.getByLabel("Armação", { exact: true })).toHaveValue("8");
-  await expect(send).toBeDisabled();
-  await page.getByLabel("Armação", { exact: true }).selectOption("3");
-  let outbound = "";
-  await page.route("https://wa.me/**", route => { outbound = route.request().url(); return route.fulfill({ body: "WhatsApp interceptado pelo teste" }); });
-  await send.click();
-  await expect.poll(() => outbound).toContain("5541984774688");
-  const message = new URL(outbound).searchParams.get("text")!;
-  expect(message).toContain("Marca Parceira");
-  expect(message).toContain("Armação · 3 encontro(s)");
-  expect(message).toContain("3.600,00");
+test("as duas opções levam o valor da temporada ao WhatsApp", async ({ page }) => {
+  await page.route("https://wa.me/**", route => route.fulfill({ body: "Teste" }));
+  for (const [index, title, price] of [["0", "Logo nas ventarolas", "500,00"], ["1", "Logo ampliada e presença no circuito", "2.500,00"]]) {
+    await page.goto("/portfolio/patrocinio");
+    await page.getByLabel("Participação", { exact: true }).selectOption(index);
+    await expect(page.locator(".gcr-example")).toHaveCount(2);
+    const outbound = page.waitForRequest(request => request.url().startsWith("https://wa.me/"));
+    await page.getByRole("button", { name: "Conversar sobre patrocínio" }).click();
+    const url = new URL((await outbound).url());
+    expect(url.pathname).toBe("/5541984774688");
+    expect(url.searchParams.get("text")).toContain(title);
+    expect(url.searchParams.get("text")).toContain(price);
+  }
 });
 
 test("agenda bloqueia o período da temporada e revalida antes do WhatsApp", async ({ page }) => {
@@ -119,7 +102,6 @@ test("agenda bloqueia o período da temporada e revalida antes do WhatsApp", asy
   await expect(page.getByLabel("Datas solicitadas").locator("li")).toHaveCount(9);
   await expect(page.getByLabel("Datas solicitadas")).toContainText("19/12/2026");
   await expect(page.getByLabel("Datas solicitadas")).toContainText("13/02/2027");
-  await page.getByLabel("Adicione a logo").check();
   await page.getByLabel("Estou ciente").check();
   let outbound = "";
   await page.route("https://wa.me/**", route => { outbound = route.request().url(); return route.fulfill({ body: "Intercepção de teste" }); });
@@ -129,7 +111,7 @@ test("agenda bloqueia o período da temporada e revalida antes do WhatsApp", asy
   const message = new URL(outbound).searchParams.get("text")!;
   expect(message).toContain("Espaço Sol & Mar");
   expect(message).toContain("Sábado à tarde");
-  expect(message).toContain("quero receber um orçamento");
+  expect(message).toContain("R$ 1.800");
   expect(message).toContain("após pagamento e confirmação do patrocínio");
 });
 

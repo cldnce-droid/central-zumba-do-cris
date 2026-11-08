@@ -109,13 +109,10 @@ export default function Home() {
         </div>
       </section>
 
-      <Link href="/portfolio" className="portfolio-home-link">
-        <span>
-          <span className="portfolio-home-label">Espaços parceiros e patrocinadores</span>
-          <strong>Conheça a Zumba do Cris</strong>
-          <span>Seu espaço ou sua marca pode fazer parte dessa experiência.</span>
-        </span>
-        <span aria-hidden="true">↗</span>
+      <Link href="/portfolio" className="gcr-home-card">
+        <Image src="/portfolio/gcr-no-ritmo.webp" alt="GCR No Ritmo" width={1717} height={909} />
+        <span>O circuito de verão da Zumba do Cris nas praias de Governador Celso Ramos</span>
+        <strong>Conheça o projeto <span aria-hidden="true">→</span></strong>
       </Link>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ActionButton } from "@/components/ActionButton";
 import { PinIcon, UsersIcon } from "@/components/Icons";
 import { PortfolioVideo } from "@/components/PortfolioVideo";
-import { links } from "@/lib/data";
+
 
 export const metadata: Metadata = {
   title: "Parcerias e experiências | Zumba do Cris",
@@ -23,9 +23,9 @@ export default function PortfolioPage() {
       <p className="portfolio-chapter">01 · Apresentação</p>
       <div className="portfolio-sheet portfolio-presentation">
       <section className="portfolio-hero" aria-labelledby="portfolio-title">
-        <Link href="/" className="portfolio-brand" aria-label="Voltar à Central Zumba do Cris">
-          <span className="portfolio-brand-mark"><Image className="portfolio-logo" src={links.officialLogo} alt="Zumba do Cris — Errou... continua!" width={1536} height={1024} unoptimized priority /></span>
-          <span className="portfolio-brand-name">Central<br />Zumba do Cris</span>
+        <Link href="/" className="gcr-signature" aria-label="Voltar à Central Zumba do Cris">
+          <span>Zumba do Cris apresenta</span>
+          <Image src="/portfolio/gcr-no-ritmo.webp" alt="GCR No Ritmo" width={1717} height={909} priority />
         </Link>
         <div className="portfolio-hero-copy">
         <h1 id="portfolio-title">Leve essa energia<br />para o seu espaço.</h1>
