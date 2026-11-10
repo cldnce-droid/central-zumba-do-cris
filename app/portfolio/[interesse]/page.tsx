@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PortfolioProposal from "@/components/PortfolioProposal";
-import { money, offers, partnerFans } from "@/lib/portfolio";
+import { money, offers } from "@/lib/portfolio";
 
 export const metadata: Metadata = { title: "Parcerias de verão | GCR No Ritmo", robots: { index: false, follow: false } };
 export function generateStaticParams() { return [{ interesse: "espacos-parceiros" }, { interesse: "patrocinio" }]; }
@@ -25,24 +25,26 @@ export default async function PartnershipPage({ params }: { params: Promise<{ in
   return <article className="portfolio portfolio-proposal">
     <div className="portfolio-topline"><Link href="/portfolio#parcerias">← Voltar ao portfólio</Link></div>
     {partner ? <>
-      <header className="proposal-card proposal-intro"><h1>Espaço Parceiro</h1>
+      <header className="proposal-card proposal-intro"><h1>Receba o GCR No Ritmo no seu espaço</h1>
         <p>Durante nove semanas, convidamos moradores e turistas para dançar no seu espaço. Depois da aula, eles podem ficar para tomar uma água, pedir um drink ou conhecer o cardápio.</p>
       </header>
       <section className="proposal-card"><h2>O que você recebe</h2><ul>
         <li>Nove aulas de 45 minutos com o Cris, em português e espanhol, com inglês quando necessário.</li>
-        <li>Logo do seu espaço na frente das ventarolas personalizadas, junto à identidade do circuito. A proposta prevê {partnerFans.toLocaleString("pt-BR")} unidades por espaço.</li>
-        <li>Convites ao público na praia antes das aulas e participação das marcas patrocinadoras.</li>
+        <li>Logo do seu espaço na frente das ventarolas personalizadas, com a praia, o dia e o horário das aulas.</li>
+        <li>Distribuição das ventarolas e convites ao público na praia antes das aulas, com participação das marcas do circuito.</li>
+        <li>Cartão no Guia de Verão com o nome do espaço, o horário e o botão “Como chegar”.</li>
         <li>Conteúdo das aulas publicado no Instagram em colaboração com o espaço.</li>
-      </ul><div className="proposal-total"><strong>R$ 1.800 pelas nove datas</strong><span>R$ 200 por aula. O espaço fornece local, palco e som em todos os encontros.</span></div></section>
+      </ul><div className="proposal-total"><strong>R$ 1.800 pelas nove datas</strong><span>R$ 200 por aula. O espaço fornece local, palco e som em todos os encontros. Para menos de nove encontros, R$ 300 por aula.</span></div></section>
     </> : <>
-      <header className="proposal-card proposal-intro"><h1>Patrocinadores</h1>
-        <p>A entrega prevista para o verão é de <strong>8.000 ventarolas</strong> com as marcas patrocinadoras. O circuito prevê 36 encontros em Armação, Palmas, Calheiros e Ganchos de Fora.</p>
+      <header className="proposal-card proposal-intro"><h1>Traga sua marca para esse movimento</h1>
+        <p>4 praias · 36 encontros previstos · 8.000 ventarolas previstas para o verão.</p>
         <p>A participação vale pela temporada inteira, com distribuição conforme o movimento das praias.</p>
       </header>
       {offers.map((offer, index) => <section className="proposal-card" key={offer.title}><h2>{offer.title}</h2>
         <strong>{money(offer.price)} pela temporada</strong><ul>{offer.benefits.map(benefit => <li key={benefit}>{benefit}</li>)}</ul><FanExample premium={index === 1} />
       </section>)}
     </>}
+    {!partner && <a className="proposal-card" href="/guia-digital.html">Ver como minha marca aparece no guia →</a>}
     <PortfolioProposal kind={partner ? "partner" : "sponsor"} />
   </article>;
 }

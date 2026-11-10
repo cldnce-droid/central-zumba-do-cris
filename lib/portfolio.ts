@@ -4,22 +4,24 @@ export const partnerFans = 2500;
 export const beaches = ["Armação", "Palmas", "Calheiros", "Ganchos de Fora"];
 export const offers = [
   {
-    title: "Logo nas ventarolas",
+    title: "Apoiador",
     price: 500,
     benefits: [
       "Logo no bloco inferior do verso, na área de 40% reservada às marcas em formato menor.",
-      "Divulgação nas 8.000 ventarolas previstas para distribuição nas quatro praias durante a temporada."
+      "Divulgação nas 8.000 ventarolas previstas para distribuição nas quatro praias durante a temporada.",
+      "Perfil no Guia de Verão com nome, segmento, bairro, descrição e link para Instagram, WhatsApp ou localização."
     ]
   },
   {
-    title: "Logo ampliada e presença no circuito",
+    title: "Patrocinador",
     price: 2500,
     benefits: [
       "Logo ampliada no bloco superior do verso das 8.000 ventarolas previstas. Limitado a 6 marcas.",
       "Menções à sua marca em todos os 36 encontros previstos para o circuito.",
       "Logo no par de beach flags coletivos do circuito.",
-      "Oferta da sua marca na página acessada pelo QR Code da ventarola.",
-      "Um post coletivo no Instagram com as seis marcas."
+      "Cartão de destaque no guia acessado pelo QR Code, com oferta própria e instruções de resgate.",
+      "Uma publicação coletiva no Instagram da Zumba do Cris marcando as seis marcas.",
+      "Resumo ao final da temporada com fotos das ativações, encontros realizados e alcance da publicação coletiva."
     ]
   }
 ] as const;

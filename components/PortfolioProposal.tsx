@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Agenda, beaches, conflicts, displayDate, periods, offers, partnerFans, money, seasonDates, whatsappUrl } from "@/lib/portfolio";
+import { Agenda, beaches, conflicts, displayDate, periods, offers, money, seasonDates, whatsappUrl } from "@/lib/portfolio";
 
 export default function PortfolioProposal({ kind }: { kind: "partner" | "sponsor" }) {
   const [plan, setPlan] = useState(0);
@@ -24,7 +24,7 @@ export default function PortfolioProposal({ kind }: { kind: "partner" | "sponsor
     `Período: ${periods[period]}`,
     ...dates.map(date => `${displayDate(date)} · ${schedule}`),
     "Nove aulas de 45 minutos · R$ 1.800 (R$ 200 por aula). O espaço fornece local, palco e som.",
-    `Logo do espaço na frente das ventarolas. Previsão de ${partnerFans.toLocaleString("pt-BR")} unidades por espaço.`,
+    "Logo do espaço na frente das ventarolas personalizadas.",
     "Solicitação sujeita à confirmação após pagamento e confirmação do patrocínio."
   ].join("\n") : `Olá, Cris! Quero conversar sobre o patrocínio do GCR No Ritmo.\n${offer.title} · ${money(offer.price)} pela temporada.\n${offer.benefits.map(benefit => `• ${benefit}`).join("\n")}`;
 
@@ -81,7 +81,7 @@ export default function PortfolioProposal({ kind }: { kind: "partner" | "sponsor
       <div className="proposal-total" aria-live="polite"><strong>{money(offer.price)} pela temporada</strong><ul>{offer.benefits.map(benefit => <li key={benefit}>{benefit}</li>)}</ul></div>
     </>}
     <details className="proposal-message"><summary>Conferir mensagem do WhatsApp</summary><pre>{message}</pre></details>
-    <button className="proposal-submit" disabled={partner && (loading || blocked.length > 0)} type="submit">{partner ? "Solicitar parceria pelo WhatsApp" : "Conversar sobre patrocínio"}<span aria-hidden="true"> ↗</span></button>
+    <button className="proposal-submit" disabled={partner && (loading || blocked.length > 0)} type="submit">{partner ? "Solicitar parceria pelo WhatsApp" : "Conversar com o Cris"}<span aria-hidden="true"> ↗</span></button>
 
   </form>;
 }
