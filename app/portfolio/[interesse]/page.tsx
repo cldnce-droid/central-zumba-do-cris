@@ -34,17 +34,19 @@ export default async function PartnershipPage({ params }: { params: Promise<{ in
         <li>Distribuição das ventarolas e convites ao público na praia antes das aulas, com participação das marcas do circuito.</li>
         <li>Cartão no Guia de Verão com o nome do espaço, o horário e o botão “Como chegar”.</li>
         <li>Conteúdo das aulas publicado no Instagram em colaboração com o espaço.</li>
-      </ul><div className="proposal-total"><strong>R$ 1.800 pelas nove datas</strong><span>R$ 200 por aula. O espaço fornece local, palco e som em todos os encontros. Para menos de nove encontros, R$ 300 por aula.</span></div></section>
+      </ul>
+        <a href="/guia-digital.html#grade">Ver os espaços parceiros no guia →</a>
+        <figure className="gcr-example"><div className="gcr-fan-art"><img src="/portfolio/ventarola-frente.webp" alt="Exemplo da frente da ventarola do circuito com a identificação do espaço parceiro" /></div><figcaption>Frente da ventarola · identificação do espaço parceiro</figcaption></figure>
+        <div className="proposal-total"><strong>R$ 2.000 pelas nove datas</strong><span>O espaço fornece local, palco e som em todos os encontros.</span></div></section>
     </> : <>
       <header className="proposal-card proposal-intro"><h1>Traga sua marca para esse movimento</h1>
         <p>4 praias · 36 encontros previstos · 8.000 ventarolas previstas para o verão.</p>
         <p>A participação vale pela temporada inteira, com distribuição conforme o movimento das praias.</p>
       </header>
       {offers.map((offer, index) => <section className="proposal-card" key={offer.title}><h2>{offer.title}</h2>
-        <strong>{money(offer.price)} pela temporada</strong><ul>{offer.benefits.map(benefit => <li key={benefit}>{benefit}</li>)}</ul><FanExample premium={index === 1} />
+        <strong>{money(offer.price)} pela temporada</strong><ul>{offer.benefits.map(benefit => <li key={benefit}>{benefit}</li>)}</ul><a href={index === 0 ? "/guia-digital.html#apoiadores" : "/guia-digital.html#patrocinadores"}>{index === 0 ? "Ver os apoiadores no guia" : "Ver os patrocinadores no guia"} →</a><FanExample premium={index === 1} />
       </section>)}
     </>}
-    {!partner && <a className="proposal-card" href="/guia-digital.html">Ver como minha marca aparece no guia →</a>}
     <PortfolioProposal kind={partner ? "partner" : "sponsor"} />
   </article>;
 }

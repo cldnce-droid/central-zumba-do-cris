@@ -23,7 +23,7 @@ export default function PortfolioProposal({ kind }: { kind: "partner" | "sponsor
     `Espaço: ${venue.trim()} · Praia: ${beach}`,
     `Período: ${periods[period]}`,
     ...dates.map(date => `${displayDate(date)} · ${schedule}`),
-    "Nove aulas de 45 minutos · R$ 1.800 (R$ 200 por aula). O espaço fornece local, palco e som.",
+    "Nove aulas de 45 minutos · R$ 2.000. O espaço fornece local, palco e som.",
     "Logo do espaço na frente das ventarolas personalizadas.",
     "Solicitação sujeita à confirmação após pagamento e confirmação do patrocínio."
   ].join("\n") : `Olá, Cris! Quero conversar sobre o patrocínio do GCR No Ritmo.\n${offer.title} · ${money(offer.price)} pela temporada.\n${offer.benefits.map(benefit => `• ${benefit}`).join("\n")}`;
@@ -72,7 +72,7 @@ export default function PortfolioProposal({ kind }: { kind: "partner" | "sponsor
       {agenda && <small>Consulta ao Google Agenda em {new Date(agenda.checkedAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}. A disponibilidade será conferida novamente ao solicitar.</small>}
       {loading && <p role="status">Consultando agenda…</p>}
       {error && <p className="proposal-notice" role="alert">{error}</p>}
-      <label className="proposal-check"><input type="checkbox" required />Estou ciente do valor de R$ 1.800 pelas nove datas e do compromisso de fornecer local, palco e som.</label>
+      <label className="proposal-check"><input type="checkbox" required />Estou ciente do valor de R$ 2.000 pelas nove datas e do compromisso de fornecer local, palco e som.</label>
       <p className="proposal-notice">Você solicita as datas. Cris confirma a agenda após o pagamento e a confirmação do patrocínio.</p>
     </> : <>
       <label>Participação<select aria-label="Participação" value={plan} onChange={e => setPlan(Number(e.target.value))}>
