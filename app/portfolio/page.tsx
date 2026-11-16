@@ -32,6 +32,12 @@ export default function PortfolioPage() {
         <p className="portfolio-hero-highlight">Conecte sua marca a essa experiência.</p>
         <p className="portfolio-intro">Um convite para espaços parceiros<br className="portfolio-wide-break" /> e patrocinadores. <Accent /></p>
         </div>
+        <div className="portfolio-section">
+          <p>O <strong>GCR No Ritmo</strong> é o circuito de verão da <strong>Zumba do Cris</strong>, que leva aulas de dança gratuitas às praias de Governador Celso Ramos, reunindo moradores e turistas em uma experiência de dança, diversão e bem-estar.</p>
+          <p>A proposta prevê <strong>36 encontros em quatro praias — Palmas, Armação, Calheiros e Ganchos de Fora</strong> — com aulas de 45 minutos, passos fáceis e uma mistura de ritmos latinos e brasileiros.</p>
+          <p>Os <strong>espaços parceiros</strong> recebem e contratam as aulas. Os <strong>patrocinadores e apoiadores</strong> ajudam a viabilizar a divulgação e a distribuição das ventarolas, conectando suas marcas ao público pelo circuito e pelo guia digital.</p>
+          <p>É um convite para conhecer a cidade dançando, descobrir negócios locais e criar lembranças que deem vontade de voltar.</p>
+        </div>
         <figure className="portfolio-hero-photo">
           <Image src="/portfolio/cris-comunidade.jpg" alt="Cris à frente de um encontro de dança, com a comunidade reunida ao fundo" width={5184} height={3456} unoptimized priority />
         </figure>
