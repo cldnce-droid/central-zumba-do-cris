@@ -14,13 +14,13 @@ export const offers = [
   },
   {
     title: "Patrocinador",
-    price: 2500,
+    price: 1500,
     benefits: [
-      "Logo ampliada no bloco superior do verso das 8.000 ventarolas previstas. Limitado a 6 marcas.",
+      "Logo ampliada no bloco superior do verso das 8.000 ventarolas previstas. Limitado a 10 marcas.",
       "Menções à sua marca em todos os 36 encontros previstos para o circuito.",
       "Logo no par de beach flags coletivos do circuito.",
       "Cartão de destaque no guia acessado pelo QR Code, com oferta própria e instruções de resgate.",
-      "Uma publicação coletiva no Instagram da Zumba do Cris marcando as seis marcas.",
+      "Uma publicação coletiva no Instagram da Zumba do Cris marcando as dez marcas.",
       "Resumo ao final da temporada com fotos das ativações, encontros realizados e alcance da publicação coletiva."
     ]
   }
