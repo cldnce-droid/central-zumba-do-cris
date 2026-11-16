@@ -27,16 +27,15 @@ export default function PortfolioPage() {
           <span>Zumba do Cris apresenta</span>
           <Image src="/portfolio/gcr-no-ritmo.webp" alt="GCR No Ritmo" width={1717} height={909} priority />
         </Link>
-        <div className="portfolio-hero-copy">
+        <div className="portfolio-hero-copy" style={{ textAlign: "center" }}>
         <h1 id="portfolio-title">Leve essa energia<br />para o seu espaço.</h1>
         <p className="portfolio-hero-highlight">Conecte sua marca a essa experiência.</p>
-        <p className="portfolio-intro">Um convite para espaços parceiros<br className="portfolio-wide-break" /> e patrocinadores. <Accent /></p>
+        <p className="portfolio-intro" style={{ margin: "0 auto" }}>Um convite para espaços parceiros<br className="portfolio-wide-break" /> e patrocinadores. <Accent /></p>
         </div>
-        <div className="portfolio-section">
-          <p>O <strong>GCR No Ritmo</strong> é o circuito de verão da <strong>Zumba do Cris</strong>, que leva aulas de dança gratuitas às praias de Governador Celso Ramos, reunindo moradores e turistas em uma experiência de dança, diversão e bem-estar.</p>
-          <p>A proposta prevê <strong>36 encontros em quatro praias — Palmas, Armação, Calheiros e Ganchos de Fora</strong> — com aulas de 45 minutos, passos fáceis e uma mistura de ritmos latinos e brasileiros.</p>
-          <p>Os <strong>espaços parceiros</strong> recebem e contratam as aulas. Os <strong>patrocinadores e apoiadores</strong> ajudam a viabilizar a divulgação e a distribuição das ventarolas, conectando suas marcas ao público pelo circuito e pelo guia digital.</p>
-          <p>É um convite para conhecer a cidade dançando, descobrir negócios locais e criar lembranças que deem vontade de voltar.</p>
+        <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 22px 8px", textAlign: "center", fontSize: 16, lineHeight: 1.65, textWrap: "pretty" }}>
+          <p>O <strong>GCR No Ritmo</strong> leva a Zumba do Cris às praias de Governador Celso Ramos, com dança gratuita, diversão e bem-estar para moradores e turistas.</p>
+          <p style={{ marginTop: 16, color: "#0055ef", fontWeight: 700 }}>36 encontros · 4 praias · Aulas de 45 minutos</p>
+          <p style={{ marginTop: 16 }}>Espaços parceiros, patrocinadores e apoiadores fazem essa experiência acontecer e conectam seus negócios ao público pelo circuito e pelo guia digital.</p>
         </div>
         <figure className="portfolio-hero-photo">
           <Image src="/portfolio/cris-comunidade.jpg" alt="Cris à frente de um encontro de dança, com a comunidade reunida ao fundo" width={5184} height={3456} unoptimized priority />
@@ -77,7 +76,7 @@ export default function PortfolioPage() {
       <section className="portfolio-section portfolio-creative" aria-labelledby="creative-title">
         <h2 id="creative-title">Criatividade que <span className="portfolio-brush">faz parte.<Accent /></span></h2>
         <p>Direção criativa e produção visual: um olhar que transforma temas, apresentações e cada detalhe da experiência.</p>
-        <Image className="portfolio-creative-cover" src="/portfolio/capa.jpeg" alt="CL Production e três fotografias do universo visual de Limbo" width={1240} height={240} unoptimized />
+        <Image className="portfolio-creative-cover" style={{ width: "100%", height: "auto", maxWidth: "100%", objectFit: "contain", objectPosition: "center", position: "relative", zIndex: 3 }} loading="eager" src="/portfolio/capa.jpeg" alt="CL Production e três fotografias do universo visual de Limbo" width={1240} height={240} unoptimized />
         <a className="portfolio-text-link" href="https://www.instagram.com/clproduction333/" target="_blank" rel="noreferrer">Mais da CL Production · @clproduction333 ↗</a>
       </section>
 
