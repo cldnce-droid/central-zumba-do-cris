@@ -7,12 +7,6 @@ export const pixKey = "4c1f81f8-95e8-4a9c-b7fa-58268fe36315";
 
 export const whatsappGroups = [
   {
-    city: "Calheiros",
-    schedule: "Terça e quinta • 20h30",
-    url: "https://chat.whatsapp.com/J8wN1cv3qdn9pZEoFpkVWj",
-    accent: "pink"
-  },
-  {
     city: "Palmas",
     schedule: "Segunda e quarta • 19h",
     url: "https://chat.whatsapp.com/B6c5JM9R5nx8IxpZNTK0jp",
@@ -54,16 +48,6 @@ export const classes = [
     note: "Segunda e quarta em um novo espaço preparado para a nossa turma."
   },
   {
-    city: "Calheiros",
-    days: "Terça e quinta",
-    time: "20h30",
-    place: "Ao lado do Berlanda",
-    accent: "purple",
-    image: "/references/local-calheiros.png",
-    mapUrl: "https://maps.app.goo.gl/SAQjdw9UR8AZb2oXA",
-    note: "Duas noites na semana para fechar o dia no modo alegria total."
-  },
-  {
     city: "Armação",
     days: "Segunda e quarta",
     time: "20h30",
@@ -77,23 +61,9 @@ export const classes = [
 
 export const plans = [
   {
-    name: "1x na semana",
-    price: "R$80",
-    tagline: "Acesso a 1 aula por semana.",
-    featured: false,
-    benefits: [] as string[]
-  },
-  {
     name: "2x na semana",
     price: "R$100",
     tagline: "Acesso a 2 aulas por semana.",
-    featured: false,
-    benefits: [] as string[]
-  },
-  {
-    name: "3x na semana",
-    price: "R$130",
-    tagline: "Acesso a 3 aulas por semana.",
     featured: false,
     benefits: [] as string[]
   },
@@ -112,13 +82,6 @@ export const plans = [
 ] as const;
 
 export const notices = [
-  {
-    category: "Vagas",
-    title: "Últimas vagas em Calheiros",
-    description: "Restam apenas 7 vagas para as aulas de terça e quinta.",
-    accent: "pink",
-    date: "08 de junho"
-  },
   {
     category: "Turmas",
     title: "Palmas está crescendo",
