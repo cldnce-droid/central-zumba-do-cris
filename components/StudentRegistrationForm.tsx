@@ -148,14 +148,13 @@ export function StudentRegistrationForm() {
   };
 
   const selectPlan = (plan: CadastroAlunoFormData["plano"]) => {
-    const limit = plan ? getRegistrationLocationCount(plan) : 0;
     setForm((current) => ({
       ...current,
       plano: plan,
       turmaIds:
         plan && isPremiumPlan(plan)
           ? classes.map((item) => item.id)
-          : current.turmaIds.slice(0, limit)
+          : []
     }));
     setErrors((current) => ({
       ...current,
@@ -175,6 +174,11 @@ export function StudentRegistrationForm() {
 
     if (isPremiumPlan(form.plano)) {
       updateField("turmaIds", classes.map((item) => item.id));
+      return;
+    }
+
+    if (form.plano === "2x") {
+      updateField("turmaIds", [classId]);
       return;
     }
 
