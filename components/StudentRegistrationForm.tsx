@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarIcon,
   HeartIcon,
@@ -99,7 +99,7 @@ function validateForm(form: CadastroAlunoFormData) {
 
 export function StudentRegistrationForm() {
   const classes = useMemo(() => getTurmasParaCadastro(), []);
-  const plans = useMemo(() => getPlanosParaCadastro(), []);
+  const plans = useMemo(() => getPlanosParaCadastro().filter((plan) => !["1x", "3x"].includes(normalizePlano(plan))), []);
   const [form, setForm] = useState<CadastroAlunoFormData>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [registeredStudent, setRegisteredStudent] =
@@ -107,6 +107,24 @@ export function StudentRegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [pixFeedback, setPixFeedback] = useState("");
+  const [noticeStep, setNoticeStep] = useState<1 | 2 | null>(null);
+  const noticeRef = useRef<HTMLDialogElement>(null);
+  const noticeButtonRef = useRef<HTMLButtonElement>(null);
+  const successTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (!registeredStudent || noticeStep === null) return;
+    const dialog = noticeRef.current;
+    if (!dialog) return;
+    dialog.showModal();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    noticeButtonRef.current?.focus();
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [registeredStudent, noticeStep]);
 
   const selectedClasses = registeredStudent
     ? classes.filter((item) =>
@@ -201,7 +219,9 @@ export function StudentRegistrationForm() {
     setIsSubmitting(true);
     setSubmitError("");
     try {
-      setRegisteredStudent(await salvarAlunoPendente(form));
+      const student = await salvarAlunoPendente(form);
+      setNoticeStep(1);
+      setRegisteredStudent(student);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setSubmitError(
@@ -217,6 +237,39 @@ export function StudentRegistrationForm() {
   if (registeredStudent) {
     return (
       <div className="flex flex-col gap-5">
+        <dialog
+          ref={noticeRef}
+          aria-labelledby="registration-notice-title"
+          aria-describedby="registration-notice-description"
+          onCancel={(event) => event.preventDefault()}
+          className="m-auto w-[calc(100%-2rem)] max-w-xl max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-6 text-center text-cris-navy shadow-2xl backdrop:bg-cris-navy/80 sm:p-10"
+        >
+          <p className="text-sm font-black uppercase text-cris-blue">Cadastro recebido · {noticeStep === 1 ? "1 de 2" : "2 de 2"}</p>
+          <h2 id="registration-notice-title" className="mt-5 text-3xl font-black leading-tight">
+            {noticeStep === 1 ? "Um combinado com carinho 💙" : "Sobre o cancelamento"}
+          </h2>
+          <div id="registration-notice-description" className="mt-6 space-y-5 text-lg leading-relaxed">
+            {noticeStep === 1 ? <>
+              <p>Hoje, a Zumba é meu trabalho integral. É com ela que pago minhas contas. Seu pagamento em dia me ajuda a continuar dançando com vocês. 💙</p>
+              <p>Por isso, faça o pagamento <strong>até o dia 8 de cada mês</strong>. Se pagar em dinheiro, organize-se para me entregar até essa data.</p>
+            </> : <p>Estou ciente de que, para solicitar o cancelamento, preciso avisar o Cris <strong>até o dia 25 do mês vigente</strong>.</p>}
+          </div>
+          <button
+            ref={noticeButtonRef}
+            type="button"
+            className="mt-8 min-h-14 w-full rounded-lg bg-cris-pink px-5 py-4 text-lg font-black text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-cris-blue"
+            onClick={() => {
+              if (noticeStep === 1) setNoticeStep(2);
+              else {
+                noticeRef.current?.close();
+                setNoticeStep(null);
+                successTitleRef.current?.focus();
+              }
+            }}
+          >
+            {noticeStep === 1 ? "Confirmo e vou me organizar" : "Estou ciente e confirmo"}
+          </button>
+        </dialog>
         <section className="relative overflow-hidden rounded-lg bg-cris-navy p-6 text-white shadow-pop sm:p-8">
           <div
             aria-hidden="true"
@@ -228,7 +281,7 @@ export function StudentRegistrationForm() {
           <p className="mt-5 text-sm font-black uppercase text-cris-yellow">
             Seu movimento começa aqui
           </p>
-          <h1 className="mt-2 max-w-3xl text-4xl font-black uppercase leading-none sm:text-6xl">
+          <h1 ref={successTitleRef} tabIndex={-1} className="mt-2 max-w-3xl text-4xl font-black uppercase leading-none sm:text-6xl">
             Cadastro recebido!
           </h1>
           <p className="mt-4 max-w-2xl text-lg font-bold leading-relaxed text-white/85">
@@ -449,65 +502,6 @@ export function StudentRegistrationForm() {
 
       <section className="premium-panel p-5 sm:p-7">
         <div className="flex items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-lg bg-cris-blue text-white">
-            <PinIcon className="size-6" />
-          </span>
-          <h2 className="text-2xl font-black uppercase text-cris-navy">
-            Escolha seus locais
-          </h2>
-        </div>
-
-        <p className="mt-4 font-bold text-cris-navy/65">
-          {form.plano
-            ? isPremiumPlan(form.plano)
-              ? "Todos os locais já estão liberados no Plano Apoiadora Premium."
-              : form.plano === "2x"
-                ? "Escolha 1 local. Esse local oferece duas aulas por semana."
-                : `Escolha exatamente ${getRegistrationLocationCount(form.plano)} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
-            : "Escolha primeiro seu plano para liberar a seleção de locais."}
-        </p>
-
-        <div
-          className="mt-6 grid gap-3 md:grid-cols-3"
-          data-registration-error={Boolean(errors.turmaIds)}
-        >
-          {classes.map((item) => (
-            <label
-              className={`cursor-pointer rounded-lg border-2 p-4 transition ${
-                form.turmaIds.includes(item.id)
-                  ? "border-cris-blue bg-cris-blue/10 shadow-pop"
-                  : "border-cris-navy/10 bg-white hover:border-cris-blue/45"
-              } ${!form.plano ? "opacity-60" : ""}`}
-              key={item.id}
-            >
-              <input
-                checked={form.turmaIds.includes(item.id)}
-                className="sr-only"
-                name="turma"
-                onChange={() => toggleClass(item.id)}
-                type="checkbox"
-              />
-              <span className="text-lg font-black uppercase text-cris-navy">
-                {item.nome}
-              </span>
-              <span className="mt-2 block text-sm font-bold text-cris-blue">
-                {formatDays(item.dias)} às {item.horario}
-              </span>
-              <span className="mt-1 block text-sm font-bold text-cris-navy/60">
-                {item.endereco}
-              </span>
-            </label>
-          ))}
-        </div>
-        {errors.turmaIds ? (
-          <p className="mt-3 text-sm font-bold text-cris-pink">
-            {errors.turmaIds}
-          </p>
-        ) : null}
-      </section>
-
-      <section className="premium-panel p-5 sm:p-7">
-        <div className="flex items-center gap-3">
           <span className="grid size-12 place-items-center rounded-lg bg-cris-yellow text-cris-navy">
             <CalendarIcon className="size-6" />
           </span>
@@ -560,6 +554,66 @@ export function StudentRegistrationForm() {
         {errors.plano ? (
           <p className="mt-3 text-sm font-bold text-cris-pink">
             {errors.plano}
+          </p>
+        ) : null}
+      </section>
+
+      <section className="premium-panel p-5 sm:p-7">
+        <div className="flex items-center gap-3">
+          <span className="grid size-12 place-items-center rounded-lg bg-cris-blue text-white">
+            <PinIcon className="size-6" />
+          </span>
+          <h2 className="text-2xl font-black uppercase text-cris-navy">
+            Escolha seus locais
+          </h2>
+        </div>
+
+        <p className="mt-4 font-bold text-cris-navy/65">
+          {form.plano
+            ? isPremiumPlan(form.plano)
+              ? "Todos os locais já estão liberados no Plano Apoiadora Premium."
+              : form.plano === "2x"
+                ? "Escolha 1 local. Esse local oferece duas aulas por semana."
+                : `Escolha exatamente ${getRegistrationLocationCount(form.plano)} ${form.plano === "1x" ? "local" : "locais"} para este plano.`
+            : "Escolha primeiro seu plano para liberar a seleção de locais."}
+        </p>
+
+        <div
+          className="mt-6 grid gap-3 md:grid-cols-3"
+          data-registration-error={Boolean(errors.turmaIds)}
+        >
+          {classes.map((item) => (
+            <label
+              className={`cursor-pointer rounded-lg border-2 p-4 transition ${
+                form.turmaIds.includes(item.id)
+                  ? "border-cris-blue bg-cris-blue/10 shadow-pop"
+                  : "border-cris-navy/10 bg-white hover:border-cris-blue/45"
+              } ${!form.plano ? "opacity-60" : ""}`}
+              key={item.id}
+            >
+              <input
+                checked={form.turmaIds.includes(item.id)}
+                className="sr-only"
+                disabled={!form.plano}
+                name="turma"
+                onChange={() => toggleClass(item.id)}
+                type="checkbox"
+              />
+              <span className="text-lg font-black uppercase text-cris-navy">
+                {item.nome}
+              </span>
+              <span className="mt-2 block text-sm font-bold text-cris-blue">
+                {formatDays(item.dias)} às {item.horario}
+              </span>
+              <span className="mt-1 block text-sm font-bold text-cris-navy/60">
+                {item.endereco}
+              </span>
+            </label>
+          ))}
+        </div>
+        {errors.turmaIds ? (
+          <p className="mt-3 text-sm font-bold text-cris-pink">
+            {errors.turmaIds}
           </p>
         ) : null}
       </section>
