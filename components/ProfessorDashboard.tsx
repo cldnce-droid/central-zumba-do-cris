@@ -44,7 +44,7 @@ import { getLessonDetailsFromId } from "@/lib/utils/lessonId";
 type DashboardTab = "alunos" | "presencas" | "financeiro" | "desafios";
 type ProfessorStudent = ReturnType<typeof getAlunosProfessor>[number];
 
-const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Calheiros", "Armação"];
+const classFilters = ["Todas", "Ganchos de Fora", "Palmas", "Armação"];
 
 function onlyNumbers(value: string) {
   return value.replace(/\D/g, "");
@@ -219,7 +219,7 @@ export function ProfessorDashboard() {
   const [studentsFeedback, setStudentsFeedback] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updatingPlan, setUpdatingPlan] = useState(false);
-  const [planUpgrade, setPlanUpgrade] = useState<PlanoCodigo>("1x");
+  const [planUpgrade, setPlanUpgrade] = useState<PlanoCodigo>("2x");
   const [deletingStudent, setDeletingStudent] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [requestsFeedback, setRequestsFeedback] = useState("");
@@ -486,7 +486,7 @@ export function ProfessorDashboard() {
             </label>
             <label className="mt-4 block text-sm font-black text-cris-navy">Plano
               <select aria-label="Filtrar plano" className="mt-2 min-h-12 w-full rounded-lg border-2 p-3" value={planFilter} onChange={e => setPlanFilter(e.target.value)}>
-                <option value="Todos">Todos</option><option value="1x">1x por semana</option><option value="2x">2x por semana</option><option value="3x">3x por semana</option><option value="premium">Apoiadora Premium</option>
+                <option value="Todos">Todos</option><option value="2x">2x por semana</option><option value="premium">Apoiadora Premium</option>
               </select>
             </label>
             <button type="button" className="mt-3 min-h-11 font-bold underline" onClick={() => {setRegistrationFilter("Todas");setPlanFilter("Todos");setPaymentFilter("Todas");setClassFilter("Todas");setSearch("");}}>Limpar filtros</button>
