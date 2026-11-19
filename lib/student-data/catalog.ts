@@ -1,6 +1,6 @@
 import type { Plano, PlanoCodigo, Turma } from "./types";
 
-export const officialPlans: Plano[] = [
+const allPlans: Plano[] = [
   {
     id: "PLANO_1X",
     nome: "1x por semana",
@@ -35,7 +35,7 @@ export const officialPlans: Plano[] = [
   }
 ];
 
-export const officialClasses: Turma[] = [
+const allClasses: Turma[] = [
   {
     id: "TURMA_GANCHOS",
     nome: "Ganchos de Fora",
@@ -78,6 +78,9 @@ export const officialClasses: Turma[] = [
   }
 ];
 
+export const officialPlans = allPlans.filter(plan => !["PLANO_1X", "PLANO_3X"].includes(plan.id));
+export const officialClasses = allClasses.filter(turma => turma.id !== "TURMA_CALHEIROS");
+
 function normalizedText(value: unknown) {
   return String(value ?? "")
     .normalize("NFD")
@@ -116,7 +119,7 @@ export function getOfficialPlan(value: unknown) {
   const code = normalizePlano(value);
   const id =
     code === "premium" ? "PLANO_PREMIUM" : `PLANO_${code.toUpperCase()}`;
-  return officialPlans.find((plan) => plan.id === id);
+  return allPlans.find((plan) => plan.id === id);
 }
 
 export function getPlanSelectionLimit(value: unknown) {
@@ -146,7 +149,7 @@ export function isPremiumPlan(value: unknown) {
 
 export function getOfficialClass(value: unknown) {
   const text = normalizedText(value);
-  return officialClasses.find((classItem) => {
+  return allClasses.find((classItem) => {
     const id = normalizedText(classItem.id);
     const name = normalizedText(classItem.nome);
     return text.includes(id) || text.includes(name);
