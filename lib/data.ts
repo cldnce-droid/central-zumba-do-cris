@@ -10,19 +10,19 @@ export const whatsappGroups = [
     city: "Palmas",
     schedule: "Segunda e quarta • 19h",
     url: "https://chat.whatsapp.com/B6c5JM9R5nx8IxpZNTK0jp",
-    accent: "blue" as "pink" | "blue" | "yellow" | "purple"
+    accent: "blue"
   },
   {
     city: "Ganchos de Fora",
     schedule: "Terça e quinta • 18h30",
     url: "https://chat.whatsapp.com/FPIReSms4UG6dFwk7RY10D",
-    accent: "yellow" as "pink" | "blue" | "yellow" | "purple"
+    accent: "yellow"
   },
   {
     city: "Armação",
     schedule: "Segunda e quarta • 20h30",
     url: "https://chat.whatsapp.com/GYSoPMm0rGxEMlmANShgGb?s=cl&p=a&ilr=0",
-    accent: "pink" as "pink" | "blue" | "yellow" | "purple"
+    accent: "pink"
   }
 ] as const;
 
@@ -32,7 +32,7 @@ export const classes = [
     days: "Terça e quinta",
     time: "18h30",
     place: "Salão da Capela",
-    accent: "pink" as "pink" | "blue" | "yellow" | "purple",
+    accent: "pink",
     image: "/references/local-ganchos-de-fora.png",
     mapUrl: "https://maps.app.goo.gl/zJRE6LH2uVFRMNd98",
     note: "Duas chances na semana para entrar no ritmo."
@@ -42,7 +42,7 @@ export const classes = [
     days: "Segunda e quarta",
     time: "19h",
     place: "Novo local em Palmas",
-    accent: "blue" as "pink" | "blue" | "yellow" | "purple",
+    accent: "blue",
     image: "/references/local-palmas.png",
     mapUrl: "https://maps.app.goo.gl/AGdKbo8jwwS1PfJe9",
     note: "Segunda e quarta em um novo espaço preparado para a nossa turma."
@@ -52,7 +52,7 @@ export const classes = [
     days: "Segunda e quarta",
     time: "20h30",
     place: "Novo local em Armação",
-    accent: "pink" as "pink" | "blue" | "yellow" | "purple",
+    accent: "pink",
     image: "/references/local-armacao.png",
     mapUrl: "https://maps.app.goo.gl/HgFsyB2v64qairPG8",
     note: "Uma nova turma para dançar no meio e no final da semana."
