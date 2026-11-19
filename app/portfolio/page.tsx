@@ -50,7 +50,7 @@ export default function PortfolioPage() {
         <ul className="portfolio-facts" aria-label="Minha trajetória">
           <li><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" /><ellipse cx="16" cy="16" rx="6" ry="13" /><path d="M4 11h24M3 21h26" /></svg><span><strong>5 idiomas</strong><br />fluentes</span></li>
           <li><svg className="portfolio-plane" viewBox="0 0 32 32" aria-hidden="true"><path d="m28 3-9 9L5 8l-3 3 11 7-6 6-5-1-1 2 6 3 3 5 2-2-1-5 6-6 7 11 3-3-4-14 9-9c2-3-1-5-4-2Z" /></svg><span><strong>Experiência</strong><br />internacional</span></li>
-          <li><UsersIcon /><span><strong>4 turmas</strong><br />+80 alunas</span></li>
+          <li><UsersIcon /><span><strong>3 turmas</strong><br />+80 alunas</span></li>
         </ul>
       </section>
       </div>
@@ -67,7 +67,7 @@ export default function PortfolioPage() {
         <h2 id="zumba-title">O que é a Zumba do Cris? <Accent /></h2>
         <p>Dança, energia e conexão. Passos fáceis, diversos ritmos e uma comunidade que dá vontade de fazer parte.</p>
         <PortfolioVideo title="Sinta essa energia" src="/portfolio/zumba.mp4" poster="/portfolio/zumba-capa.webp" duration="1:08" />
-        <p className="portfolio-locations"><PinIcon /> <span>Armação · Palmas · Calheiros · Ganchos de Fora</span></p>
+        <p className="portfolio-locations"><PinIcon /> <span>Armação · Palmas · Ganchos de Fora</span></p>
       </section>
       </div>
 
