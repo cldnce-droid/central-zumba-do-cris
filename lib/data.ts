@@ -10,19 +10,19 @@ export const whatsappGroups = [
     city: "Palmas",
     schedule: "Segunda e quarta • 19h",
     url: "https://chat.whatsapp.com/B6c5JM9R5nx8IxpZNTK0jp",
-    accent: "blue"
+    accent: "blue" as "pink" | "blue" | "yellow" | "purple"
   },
   {
     city: "Ganchos de Fora",
     schedule: "Terça e quinta • 18h30",
     url: "https://chat.whatsapp.com/FPIReSms4UG6dFwk7RY10D",
-    accent: "yellow"
+    accent: "yellow" as "pink" | "blue" | "yellow" | "purple"
   },
   {
     city: "Armação",
     schedule: "Segunda e quarta • 20h30",
     url: "https://chat.whatsapp.com/GYSoPMm0rGxEMlmANShgGb?s=cl&p=a&ilr=0",
-    accent: "pink"
+    accent: "pink" as "pink" | "blue" | "yellow" | "purple"
   }
 ] as const;
 
@@ -32,7 +32,7 @@ export const classes = [
     days: "Terça e quinta",
     time: "18h30",
     place: "Salão da Capela",
-    accent: "pink",
+    accent: "pink" as "pink" | "blue" | "yellow" | "purple",
     image: "/references/local-ganchos-de-fora.png",
     mapUrl: "https://maps.app.goo.gl/zJRE6LH2uVFRMNd98",
     note: "Duas chances na semana para entrar no ritmo."
@@ -42,7 +42,7 @@ export const classes = [
     days: "Segunda e quarta",
     time: "19h",
     place: "Novo local em Palmas",
-    accent: "blue",
+    accent: "blue" as "pink" | "blue" | "yellow" | "purple",
     image: "/references/local-palmas.png",
     mapUrl: "https://maps.app.goo.gl/AGdKbo8jwwS1PfJe9",
     note: "Segunda e quarta em um novo espaço preparado para a nossa turma."
@@ -52,7 +52,7 @@ export const classes = [
     days: "Segunda e quarta",
     time: "20h30",
     place: "Novo local em Armação",
-    accent: "pink",
+    accent: "pink" as "pink" | "blue" | "yellow" | "purple",
     image: "/references/local-armacao.png",
     mapUrl: "https://maps.app.goo.gl/HgFsyB2v64qairPG8",
     note: "Uma nova turma para dançar no meio e no final da semana."
@@ -86,19 +86,19 @@ export const notices = [
     category: "Turmas",
     title: "Palmas está crescendo",
     description: "Nossa turma de Palmas continua recebendo novas alunas.",
-    accent: "blue",
+    accent: "blue" as "pink" | "blue" | "yellow" | "purple",
     date: "07 de junho"
   },
   {
     category: "Comunidade",
     title: "Bem-vinda ao Zumba do Cris",
     description: "Aqui ninguém precisa ser perfeito. Basta continuar.",
-    accent: "purple"
+    accent: "purple" as "pink" | "blue" | "yellow" | "purple"
   },
   {
     category: "Lembrete",
     title: "Dia de pagamento",
     description: "As mensalidades vencem todo dia 08.",
-    accent: "yellow"
+    accent: "yellow" as "pink" | "blue" | "yellow" | "purple"
   }
 ] as const;
