@@ -100,7 +100,7 @@ export async function appsScriptRequest(
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), action === "deleteAluno" || action === "deleteRow" ? 90000 : 15000);
   let response: Response;
   const startedAt = Date.now();
 
