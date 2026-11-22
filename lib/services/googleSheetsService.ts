@@ -205,7 +205,7 @@ export async function deleteRow(sheetName: string, id: string) {
   try {
     const response = await fetchWithTimeout(`/api/sheets/${sheetName}/${id}`, {
       method: "DELETE"
-    });
+    }, 100000);
     if (response.status === 401) throw new Error("Sua sessão expirou. Entre novamente na Área do Professor.");
     if (!response.ok) {
       const result = await response.json().catch(() => null) as {
