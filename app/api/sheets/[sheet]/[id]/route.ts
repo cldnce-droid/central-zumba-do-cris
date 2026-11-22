@@ -7,6 +7,8 @@ import {
   updateRow
 } from "@/lib/google-sheets/server";
 
+export const maxDuration = 120;
+
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ sheet: string; id: string }> }
